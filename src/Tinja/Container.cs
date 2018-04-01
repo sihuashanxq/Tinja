@@ -1,33 +1,52 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Tinja.Registration;
+using Tinja.Resolving;
+using Tinja.Resolving.Descriptor;
+using Tinja.Resolving.ReslovingContext;
 
 namespace Tinja
 {
     public class Container : IContainer
     {
-        public object Resolve(Type serviceType)
+        private IServiceResolver _resolver;
+
+        private IServiceRegistrar _registrar;
+
+        private ILifeStyleScope _lifeStyleScope;
+
+        private IResolvingContextBuilder _resolvingContextBuilder;
+
+        private ConcurrentDictionary<Type, List<Component>> _components { get; }
+
+        public Container()
         {
-            throw new NotImplementedException();
+            _components = new ConcurrentDictionary<Type, List<Component>>();
+            _registrar = new ServiceRegistrar(_components);
+            _lifeStyleScope = new LifeStyleScope();
+            _resolvingContextBuilder = new ResolvingContextBuilder(_components);
+            _resolver = new ServiceResolver(this, _lifeStyleScope, new TypeDescriptorProvider(), _resolvingContextBuilder);
         }
 
-        public IEnumerable<object> ResolveAll(Type serviceType)
+        public object Resolve(Type serviceType)
         {
-            throw new NotImplementedException();
+            return _resolver.Resolve(serviceType);
         }
 
         public void Register(Type serviceType, Type implType, LifeStyle lifeStyle)
         {
-            throw new NotImplementedException();
+            _registrar.Register(serviceType, implType, lifeStyle);
         }
 
         public void Register(Type serviceType, Func<IContainer, object> implFacotry, LifeStyle lifeStyle)
         {
-            throw new NotImplementedException();
+            _registrar.Register(serviceType, implFacotry, lifeStyle);
         }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _lifeStyleScope.Dispose();
         }
     }
 }

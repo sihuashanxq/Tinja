@@ -25,7 +25,7 @@ namespace Tinja
 
         public override bool Equals(object obj)
         {
-            if (base.Equals(obj))
+            if (ReferenceEquals(this, obj))
             {
                 return true;
             }
@@ -44,12 +44,12 @@ namespace Tinja
 
         public static bool operator ==(Component left, Component right)
         {
-            if (left != null)
+            if (!(left is null))
             {
                 return left.Equals(right);
             }
 
-            if (right != null)
+            if (!(right is null))
             {
                 return right.Equals(left);
             }
