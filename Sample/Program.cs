@@ -12,7 +12,10 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        public IServiceB ServiceB { get; set; }
+        public ServiceA()
+        {
+
+        }
     }
 
     public interface IServiceB
@@ -51,6 +54,11 @@ namespace Sample
         public IServiceB _serviceB { get; set; }
 
         public IServiceA _serviceA { get; set; }
+
+        public Service(IServiceA serviceA)
+        {
+
+        }
 
         public void Dispose()
         {

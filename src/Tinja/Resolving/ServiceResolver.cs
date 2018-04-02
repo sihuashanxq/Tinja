@@ -49,13 +49,13 @@ namespace Tinja.Resolving
 
             return _lifeScope.GetOrAddLifeScopeInstance(context, ctx =>
             {
-                var instanceFactory = GetInstanceFactory(ctx);
-                if (instanceFactory == null)
+                var iFactory = GetInstanceFactory(ctx);
+                if (iFactory == null)
                 {
                     return null;
                 }
 
-                return instanceFactory(_container, _lifeScope);
+                return iFactory(_container, _lifeScope);
             });
         }
 
@@ -81,7 +81,7 @@ namespace Tinja.Resolving
                 return null;
             }
 
-            var node = CreateServiceNode(resolvingContext, descriptor);
+            var node = CreateServiceNode(resolvingContext, descriptor, new HashSet<Type>());
             if (node == null)
             {
                 return null;
@@ -92,12 +92,20 @@ namespace Tinja.Resolving
 
         protected IServiceNode CreateServiceNode(
             IResolvingContext resolvingContext,
-            TypeDescriptor descriptor
+            TypeDescriptor descriptor,
+            HashSet<Type> resolvedTypes
         )
         {
+            if (resolvedTypes.Contains(descriptor.Type))
+            {
+                throw new NotSupportedException($"Circular dependencies:type{descriptor.Type.FullName}!");
+            }
+
+            resolvedTypes.Add(descriptor.Type);
+
             if (resolvingContext is ResolvingEnumerableContext eResolvingContext)
             {
-                return CreateServiceEnumerableNode(eResolvingContext, descriptor);
+                return CreateServiceEnumerableNode(eResolvingContext, descriptor, resolvedTypes);
             }
 
             var parameters = new Dictionary<ParameterInfo, IServiceNode>();
@@ -131,7 +139,7 @@ namespace Tinja.Resolving
                     );
 
                     var paramterDescriptor = _typeDescriptorProvider.Get(implementionType);
-                    var parameterTypeContext = CreateServiceNode(context, paramterDescriptor);
+                    var parameterTypeContext = CreateServiceNode(context, paramterDescriptor, resolvedTypes);
 
                     if (parameterTypeContext == null)
                     {
@@ -159,7 +167,8 @@ namespace Tinja.Resolving
 
         protected IServiceNode CreateServiceEnumerableNode(
             ResolvingEnumerableContext eResolvingContext,
-            TypeDescriptor descriptor
+            TypeDescriptor descriptor,
+            HashSet<Type> resolvedTypes
         )
         {
             var elements = new IServiceNode[eResolvingContext.ElementsResolvingContext.Count];
@@ -173,7 +182,8 @@ namespace Tinja.Resolving
 
                 elements[i] = CreateServiceNode(
                     eResolvingContext.ElementsResolvingContext[i],
-                    _typeDescriptorProvider.Get(implementionType)
+                    _typeDescriptorProvider.Get(implementionType),
+                    resolvedTypes
                 );
             }
 
@@ -188,7 +198,8 @@ namespace Tinja.Resolving
 
         protected Dictionary<PropertyInfo, IServiceNode> CreatePropertyNodes(
             IResolvingContext resolvingContext,
-            TypeDescriptor descriptor)
+            TypeDescriptor descriptor
+        )
         {
             var propertyNodes = new Dictionary<PropertyInfo, IServiceNode>();
 
@@ -223,7 +234,7 @@ namespace Tinja.Resolving
                     continue;
                 }
 
-                var propertyNode = CreateServiceNode(context, propertyDescriptor);
+                var propertyNode = CreateServiceNode(context, propertyDescriptor, new HashSet<Type>());
                 if (propertyNode == null)
                 {
                     continue;

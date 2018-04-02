@@ -10,19 +10,12 @@ namespace Tinja.Resolving.Builder
     {
         public ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>> FactoryCache { get; }
 
-        static MethodInfo BuildNodeInfoMethod { get; }
-
-        static MethodInfo BuildPropertyMethod { get; }
-
         static ParameterExpression ParameterContainer { get; }
 
         static ParameterExpression ParameterLifeScope { get; }
 
         static ServiceFactoryBuilder()
         {
-            BuildNodeInfoMethod = typeof(ServiceFactoryBuilder).GetMethod(nameof(BuildNodeInfo));
-            BuildPropertyMethod = typeof(ServiceFactoryBuilder).GetMethod(nameof(BuildPropertyInfo));
-
             ParameterContainer = Expression.Parameter(typeof(IContainer));
             ParameterLifeScope = Expression.Parameter(typeof(ILifeStyleScope));
         }
@@ -71,41 +64,68 @@ namespace Tinja.Resolving.Builder
 
         public Expression BuildExpression(IServiceNode serviceNode)
         {
-            switch (serviceNode)
-            {
-                case ServiceEnumerableNode enumerable:
-                    return BuildEnumerable(enumerable);
-                case ServiceConstrutorNode construtor:
-                    var instance = BuildConstrucotr(construtor);
-                    if (serviceNode.Properties == null || serviceNode.Properties.Count == 0)
-                    {
-                        return instance;
-                    }
+            Expression instance;
 
-                    return BuildPropertyInfo(instance, serviceNode);
+            if (serviceNode.Constructor == null)
+            {
+                instance = BuildImplFactory(serviceNode);
+            }
+            else if (serviceNode is ServiceEnumerableNode enumerable)
+            {
+                instance = BuildEnumerable(enumerable);
+            }
+            else
+            {
+                instance = BuildConstructor(serviceNode as ServiceConstrutorNode);
             }
 
-            return null;
+            if (serviceNode.Properties == null || serviceNode.Properties.Count == 0)
+            {
+                return instance;
+            }
+
+            return BuildPropertyInfo(instance, serviceNode);
         }
 
-        public NewExpression BuildConstrucotr(ServiceConstrutorNode node)
+        public Expression BuildImplFactory(IServiceNode node)
+        {
+            return
+                Expression.Lambda(
+                    Expression.Call(
+                        typeof(ILifeStyleScope).GetMethod("GetOrAddLifeScopeInstance"),
+                        ParameterLifeScope,
+                        Expression.Constant(node.ResolvingContext),
+                        Expression.Lambda(
+                            Expression.Invoke(
+                                Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
+                                ParameterContainer
+                            ),
+                            Expression.Parameter(typeof(IContainer))
+                    )
+                ),
+                ParameterContainer,
+                ParameterLifeScope
+            );
+        }
+
+        public NewExpression BuildConstructor(ServiceConstrutorNode node)
         {
             var parameterValues = new Expression[node.Paramters?.Count ?? 0];
 
             for (var i = 0; i < parameterValues.Length; i++)
             {
-                parameterValues[i] = Expression.Convert(
-                    Expression.Invoke(
-                        Expression.Call(
-                            Expression.Constant(this),
-                            BuildNodeInfoMethod,
-                            Expression.Constant(node.Paramters[node.Constructor.Paramters[i]])
-                        ),
-                        ParameterContainer,
-                        ParameterLifeScope
-                    ),
-                    node.Constructor.Paramters[i].ParameterType
-                );
+                var parameterValue = BuildExpression(node.Paramters[node.Constructor.Paramters[i]]);
+                if (parameterValue is LambdaExpression)
+                {
+                    parameterValues[i] = Expression.Convert(
+                        Expression.Invoke(parameterValue, ParameterContainer, ParameterLifeScope),
+                        node.Constructor.Paramters[i].ParameterType
+                    );
+                }
+                else
+                {
+                    parameterValues[i] = parameterValue;
+                }
             }
 
             return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
@@ -113,7 +133,7 @@ namespace Tinja.Resolving.Builder
 
         public ListInitExpression BuildEnumerable(ServiceEnumerableNode node)
         {
-            var newExpression = BuildConstrucotr(node);
+            var newExpression = BuildConstructor(node);
             var elementInits = new ElementInit[node.Elements.Length];
             var addElement = node.ResolvingContext.Component.ImplementionType.GetMethod("Add");
 
@@ -152,14 +172,12 @@ namespace Tinja.Resolving.Builder
             {
                 var property = Expression.MakeMemberAccess(instanceVar, item.Key);
                 var propertyVar = Expression.Variable(item.Key.PropertyType, item.Key.Name);
-                var propertyValue = Expression.Convert(
-                    Expression.Invoke(
-                        Expression.Call(Expression.Constant(this), BuildNodeInfoMethod, Expression.Constant(item.Value)),
-                        ParameterContainer,
-                        ParameterLifeScope
-                    ),
-                    item.Key.PropertyType
-                );
+
+                var propertyValue = BuildExpression(item.Value);
+                if (propertyValue is LambdaExpression)
+                {
+                    propertyValue = Expression.Invoke(propertyValue, ParameterContainer, ParameterLifeScope);
+                }
 
                 var setPropertyVarValue = Expression.Assign(propertyVar, propertyValue);
                 var setPropertyValue = Expression.IfThen(
@@ -176,23 +194,6 @@ namespace Tinja.Resolving.Builder
             statements.Add(Expression.Label(label, instanceVar));
 
             return Expression.Block(vars, statements);
-        }
-
-        public Func<IContainer, ILifeStyleScope, object> BuildNodeInfo(IServiceNode node)
-        {
-            if (node.Constructor == null)
-            {
-                return (o, scope) =>
-                {
-                    return
-                    scope.GetOrAddLifeScopeInstance(
-                        node.ResolvingContext,
-                        (_) => node.ResolvingContext.Component.ImplementionFactory(o)
-                     );
-                };
-            }
-
-            return BuildFactory(node);
         }
     }
 }

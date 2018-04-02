@@ -15,7 +15,7 @@ namespace Tinja.Resolving.Descriptor
         public TypeDescriptor(Type type)
         {
             Type = type;
-            Properties = new PropertyInfo[0];//type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty);
+            Properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty);
             Constructors = type
                 .GetConstructors()
                 .Select(i => new ConstructorDescriptor(i, i.GetParameters()))
