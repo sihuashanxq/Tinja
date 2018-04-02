@@ -55,6 +55,8 @@ namespace Sample
 
         public IServiceA _serviceA { get; set; }
 
+        public IService Service2 { get; set; }
+
         public Service(IServiceA serviceA)
         {
 
@@ -94,7 +96,7 @@ namespace Sample
 
             ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Transient);
             ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Transient);
-            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Transient);
+            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Scoped);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();

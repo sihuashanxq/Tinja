@@ -152,13 +152,16 @@ namespace Tinja.Resolving
 
                 if (parameters.Count == item.Paramters.Length)
                 {
-                    return new ServiceConstrutorNode()
+                    var node = new ServiceConstrutorNode()
                     {
                         Constructor = item,
                         ResolvingContext = resolvingContext,
-                        Paramters = parameters,
-                        Properties = CreatePropertyNodes(resolvingContext, descriptor)
+                        Paramters = parameters
                     };
+
+                    node.Properties = CreatePropertyNodes(node, descriptor);
+
+                    return node;
                 }
             }
 
@@ -197,7 +200,7 @@ namespace Tinja.Resolving
         }
 
         protected Dictionary<PropertyInfo, IServiceNode> CreatePropertyNodes(
-            IResolvingContext resolvingContext,
+            IServiceNode serviceNode,
             TypeDescriptor descriptor
         )
         {
@@ -231,6 +234,17 @@ namespace Tinja.Resolving
                 var propertyDescriptor = _typeDescriptorProvider.Get(implementionType);
                 if (propertyDescriptor == null)
                 {
+                    continue;
+                }
+
+                if (propertyDescriptor.Type == descriptor.Type)
+                {
+                    if (serviceNode.ResolvingContext.Component.LifeStyle != LifeStyle.Transient)
+                    {
+                        propertyNodes[item] = serviceNode;
+                    }
+
+                    //don't inject
                     continue;
                 }
 
