@@ -85,13 +85,13 @@ namespace Tinja.Resolving.ReslovingContext
             var component = new Component()
             {
                 ServiceType = typeof(IEnumerable<>),
-                ImplementionType = typeof(List<>),
+                ImplementionType = typeof(List<>).MakeGenericType(resolvingType.GenericTypeArguments),
                 ImplementionFactory = null,
-                LifeStyle = LifeStyle.Transient
+                LifeStyle = LifeStyle.Scoped
             };
 
             var elementType = resolvingType.GenericTypeArguments.FirstOrDefault();
-            var elesContext = BuildAllResolvingContext(elementType).ToList();
+            var elesContext = BuildAllResolvingContext(elementType).Reverse().ToList();
 
             return new ResolvingEnumerableContext(resolvingType, component, elesContext);
         }

@@ -22,7 +22,7 @@ namespace Tinja
             if (context.Component.LifeStyle == LifeStyle.Transient)
             {
                 var instance = factory(context);
-                if (instance != null)
+                if (instance is IDisposable)
                 {
                     _transientObjects.Add(instance);
                 }
@@ -51,8 +51,8 @@ namespace Tinja
                 }
             }
 
-            _scopedObjects = null;
-            _transientObjects = null;
+            _scopedObjects.Clear();
+            _transientObjects.Clear();
         }
     }
 }

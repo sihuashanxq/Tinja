@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using Tinja.Resolving.Builder;
 using Tinja.Resolving.Descriptor;
@@ -50,73 +47,60 @@ namespace Tinja.Resolving
                 return null;
             }
 
-            return _lifeScope.GetOrAddLifeScopeInstance(context, ctx => Resolve(ctx));
+            return _lifeScope.GetOrAddLifeScopeInstance(context, ctx =>
+            {
+                var instanceFactory = GetInstanceFactory(ctx);
+                if (instanceFactory == null)
+                {
+                    return null;
+                }
+
+                return instanceFactory(_container, _lifeScope);
+            });
         }
 
-        public object Resolve(IResolvingContext resolvingContext)
+        protected Func<IContainer, ILifeStyleScope, object> GetInstanceFactory(IResolvingContext resolvingContext)
         {
-            if (resolvingContext.Component.ImplementionFactory != null)
+            var component = resolvingContext.Component;
+            if (component.ImplementionFactory != null)
             {
-                return resolvingContext.Component.ImplementionFactory(_container);
+                return (o, scoped) =>
+                {
+                    return resolvingContext.Component.ImplementionFactory(_container);
+                };
             }
 
-            var implType = resolvingContext.Component.ImplementionType;
-            if (implType.IsGenericType && resolvingContext.ReslovingType.IsConstructedGenericType)
-            {
-                implType = implType.MakeGenericType(resolvingContext.ReslovingType.GenericTypeArguments);
-            }
+            var implementionType = GetImplementionType(
+                resolvingContext.ReslovingType,
+                resolvingContext.Component.ImplementionType
+            );
 
-            var descriptor = _typeDescriptorProvider.Get(implType);
+            var descriptor = _typeDescriptorProvider.Get(implementionType);
             if (descriptor == null || descriptor.Constructors == null || descriptor.Constructors.Length == 0)
             {
                 return null;
             }
 
-            var instance = Resolve(resolvingContext, descriptor);
-            if (instance == null)
-            {
-                return instance;
-            }
-
-            if (resolvingContext is ResolvingEnumerableContext eResolvingContext)
-            {
-                ResloveElements(instance as IList, eResolvingContext.ElementsResolvingContext);
-            }
-
-            return instance;
-        }
-
-        public object Resolve(IResolvingContext resolvingContext, TypeDescriptor descriptor)
-        {
-            var serviceFactoryBuildContext = CreateServiceActivatingContext(resolvingContext, descriptor);
-            if (serviceFactoryBuildContext == null)
+            var node = CreateServiceNode(resolvingContext, descriptor);
+            if (node == null)
             {
                 return null;
             }
 
-            return _instanceFacotryBuilder.Build(serviceFactoryBuildContext)(_container, _lifeScope);
+            return _instanceFacotryBuilder.Build(node);
         }
 
-        public void ResloveElements(IList list, List<IResolvingContext> elesContext)
+        protected IServiceNode CreateServiceNode(
+            IResolvingContext resolvingContext,
+            TypeDescriptor descriptor
+        )
         {
-            if (list == null)
+            if (resolvingContext is ResolvingEnumerableContext eResolvingContext)
             {
-                return;
+                return CreateServiceEnumerableNode(eResolvingContext, descriptor);
             }
 
-            foreach (var item in elesContext)
-            {
-                var ele = Resolve(item);
-                if (ele != null)
-                {
-                    list.Add(ele);
-                }
-            }
-        }
-
-        public ServiceFactoryBuildContext CreateServiceActivatingContext(IResolvingContext resolvingContext, TypeDescriptor descriptor)
-        {
-            var parameters = new List<ServiceFactoryBuildParamterContext>();
+            var parameters = new Dictionary<ParameterInfo, IServiceNode>();
 
             foreach (var item in descriptor.Constructors.OrderByDescending(i => i.Paramters.Length))
             {
@@ -131,28 +115,23 @@ namespace Tinja.Resolving
 
                     if (context.Component.ImplementionFactory != null)
                     {
-                        parameters.Add(new ServiceFactoryBuildParamterContext()
+                        parameters[parameter] = new ServiceConstrutorNode()
                         {
-                            Parameter = parameter,
-                            ParameterTypeContext = new ServiceFactoryBuildContext()
-                            {
-                                Constructor = null,
-                                ResolvingContext = context,
-                                ParamtersContext = null
-                            }
-                        });
+                            Constructor = null,
+                            Paramters = null,
+                            ResolvingContext = context
+                        };
 
                         continue;
                     }
 
-                    var implType = context.Component.ImplementionType;
-                    if (implType.IsGenericType && context.ReslovingType.IsConstructedGenericType)
-                    {
-                        implType = implType.MakeGenericType(context.ReslovingType.GenericTypeArguments);
-                    }
+                    var implementionType = GetImplementionType(
+                        context.ReslovingType,
+                        context.Component.ImplementionType
+                    );
 
-                    var typeDescriptor = _typeDescriptorProvider.Get(implType);
-                    var parameterTypeContext = CreateServiceActivatingContext(context, typeDescriptor);
+                    var paramterDescriptor = _typeDescriptorProvider.Get(implementionType);
+                    var parameterTypeContext = CreateServiceNode(context, paramterDescriptor);
 
                     if (parameterTypeContext == null)
                     {
@@ -160,25 +139,110 @@ namespace Tinja.Resolving
                         break;
                     }
 
-                    parameters.Add(new ServiceFactoryBuildParamterContext()
-                    {
-                        Parameter = parameter,
-                        ParameterTypeContext = parameterTypeContext
-                    });
+                    parameters[parameter] = parameterTypeContext;
                 }
 
                 if (parameters.Count == item.Paramters.Length)
                 {
-                    return new ServiceFactoryBuildContext()
+                    return new ServiceConstrutorNode()
                     {
                         Constructor = item,
                         ResolvingContext = resolvingContext,
-                        ParamtersContext = parameters.ToArray()
+                        Paramters = parameters,
+                        Properties = CreatePropertyNodes(resolvingContext, descriptor)
                     };
                 }
             }
 
             return null;
+        }
+
+        protected IServiceNode CreateServiceEnumerableNode(
+            ResolvingEnumerableContext eResolvingContext,
+            TypeDescriptor descriptor
+        )
+        {
+            var elements = new IServiceNode[eResolvingContext.ElementsResolvingContext.Count];
+
+            for (var i = 0; i < elements.Length; i++)
+            {
+                var implementionType = GetImplementionType(
+                    eResolvingContext.ElementsResolvingContext[i].ReslovingType,
+                    eResolvingContext.ElementsResolvingContext[i].Component.ImplementionType
+                );
+
+                elements[i] = CreateServiceNode(
+                    eResolvingContext.ElementsResolvingContext[i],
+                    _typeDescriptorProvider.Get(implementionType)
+                );
+            }
+
+            return new ServiceEnumerableNode()
+            {
+                Constructor = descriptor.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
+                Paramters = new Dictionary<ParameterInfo, IServiceNode>(),
+                ResolvingContext = eResolvingContext,
+                Elements = elements
+            };
+        }
+
+        protected Dictionary<PropertyInfo, IServiceNode> CreatePropertyNodes(
+            IResolvingContext resolvingContext,
+            TypeDescriptor descriptor)
+        {
+            var propertyNodes = new Dictionary<PropertyInfo, IServiceNode>();
+
+            foreach (var item in descriptor.Properties)
+            {
+                var context = _resolvingContextBuilder.BuildResolvingContext(item.PropertyType);
+                if (context == null)
+                {
+                    continue;
+                }
+
+                if (context.Component.ImplementionFactory != null)
+                {
+                    propertyNodes[item] = new ServiceConstrutorNode()
+                    {
+                        Constructor = null,
+                        Paramters = null,
+                        ResolvingContext = context
+                    };
+
+                    continue;
+                }
+
+                var implementionType = GetImplementionType(
+                    context.ReslovingType,
+                    context.Component.ImplementionType
+                );
+
+                var propertyDescriptor = _typeDescriptorProvider.Get(implementionType);
+                if (propertyDescriptor == null)
+                {
+                    continue;
+                }
+
+                var propertyNode = CreateServiceNode(context, propertyDescriptor);
+                if (propertyNode == null)
+                {
+                    continue;
+                }
+
+                propertyNodes[item] = propertyNode;
+            }
+
+            return propertyNodes;
+        }
+
+        private static Type GetImplementionType(Type resolvingType, Type implementionType)
+        {
+            if (implementionType.IsGenericTypeDefinition && resolvingType.IsConstructedGenericType)
+            {
+                return implementionType.MakeGenericType(resolvingType.GenericTypeArguments);
+            }
+
+            return implementionType;
         }
     }
 }
