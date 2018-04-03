@@ -25,6 +25,8 @@ namespace Sample
 
     public class ServiceB : IServiceB
     {
+        public IService Service { get; set; }
+
         public void Up()
         {
             Console.WriteLine("Up");
@@ -51,13 +53,13 @@ namespace Sample
 
     public class Service : IService
     {
-        public IServiceB _serviceB { get; set; }
+        public IServiceA ServiceA { get; set; }
 
-        public IServiceA _serviceA { get; set; }
+        public IServiceA ServiceA2 { get; set; }
 
-        public IService Service2 { get; set; }
+        public IService Service3 { get; set; }
 
-        public Service(IServiceA serviceA)
+        public Service(IServiceA a, IServiceA b)
         {
 
         }
@@ -71,7 +73,6 @@ namespace Sample
         {
             Console.WriteLine("Give");
 
-            _serviceB.Up();
         }
     }
 
@@ -96,7 +97,7 @@ namespace Sample
 
             ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Transient);
             ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Transient);
-            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Scoped);
+            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Transient);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();
@@ -112,10 +113,10 @@ namespace Sample
             st.Reset();
             st.Start();
 
-            for (var i = 0; i < 1000_00000; i++)
-            {
-                provider.GetService(typeof(IService));
-            }
+            //for (var i = 0; i < 1000_00000; i++)
+            //{
+            //    provider.GetService(typeof(IService));
+            //}
 
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);

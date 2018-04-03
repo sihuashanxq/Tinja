@@ -18,13 +18,10 @@ namespace Tinja.Resolving.ReslovingContext
 
         public virtual IResolvingContext BuildResolvingContext(Type resolvingType)
         {
-            return _cache.GetOrAdd(resolvingType, (k) =>
-            {
-                return
-                    BuildResolvingContextWithDirectly(resolvingType) ??
-                    BuildResolvingContextWithOpenGeneric(resolvingType) ??
-                    BuildResolvingContextWithEnumerable(resolvingType);
-            });
+            return
+                BuildResolvingContextWithDirectly(resolvingType) ??
+                BuildResolvingContextWithOpenGeneric(resolvingType) ??
+                BuildResolvingContextWithEnumerable(resolvingType);
         }
 
         protected virtual IResolvingContext BuildResolvingContextWithDirectly(Type resolvingType)

@@ -2,38 +2,27 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 using Tinja.Resolving.ReslovingContext;
 
 namespace Tinja.Resolving.Builder
 {
     public class ServiceFactoryBuilder : IServiceFactoryBuilder
     {
-        public ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>> FactoryCache { get; }
-
-        static ParameterExpression ParameterContainer { get; }
-
-        static ParameterExpression ParameterLifeScope { get; }
+        public static ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>> Cache { get; }
 
         static ServiceFactoryBuilder()
         {
-            ParameterContainer = Expression.Parameter(typeof(IContainer));
-            ParameterLifeScope = Expression.Parameter(typeof(ILifeStyleScope));
-        }
-
-        public ServiceFactoryBuilder()
-        {
-            FactoryCache = new ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>>();
+            Cache = new ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>>();
         }
 
         public Func<IContainer, ILifeStyleScope, object> Build(IServiceNode serviceNode)
         {
-            return FactoryCache.GetOrAdd(serviceNode.ResolvingContext.ReslovingType, (k) => BuildFactory(serviceNode));
+            return Cache.GetOrAdd(serviceNode.ResolvingContext.ReslovingType, (k) => BuildFactory(serviceNode, new HashSet<IServiceNode>()));
         }
 
         public Func<IContainer, ILifeStyleScope, object> Build(Type resolvingType)
         {
-            if (FactoryCache.TryGetValue(resolvingType, out var factory))
+            if (Cache.TryGetValue(resolvingType, out var factory))
             {
                 return factory;
             }
@@ -41,190 +30,233 @@ namespace Tinja.Resolving.Builder
             return null;
         }
 
-        public Func<IContainer, ILifeStyleScope, object> BuildFactory(IServiceNode serviceNode)
+        public static Func<IContainer, ILifeStyleScope, object> BuildFactory(IServiceNode node, HashSet<IServiceNode> injectedProperties)
         {
-            var lambdaBody = BuildExpression(serviceNode, new Dictionary<IServiceNode, Expression>());
-            if (lambdaBody == null)
-            {
-                throw new NullReferenceException(nameof(lambdaBody));
-            }
-
-            return (Func<IContainer, ILifeStyleScope, object>)Expression
-                   .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
-                   .Compile();
+            return new ServiceActivatorFacotry().CreateActivator(node);
         }
 
-        public Expression BuildExpression(IServiceNode serviceNode, Dictionary<IServiceNode, Expression> propertyInjectedNodes)
+        private class ServiceActivatorFacotry
         {
-            if (serviceNode.Constructor == null)
+            static ParameterExpression ParameterContainer { get; }
+
+            static ParameterExpression ParameterLifeScope { get; }
+
+            private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedPropertyTypes;
+
+            static ServiceActivatorFacotry()
             {
-                return BuildLifeScope(BuildImplFactory(serviceNode), serviceNode);
+                ParameterContainer = Expression.Parameter(typeof(IContainer));
+                ParameterLifeScope = Expression.Parameter(typeof(ILifeStyleScope));
             }
 
-            Expression instance;
-
-            if (serviceNode is ServiceEnumerableNode enumerable)
+            public ServiceActivatorFacotry()
             {
-                instance = BuildEnumerable(enumerable, propertyInjectedNodes);
-                instance = BuildLifeScope(instance, serviceNode);
-            }
-            else
-            {
-                instance = BuildConstructor(serviceNode as ServiceConstrutorNode, propertyInjectedNodes);
-                instance = BuildLifeScope(instance, serviceNode);
+                _resolvedPropertyTypes = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
             }
 
-            if (serviceNode.Properties == null || serviceNode.Properties.Count == 0)
+            public Func<IContainer, ILifeStyleScope, object> CreateActivator(IServiceNode node)
             {
-                return instance;
-            }
-
-            if (!propertyInjectedNodes.ContainsKey(serviceNode))
-            {
-                instance = BuildPropertyInfo(instance, serviceNode, propertyInjectedNodes);
-            }
-
-            return instance;
-        }
-
-        public Expression BuildLifeScope(Expression instance, IServiceNode node)
-        {
-            if (node.ResolvingContext.Component.LifeStyle != LifeStyle.Transient ||
-                node.ResolvingContext.Component.ImplementionType.Is(typeof(IDisposable)))
-            {
-                var lambda =
-                  Expression.Lambda(
-                      Expression.Call(
-                          ParameterLifeScope,
-                          typeof(ILifeStyleScope).GetMethod("GetOrAddLifeScopeInstance"),
-                          Expression.Constant(node.ResolvingContext),
-                          Expression.Lambda(
-                              instance is LambdaExpression
-                              ? Expression.Invoke(
-                                    Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
-                                    ParameterContainer
-                                )
-                              : instance,
-                              Expression.Parameter(typeof(IResolvingContext))
-                        )
-                    ),
-                    ParameterContainer,
-                    ParameterLifeScope
-                );
-
-                return Expression.Invoke(lambda, ParameterContainer, ParameterLifeScope);
-            }
-
-            return instance;
-        }
-
-        public Expression BuildImplFactory(IServiceNode node)
-        {
-            return
-                Expression.Lambda(
-                    Expression.Invoke(
-                        Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
-                        ParameterContainer
-                    ),
-                    Expression.Parameter(typeof(IContainer))
-                );
-        }
-
-        public NewExpression BuildConstructor(ServiceConstrutorNode node, Dictionary<IServiceNode, Expression> propertyInjectedNodes)
-        {
-            var parameterValues = new Expression[node.Paramters?.Count ?? 0];
-
-            for (var i = 0; i < parameterValues.Length; i++)
-            {
-                var parameterValue = BuildExpression(node.Paramters[node.Constructor.Paramters[i]], propertyInjectedNodes);
-                if (parameterValue is LambdaExpression)
+                var lambdaBody = BuildExpression(node);
+                if (lambdaBody == null)
                 {
-                    parameterValues[i] = Expression.Convert(
-                        Expression.Invoke(parameterValue, ParameterContainer, ParameterLifeScope),
-                        node.Constructor.Paramters[i].ParameterType
+                    throw new NullReferenceException(nameof(lambdaBody));
+                }
+
+                var factory = (Func<IContainer, ILifeStyleScope, object>)Expression
+                       .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
+                       .Compile();
+
+                if (node.ResolvingContext.Component.LifeStyle != LifeStyle.Transient ||
+                    node.ResolvingContext.Component.ImplementionType.Is(typeof(IDisposable)))
+                {
+                    return BuildProperty(
+                        (o, scoped) =>
+                            scoped.GetOrAddLifeScopeInstance(node.ResolvingContext, (_) => factory(o, scoped)),
+                        node
                     );
+                }
+
+                return BuildProperty(factory, node);
+            }
+
+            public Expression BuildExpression(IServiceNode serviceNode)
+            {
+                if (serviceNode.Constructor == null)
+                {
+                    return BuildImplFactory(serviceNode);
+                }
+
+                if (serviceNode is ServiceEnumerableNode enumerable)
+                {
+                    return BuildEnumerable(enumerable);
                 }
                 else
                 {
-                    parameterValues[i] = parameterValue;
+                    return BuildConstructor(serviceNode as ServiceConstrutorNode);
                 }
             }
 
-            return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
-        }
-
-        public ListInitExpression BuildEnumerable(ServiceEnumerableNode node, Dictionary<IServiceNode, Expression> propertyInjectedNodes)
-        {
-            var newExpression = BuildConstructor(node, propertyInjectedNodes);
-            var elementInits = new ElementInit[node.Elements.Length];
-            var addElement = node.ResolvingContext.Component.ImplementionType.GetMethod("Add");
-
-            for (var i = 0; i < elementInits.Length; i++)
+            public Expression BuildImplFactory(IServiceNode node)
             {
-                elementInits[i] = Expression.ElementInit(
-                    addElement,
-                    Expression.Convert(
-                        BuildExpression(node.Elements[i], propertyInjectedNodes),
-                        node.Elements[i].ResolvingContext.ReslovingType
+                return
+                    Expression.Invoke(
+                        Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
+                        ParameterContainer
+                    );
+            }
+
+            public NewExpression BuildConstructor(ServiceConstrutorNode node)
+            {
+                var parameterValues = new Expression[node.Paramters?.Count ?? 0];
+
+                for (var i = 0; i < parameterValues.Length; i++)
+                {
+                    var parameterValueFactory = CreateActivator(node.Paramters[node.Constructor.Paramters[i]]);
+                    if (parameterValueFactory == null)
+                    {
+                        parameterValues[i] = Expression.Constant(null, node.Constructor.Paramters[i].ParameterType);
+                    }
+                    else
+                    {
+                        parameterValues[i] = Expression.Invoke(
+                            Expression.Constant(parameterValueFactory),
+                            ParameterContainer,
+                            ParameterLifeScope
+                        );
+                    }
+                }
+
+                return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
+            }
+
+            public ListInitExpression BuildEnumerable(ServiceEnumerableNode node)
+            {
+                var newExpression = BuildConstructor(node);
+                var elementInits = new ElementInit[node.Elements.Length];
+                var addElement = node.ResolvingContext.Component.ImplementionType.GetMethod("Add");
+
+                for (var i = 0; i < elementInits.Length; i++)
+                {
+                    var elementValueFactory = CreateActivator(node.Paramters[node.Constructor.Paramters[i]]);
+                    if (elementValueFactory == null)
+                    {
+                        continue;
+                    }
+
+                    elementInits[i] = Expression.ElementInit(
+                        addElement,
+                        Expression.Convert(
+                            Expression.Invoke(
+                                Expression.Constant(elementValueFactory),
+                                ParameterContainer,
+                                ParameterLifeScope
+                            ),
+                            node.Elements[i].ResolvingContext.ReslovingType
+                        )
+                    );
+                }
+
+                return Expression.ListInit(newExpression, elementInits);
+            }
+
+            public Expression BuildPropertyInfo(Expression instance, IServiceNode node)
+            {
+                instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
+
+                var vars = new List<ParameterExpression>();
+                var statements = new List<Expression>();
+                var instanceVar = Expression.Parameter(instance.Type);
+                var assignInstance = Expression.Assign(instanceVar, instance);
+
+                var label = Expression.Label(instanceVar.Type);
+
+                vars.Add(instanceVar);
+                statements.Add(assignInstance);
+                statements.Add(
+                    Expression.IfThen(
+                        Expression.Equal(Expression.Constant(null), instanceVar),
+                        Expression.Return(label, instanceVar)
                     )
                 );
-            }
 
-            return Expression.ListInit(newExpression, elementInits);
-        }
-
-        public Expression BuildPropertyInfo(Expression instance, IServiceNode node, Dictionary<IServiceNode, Expression> propertyInjectedNodes)
-        {
-            instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
-
-            var vars = new List<ParameterExpression>();
-            var statements = new List<Expression>();
-            var instanceVar = Expression.Parameter(instance.Type);
-            var assignInstance = Expression.Assign(instanceVar, instance);
-
-            var label = Expression.Label(instanceVar.Type);
-
-            vars.Add(instanceVar);
-            statements.Add(assignInstance);
-            statements.Add(
-                Expression.IfThen(
-                    Expression.Equal(Expression.Constant(null), instanceVar),
-                    Expression.Return(label, instanceVar)
-                )
-            );
-
-            foreach (var item in node.Properties)
-            {
-                if (propertyInjectedNodes.ContainsKey(item.Value))
+                foreach (var item in node.Properties)
                 {
-                    continue;
-                }
+                    if (IsPropertyCircularDependeny(node, item.Value))
+                    {
+                        continue;
+                    }
 
-                propertyInjectedNodes[item.Value] = null;
+                    var property = Expression.MakeMemberAccess(instanceVar, item.Key);
+                    var propertyVar = Expression.Variable(item.Key.PropertyType, item.Key.Name);
 
-                var property = Expression.MakeMemberAccess(instanceVar, item.Key);
-                var propertyVar = Expression.Variable(item.Key.PropertyType, item.Key.Name);
+                    var propertyValue = Expression.Convert(
+                            Expression.Invoke(
+                                Expression.Constant(CreateActivator(item.Value)),
+                                ParameterContainer,
+                                ParameterLifeScope
+                            ),
+                            item.Value.ResolvingContext.ReslovingType
+                        );
 
-                var propertyValue = Expression.Convert(
-                    BuildExpression(item.Value, propertyInjectedNodes),
-                    item.Value.ResolvingContext.ReslovingType
+                    var setPropertyVarValue = Expression.Assign(propertyVar, propertyValue);
+                    var setPropertyValue = Expression.IfThen(
+                        Expression.NotEqual(Expression.Constant(null), propertyVar),
+                        Expression.Assign(property, propertyVar)
                     );
 
-                var setPropertyVarValue = Expression.Assign(propertyVar, propertyValue);
-                var setPropertyValue = Expression.IfThen(
-                    Expression.NotEqual(Expression.Constant(null), propertyVar),
-                    Expression.Assign(property, propertyVar)
-                );
+                    vars.Add(propertyVar);
+                    statements.Add(setPropertyVarValue);
+                    statements.Add(setPropertyValue);
+                }
 
-                vars.Add(propertyVar);
-                statements.Add(setPropertyVarValue);
-                statements.Add(setPropertyValue);
+                statements.Add(Expression.Return(label, instanceVar));
+                statements.Add(Expression.Label(label, instanceVar));
+
+                return Expression.Block(vars, statements);
             }
 
-            statements.Add(Expression.Return(label, instanceVar));
-            statements.Add(Expression.Label(label, instanceVar));
+            public Func<IContainer, ILifeStyleScope, object> BuildProperty(Func<IContainer, ILifeStyleScope, object> factory, IServiceNode node)
+            {
+                if (node.Properties != null && node.Properties.Count != 0)
+                {
+                    var lambdaBody = BuildPropertyInfo(
+                        Expression.Invoke(
+                            Expression.Constant(factory),
+                            ParameterContainer,
+                            ParameterLifeScope
+                        ),
+                        node);
 
-            return Expression.Block(vars, statements);
+                    return (Func<IContainer, ILifeStyleScope, object>)Expression
+                       .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
+                       .Compile();
+                }
+
+                return factory;
+            }
+
+            public bool IsPropertyCircularDependeny(IServiceNode instance, IServiceNode propertyNode)
+            {
+                if (!_resolvedPropertyTypes.ContainsKey(instance.ResolvingContext))
+                {
+                    _resolvedPropertyTypes[instance.ResolvingContext] = new HashSet<IResolvingContext>()
+                {
+                   propertyNode.ResolvingContext
+                };
+
+                    return false;
+                }
+
+                var properties = _resolvedPropertyTypes[instance.ResolvingContext];
+                if (properties.Contains(propertyNode.ResolvingContext))
+                {
+                    return true;
+                }
+
+                properties.Add(propertyNode.ResolvingContext);
+
+                return false;
+            }
         }
     }
 }

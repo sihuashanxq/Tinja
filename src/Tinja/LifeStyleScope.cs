@@ -33,6 +33,22 @@ namespace Tinja
             return _scopedObjects.GetOrAdd(context.ReslovingType, (k) => factory(context));
         }
 
+        public object GetOrAddLifeScopeInstance2(Type instanceType, LifeStyle lifeStyle, Func<object> factory)
+        {
+            if (lifeStyle == LifeStyle.Transient)
+            {
+                var instance = factory();
+                if (instance is IDisposable)
+                {
+                    _transientObjects.Add(instance);
+                }
+
+                return instance;
+            }
+
+            return _scopedObjects.GetOrAdd(instanceType, (k) => factory());
+        }
+
         public void Dispose()
         {
             foreach (var item in _transientObjects)
