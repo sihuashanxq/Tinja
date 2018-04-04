@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Tinja.Resolving.ReslovingContext
+namespace Tinja.Resolving.Context
 {
     public class ResolvingEnumerableContext : IResolvingContext
     {

@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Tinja.Registration;
 using Tinja.Resolving;
-using Tinja.Resolving.Descriptor;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Service;
+using Tinja.Resolving.Context;
 
 namespace Tinja
 {
@@ -26,7 +26,12 @@ namespace Tinja
             _registrar = new ServiceRegistrar(_components);
             _lifeStyleScope = new LifeStyleScope();
             _resolvingContextBuilder = new ResolvingContextBuilder(_components);
-            _resolver = new ServiceResolver(this, _lifeStyleScope, new TypeDescriptorProvider(), _resolvingContextBuilder);
+            _resolver = new ServiceResolver(
+                this, 
+                _lifeStyleScope, 
+                new ServiceInfoFactory(), 
+                _resolvingContextBuilder
+            );
         }
 
         public object Resolve(Type serviceType)

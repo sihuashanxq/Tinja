@@ -2,23 +2,23 @@
 using System.Linq;
 using System.Reflection;
 
-namespace Tinja.Resolving.Descriptor
+namespace Tinja.Resolving
 {
-    public class TypeDescriptor
+    public class ServiceInfo
     {
         public Type Type { get; }
 
         public PropertyInfo[] Properties { get; }
 
-        public ConstructorDescriptor[] Constructors { get; }
+        public ServiceConstructorInfo[] Constructors { get; }
 
-        public TypeDescriptor(Type type)
+        public ServiceInfo(Type type)
         {
             Type = type;
             Properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty);
             Constructors = type
                 .GetConstructors()
-                .Select(i => new ConstructorDescriptor(i, i.GetParameters()))
+                .Select(i => new ServiceConstructorInfo(i, i.GetParameters()))
                 .ToArray();
         }
     }

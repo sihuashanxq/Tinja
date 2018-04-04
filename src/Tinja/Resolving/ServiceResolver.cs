@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Tinja.Resolving.Builder;
-using Tinja.Resolving.Descriptor;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Activation;
+using Tinja.Resolving.Chain;
+using Tinja.Resolving.Service;
+using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving
 {
@@ -14,23 +12,23 @@ namespace Tinja.Resolving
 
         private ILifeStyleScope _lifeScope;
 
-        private ITypeDescriptorProvider _typeDescriptorProvider;
+        private IServiceInfoFactory _typeDescriptorProvider;
 
         private IResolvingContextBuilder _resolvingContextBuilder;
 
-        private IServiceFactoryBuilder _instanceFacotryBuilder;
+        private IServiceActivationBuilder _instanceFacotryBuilder;
 
         public ServiceResolver(
             IContainer container,
             ILifeStyleScope lifeScope,
-            ITypeDescriptorProvider typeDescriptorProvider,
+            IServiceInfoFactory typeDescriptorProvider,
             IResolvingContextBuilder resolvingContextBuilder)
         {
             _container = container;
             _lifeScope = lifeScope;
             _typeDescriptorProvider = typeDescriptorProvider;
             _resolvingContextBuilder = resolvingContextBuilder;
-            _instanceFacotryBuilder = new ServiceFactoryBuilder();
+            _instanceFacotryBuilder = new ServiceActivationBuilder();
         }
 
         public object Resolve(Type resolvingType)
@@ -70,7 +68,7 @@ namespace Tinja.Resolving
                 };
             }
 
-            var node = new ServiceNodeBuilder(_typeDescriptorProvider, _resolvingContextBuilder).Build(resolvingContext);
+            var node = new ServiceConstructorChainFactory(new ServiceChainScope(), _typeDescriptorProvider, _resolvingContextBuilder).BuildChain(resolvingContext);
             if (node == null)
             {
                 return null;

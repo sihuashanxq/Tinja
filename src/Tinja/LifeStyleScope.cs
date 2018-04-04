@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Context;
 
 namespace Tinja
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Resolving.ReslovingContext
+namespace Tinja.Resolving.Context
 {
     public interface IResolvingContext
     {

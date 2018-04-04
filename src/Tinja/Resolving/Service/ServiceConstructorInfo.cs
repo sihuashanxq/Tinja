@@ -1,14 +1,14 @@
 ﻿using System.Reflection;
 
-namespace Tinja.Resolving.Descriptor
+namespace Tinja.Resolving
 {
-    public class ConstructorDescriptor
+    public class ServiceConstructorInfo
     {
         public ConstructorInfo ConstructorInfo { get; }
 
         public ParameterInfo[] Paramters { get; }
 
-        public ConstructorDescriptor(ConstructorInfo constructor, ParameterInfo[] parameters)
+        public ServiceConstructorInfo(ConstructorInfo constructor, ParameterInfo[] parameters)
         {
             ConstructorInfo = constructor;
             Paramters = parameters;

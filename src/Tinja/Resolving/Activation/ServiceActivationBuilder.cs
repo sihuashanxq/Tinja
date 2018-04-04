@@ -2,22 +2,24 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Chain;
+using Tinja.Resolving.Chain.Node;
+using Tinja.Resolving.Context;
 
-namespace Tinja.Resolving.Builder
+namespace Tinja.Resolving.Activation
 {
-    public class ServiceFactoryBuilder : IServiceFactoryBuilder
+    public class ServiceActivationBuilder : IServiceActivationBuilder
     {
         public static ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>> Cache { get; }
 
-        static ServiceFactoryBuilder()
+        static ServiceActivationBuilder()
         {
             Cache = new ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>>();
         }
 
-        public Func<IContainer, ILifeStyleScope, object> Build(IServiceNode serviceNode)
+        public Func<IContainer, ILifeStyleScope, object> Build(IServiceChainNode chain)
         {
-            return Cache.GetOrAdd(serviceNode.ResolvingContext.ReslovingType, (k) => BuildFactory(serviceNode, new HashSet<IServiceNode>()));
+            return Cache.GetOrAdd(chain.ResolvingContext.ReslovingType, (k) => BuildFactory(chain, new HashSet<IServiceChainNode>()));
         }
 
         public Func<IContainer, ILifeStyleScope, object> Build(Type resolvingType)
@@ -30,7 +32,7 @@ namespace Tinja.Resolving.Builder
             return null;
         }
 
-        public static Func<IContainer, ILifeStyleScope, object> BuildFactory(IServiceNode node, HashSet<IServiceNode> injectedProperties)
+        public static Func<IContainer, ILifeStyleScope, object> BuildFactory(IServiceChainNode node, HashSet<IServiceChainNode> injectedProperties)
         {
             return new ServiceActivatorFacotry().CreateActivator(node);
         }
@@ -54,7 +56,7 @@ namespace Tinja.Resolving.Builder
                 _resolvedPropertyTypes = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
             }
 
-            public Func<IContainer, ILifeStyleScope, object> CreateActivator(IServiceNode node)
+            public Func<IContainer, ILifeStyleScope, object> CreateActivator(IServiceChainNode node)
             {
                 var lambdaBody = BuildExpression(node);
                 if (lambdaBody == null)
@@ -79,24 +81,24 @@ namespace Tinja.Resolving.Builder
                 return BuildProperty(factory, node);
             }
 
-            public Expression BuildExpression(IServiceNode serviceNode)
+            public Expression BuildExpression(IServiceChainNode serviceNode)
             {
                 if (serviceNode.Constructor == null)
                 {
                     return BuildImplFactory(serviceNode);
                 }
 
-                if (serviceNode is ServiceEnumerableNode enumerable)
+                if (serviceNode is ServiceEnumerableChainNode enumerable)
                 {
                     return BuildEnumerable(enumerable);
                 }
                 else
                 {
-                    return BuildConstructor(serviceNode as ServiceConstrutorNode);
+                    return BuildConstructor(serviceNode as ServiceConstrutorChainNode);
                 }
             }
 
-            public Expression BuildImplFactory(IServiceNode node)
+            public Expression BuildImplFactory(IServiceChainNode node)
             {
                 return
                     Expression.Invoke(
@@ -105,7 +107,7 @@ namespace Tinja.Resolving.Builder
                     );
             }
 
-            public NewExpression BuildConstructor(ServiceConstrutorNode node)
+            public NewExpression BuildConstructor(ServiceConstrutorChainNode node)
             {
                 var parameterValues = new Expression[node.Paramters?.Count ?? 0];
 
@@ -129,7 +131,7 @@ namespace Tinja.Resolving.Builder
                 return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
             }
 
-            public ListInitExpression BuildEnumerable(ServiceEnumerableNode node)
+            public ListInitExpression BuildEnumerable(ServiceEnumerableChainNode node)
             {
                 var newExpression = BuildConstructor(node);
                 var elementInits = new ElementInit[node.Elements.Length];
@@ -159,7 +161,7 @@ namespace Tinja.Resolving.Builder
                 return Expression.ListInit(newExpression, elementInits);
             }
 
-            public Expression BuildPropertyInfo(Expression instance, IServiceNode node)
+            public Expression BuildPropertyInfo(Expression instance, IServiceChainNode node)
             {
                 instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
 
@@ -215,7 +217,7 @@ namespace Tinja.Resolving.Builder
                 return Expression.Block(vars, statements);
             }
 
-            public Func<IContainer, ILifeStyleScope, object> BuildProperty(Func<IContainer, ILifeStyleScope, object> factory, IServiceNode node)
+            public Func<IContainer, ILifeStyleScope, object> BuildProperty(Func<IContainer, ILifeStyleScope, object> factory, IServiceChainNode node)
             {
                 if (node.Properties != null && node.Properties.Count != 0)
                 {
@@ -235,7 +237,7 @@ namespace Tinja.Resolving.Builder
                 return factory;
             }
 
-            public bool IsPropertyCircularDependeny(IServiceNode instance, IServiceNode propertyNode)
+            public bool IsPropertyCircularDependeny(IServiceChainNode instance, IServiceChainNode propertyNode)
             {
                 if (!_resolvedPropertyTypes.ContainsKey(instance.ResolvingContext))
                 {

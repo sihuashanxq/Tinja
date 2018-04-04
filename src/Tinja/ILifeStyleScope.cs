@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Context;
 
 namespace Tinja
 {

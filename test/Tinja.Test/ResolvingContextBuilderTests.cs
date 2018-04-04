@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using Tinja.Registration;
 using Tinja.Resolving;
-using Tinja.Resolving.ReslovingContext;
+using Tinja.Resolving.Context;
 using Xunit;
 
 namespace Tinja.Test
