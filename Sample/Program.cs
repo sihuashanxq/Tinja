@@ -12,8 +12,11 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
+        public IService Service { get; set; }
+
         public ServiceA()
         {
+
         }
     }
 
@@ -52,11 +55,7 @@ namespace Sample
 
     public class Service : IService
     {
-        public IServiceA S1 { get; set; }
-
-        public IServiceA S2 { get; set; }
-
-        public IService Service2 { get; set; }
+        public IServiceA ServiceA { get; set; }
 
         public Service()
         {
@@ -94,8 +93,8 @@ namespace Sample
         {
             var ioc = new Container();
 
-            ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Transient);
-            ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Scoped);
+            ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Scoped);
+            ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Transient);
             ioc.Register(typeof(IService), typeof(Service), LifeStyle.Scoped);
 
             var st = new System.Diagnostics.Stopwatch();

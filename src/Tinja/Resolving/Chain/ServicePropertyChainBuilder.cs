@@ -91,6 +91,16 @@ namespace Tinja.Resolving.Chain
                         )
                     );
                 }
+
+                foreach (var item in node.Properties ?? new Dictionary<PropertyInfo, IServiceChainNode>())
+                {
+                    BuildProperties(
+                       item.Value,
+                       ServiceInfoFactory.Create(
+                           item.Value.Constructor.ConstructorInfo.DeclaringType
+                       )
+                   );
+                }
             }
         }
 
