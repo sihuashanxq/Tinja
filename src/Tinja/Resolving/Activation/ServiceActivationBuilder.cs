@@ -73,7 +73,7 @@ namespace Tinja.Resolving.Activation
                 {
                     return BuildProperty(
                         (o, scoped) =>
-                            scoped.GetOrAddLifeScopeInstance(node.ResolvingContext, (_) => factory(o, scoped)),
+                            scoped.ApplyLifeScope(node.ResolvingContext, (_) => factory(o, scoped)),
                         node
                     );
                 }
@@ -120,10 +120,13 @@ namespace Tinja.Resolving.Activation
                     }
                     else
                     {
-                        parameterValues[i] = Expression.Invoke(
-                            Expression.Constant(parameterValueFactory),
-                            ParameterContainer,
-                            ParameterLifeScope
+                        parameterValues[i] = Expression.Convert(
+                            Expression.Invoke(
+                                Expression.Constant(parameterValueFactory),
+                                ParameterContainer,
+                                ParameterLifeScope
+                            ),
+                            node.Constructor.Paramters[i].ParameterType
                         );
                     }
                 }

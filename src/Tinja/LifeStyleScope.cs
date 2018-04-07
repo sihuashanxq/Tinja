@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Tinja.Resolving.Context;
 
@@ -7,51 +6,46 @@ namespace Tinja
 {
     public class LifeStyleScope : ILifeStyleScope
     {
-        private List<object> _transientObjects;
+        private List<object> _disposables;
 
-        private ConcurrentDictionary<Type, object> _scopedObjects;
+        private Dictionary<Type, object> _scopes;
 
         public LifeStyleScope()
         {
-            _transientObjects = new List<object>();
-            _scopedObjects = new ConcurrentDictionary<Type, object>();
+            _disposables = new List<object>();
+            _scopes = new Dictionary<Type, object>();
         }
 
-        public object GetOrAddLifeScopeInstance(IResolvingContext context, Func<IResolvingContext, object> factory)
+        public object ApplyLifeScope(IResolvingContext context, Func<IResolvingContext, object> factory)
         {
             if (context.Component.LifeStyle == LifeStyle.Transient)
             {
-                var instance = factory(context);
-                if (instance is IDisposable)
+                var o = factory(context);
+                if (o is IDisposable)
                 {
-                    _transientObjects.Add(instance);
+                    _disposables.Add(o);
                 }
 
-                return instance;
+                return o;
             }
 
-            return _scopedObjects.GetOrAdd(context.ReslovingType, (k) => factory(context));
-        }
-
-        public object GetOrAddLifeScopeInstance2(Type instanceType, LifeStyle lifeStyle, Func<object> factory)
-        {
-            if (lifeStyle == LifeStyle.Transient)
+            if (!_scopes.ContainsKey(context.ReslovingType))
             {
-                var instance = factory();
-                if (instance is IDisposable)
+                lock (_scopes)
                 {
-                    _transientObjects.Add(instance);
+                    if (!_scopes.ContainsKey(context.ReslovingType))
+                    {
+                        return _scopes[context.ReslovingType] = factory(context);
+                    }
                 }
-
-                return instance;
             }
 
-            return _scopedObjects.GetOrAdd(instanceType, (k) => factory());
+            return _scopes[context.ReslovingType];
         }
 
         public void Dispose()
         {
-            foreach (var item in _transientObjects)
+            foreach (var item in _disposables)
             {
                 if (item is IDisposable dispose)
                 {
@@ -59,7 +53,7 @@ namespace Tinja
                 }
             }
 
-            foreach (var item in _scopedObjects.Values)
+            foreach (var item in _scopes.Values)
             {
                 if (item is IDisposable dispose)
                 {
@@ -67,8 +61,8 @@ namespace Tinja
                 }
             }
 
-            _scopedObjects.Clear();
-            _transientObjects.Clear();
+            _scopes.Clear();
+            _disposables.Clear();
         }
     }
 }

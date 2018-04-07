@@ -12,8 +12,6 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        public IService Service { get; set; }
-
         public ServiceA()
         {
 
@@ -55,9 +53,7 @@ namespace Sample
 
     public class Service : IService
     {
-        public IServiceA ServiceA { get; set; }
-
-        public Service()
+        public Service(IServiceA ServiceA)
         {
 
         }
@@ -93,16 +89,16 @@ namespace Sample
         {
             var ioc = new Container();
 
-            ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Scoped);
+            ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Transient);
             ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Transient);
-            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Scoped);
+            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Transient);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();
 
-            services.AddTransient<IServiceA, ServiceA>();
-            services.AddTransient<IServiceB, ServiceB>();
-            services.AddTransient<IService, Service>();
+            services.AddScoped<IServiceA, ServiceA>();
+            services.AddScoped<IServiceB, ServiceB>();
+            services.AddScoped<IService, Service>();
 
             var provider = services.BuildServiceProvider();
             //provider.GetService(typeof(IEnumerable<IEnumerable<IService>>));
@@ -111,10 +107,10 @@ namespace Sample
             st.Reset();
             st.Start();
 
-            //for (var i = 0; i < 1000_00000; i++)
-            //{
-            //    provider.GetService(typeof(IService));
-            //}
+            for (var i = 0; i < 1000_00000; i++)
+            {
+                provider.GetService(typeof(IService));
+            }
 
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);

@@ -45,7 +45,7 @@ namespace Tinja.Resolving
                 return null;
             }
 
-            return _lifeScope.GetOrAddLifeScopeInstance(context, ctx =>
+            return _lifeScope.ApplyLifeScope(context, ctx =>
             {
                 var iFactory = GetInstanceFactory(ctx);
                 if (iFactory == null)
