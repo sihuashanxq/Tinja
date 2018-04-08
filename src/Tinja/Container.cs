@@ -1,57 +1,39 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Tinja.Registration;
-using Tinja.Resolving;
-using Tinja.Resolving.Service;
+using System.Linq;
+using Tinja.LifeStyle;
+using Tinja.Resolving.Activation;
+using Tinja.Resolving.Chain;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Service;
 
 namespace Tinja
 {
     public class Container : IContainer
     {
-        private IServiceResolver _resolver;
-
-        private IServiceRegistrar _registrar;
-
-        private ILifeStyleScope _lifeStyleScope;
-
-        private IResolvingContextBuilder _resolvingContextBuilder;
-
-        private ConcurrentDictionary<Type, List<Component>> _components { get; }
+        public ConcurrentDictionary<Type, List<Component>> Components { get; }
 
         public Container()
         {
-            _components = new ConcurrentDictionary<Type, List<Component>>();
-            _registrar = new ServiceRegistrar(_components);
-            _lifeStyleScope = new LifeStyleScope();
-            _resolvingContextBuilder = new ResolvingContextBuilder(_components);
-            _resolver = new ServiceResolver(
-                this, 
-                _lifeStyleScope, 
-                new ServiceInfoFactory(), 
-                _resolvingContextBuilder
-            );
+            Components = new ConcurrentDictionary<Type, List<Component>>();
+            Initialize();
         }
 
-        public object Resolve(Type serviceType)
+        protected void Initialize()
         {
-            return _resolver.Resolve(serviceType);
-        }
+            this.AddSingleton(typeof(IServiceInfoFactory), (resolver) => new ServiceInfoFactory());
+            this.AddSingleton(typeof(IServiceActivationBuilder), (resolver) => new ServiceActivationBuilder());
+            this.AddSingleton(typeof(ServiceChainBuilder), (resolver) =>
+            {
+                return new ServiceConstructorChainFactory(
+                    resolver.Resolve<IServiceInfoFactory>(),
+                    resolver.Resolve<IResolvingContextBuilder>()
+                );
+            });
 
-        public void Register(Type serviceType, Type implType, LifeStyle lifeStyle)
-        {
-            _registrar.Register(serviceType, implType, lifeStyle);
-        }
-
-        public void Register(Type serviceType, Func<IContainer, object> implFacotry, LifeStyle lifeStyle)
-        {
-            _registrar.Register(serviceType, implFacotry, lifeStyle);
-        }
-
-        public void Dispose()
-        {
-            _lifeStyleScope.Dispose();
+            //just for definition,not call
+            this.AddSingleton(typeof(IResolvingContextBuilder), (resolver) => new ResolvingContextBuilder(Components));
         }
     }
 }

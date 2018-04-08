@@ -4,6 +4,7 @@ using System.Reflection;
 using Tinja.Resolving.Chain.Node;
 using Tinja.Resolving.Service;
 using Tinja.Resolving.Context;
+using Tinja.LifeStyle;
 
 namespace Tinja.Resolving.Chain
 {
@@ -36,7 +37,7 @@ namespace Tinja.Resolving.Chain
         {
             if (ServiceChainScope.ScopeContexts.TryGetValue(serviceInfo.Type, out var cachedContext))
             {
-                if (cachedContext.Component.LifeStyle == LifeStyle.Transient)
+                if (cachedContext.Component.LifeStyle == ServiceLifeStyle.Transient)
                 {
                     return null;
                 }

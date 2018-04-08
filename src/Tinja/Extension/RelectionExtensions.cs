@@ -2,7 +2,7 @@
 
 namespace Tinja
 {
-    internal static class RelectionExtension
+    internal static class RelectionExtensions
     {
         internal static bool Is(this Type type, Type target)
         {

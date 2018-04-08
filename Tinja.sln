@@ -15,10 +15,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{488D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample", "Sample\Sample.csproj", "{0E948AC0-E992-4174-A02D-C78683E8E603}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tinja.Extensions.DependencyInjection", "src\Tinja.Extensions.DependencyInjection\Tinja.Extensions.DependencyInjection.csproj", "{A0A40588-629E-4280-872E-C927C5BC16DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspnetCore", "samples\AspnetCore\AspnetCore.csproj", "{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}"
+EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -36,6 +37,14 @@ Global
 		{0E948AC0-E992-4174-A02D-C78683E8E603}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E948AC0-E992-4174-A02D-C78683E8E603}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E948AC0-E992-4174-A02D-C78683E8E603}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0A40588-629E-4280-872E-C927C5BC16DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0A40588-629E-4280-872E-C927C5BC16DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0A40588-629E-4280-872E-C927C5BC16DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0A40588-629E-4280-872E-C927C5BC16DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -44,9 +53,14 @@ Global
 		{DD3F7362-D395-4C1A-B171-7FAB282402CF} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
 		{3EC0374C-19CF-4B27-8578-688A4899412C} = {382B2726-6638-478F-8E6D-A0088E7AFAD0}
 		{0E948AC0-E992-4174-A02D-C78683E8E603} = {488D2C35-7FD6-4E31-8B9F-CA60A8B24CE7}
+		{A0A40588-629E-4280-872E-C927C5BC16DF} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
+		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC} = {488D2C35-7FD6-4E31-8B9F-CA60A8B24CE7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {35E9D448-2743-4065-ABF5-A70451F5FE50}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

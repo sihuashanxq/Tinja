@@ -3,7 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Tinja;
-using Tinja.Registration;
+using Tinja.LifeStyle;
+using Tinja.Resolving;
 using Xunit;
 
 namespace TinjaTest
@@ -13,44 +14,42 @@ namespace TinjaTest
         [Fact]
         public void RegisterAsImplType()
         {
-            var components = new ConcurrentDictionary<Type, List<Component>>();
-            var serviceRegistrar = new ServiceRegistrar(components);
+            var ioc = new Container();
 
             var serviceType = typeof(IList<>);
             var implType = typeof(List<>);
 
-            serviceRegistrar.Register(serviceType, implType, LifeStyle.Transient);
+            ioc.AddService(serviceType, implType, ServiceLifeStyle.Transient);
 
-            Assert.Equal(1, components.GetValueOrDefault(serviceType)?.Count);
+            Assert.Equal(1, ioc.Components.GetValueOrDefault(serviceType)?.Count);
 
             //replace lifestyle
-            serviceRegistrar.Register(serviceType, implType, LifeStyle.Singleton);
+            ioc.AddService(serviceType, implType, ServiceLifeStyle.Singleton);
 
-            Assert.Equal(1, components.GetValueOrDefault(serviceType)?.Count);
+            Assert.Equal(1, ioc.Components.GetValueOrDefault(serviceType)?.Count);
 
             Assert.Equal(
-                LifeStyle.Singleton,
-                components.GetValueOrDefault(serviceType)?.FirstOrDefault().LifeStyle);
+                ServiceLifeStyle.Singleton,
+                ioc.Components.GetValueOrDefault(serviceType)?.FirstOrDefault().LifeStyle);
         }
 
         [Fact]
         public void RegisterAsImplFacotry()
         {
-            var components = new ConcurrentDictionary<Type, List<Component>>();
-            var serviceRegistrar = new ServiceRegistrar(components);
+            var ioc = new Container();
 
             var serviceType = typeof(IList<>);
 
-            object implFacotry(IContainer o) => new List<int>();
+            object implFacotry(IServiceResolver o) => new List<int>();
 
-            serviceRegistrar.Register(serviceType, implFacotry, LifeStyle.Transient);
+            ioc.AddService(serviceType, implFacotry, ServiceLifeStyle.Transient);
 
-            Assert.Equal(1, components.GetValueOrDefault(serviceType)?.Count);
+            Assert.Equal(1, ioc.Components.GetValueOrDefault(serviceType)?.Count);
 
             //add new
-            serviceRegistrar.Register(serviceType, (o) => new List<string>(), LifeStyle.Singleton);
+            ioc.AddService(serviceType, (o) => new List<string>(), ServiceLifeStyle.Singleton);
 
-            Assert.Equal(2, components.GetValueOrDefault(serviceType)?.Count);
+            Assert.Equal(2, ioc.Components.GetValueOrDefault(serviceType)?.Count);
         }
     }
 }

@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
-using Tinja.Registration;
-using Tinja.Resolving;
+using Tinja.LifeStyle;
 using Tinja.Resolving.Context;
 using Xunit;
 
@@ -24,14 +22,13 @@ namespace Tinja.Test
         [Fact]
         public void BuildContext()
         {
-            var components = new ConcurrentDictionary<Type, List<Component>>();
-            var serviceRegistrar = new ServiceRegistrar(components);
-            var resolvingContextBuilder = new ResolvingContextBuilder(components);
+            var ioc = new Container();
+            var resolvingContextBuilder = new ResolvingContextBuilder(ioc.Components);
 
             var serviceType = typeof(IService<>);
             var implType = typeof(Service<>);
 
-            serviceRegistrar.Register(serviceType, implType, LifeStyle.Transient);
+            ioc.AddService(serviceType, implType, ServiceLifeStyle.Transient);
 
             var context = resolvingContextBuilder.BuildResolvingContext(typeof(IService<int>));
 
@@ -41,21 +38,20 @@ namespace Tinja.Test
         [Fact]
         public void BuildGenericContext()
         {
-            var components = new ConcurrentDictionary<Type, List<Component>>();
-            var serviceRegistrar = new ServiceRegistrar(components);
-            var resolvingContextBuilder = new ResolvingContextBuilder(components);
+            var ioc = new Container();
+            var resolvingContextBuilder = new ResolvingContextBuilder(ioc.Components);
 
-            serviceRegistrar.Register(typeof(IService<>), typeof(Service<>), LifeStyle.Transient);
-            serviceRegistrar.Register(typeof(IService<int>), typeof(Service<int>), LifeStyle.Singleton);
+            ioc.AddService(typeof(IService<>), typeof(Service<>), ServiceLifeStyle.Transient);
+            ioc.AddService(typeof(IService<int>), typeof(Service<int>), ServiceLifeStyle.Singleton);
 
             var context = resolvingContextBuilder.BuildResolvingContext(typeof(IService<string>));
             Assert.NotNull(context);
-            Assert.Equal(LifeStyle.Transient, context.Component.LifeStyle);
+            Assert.Equal(ServiceLifeStyle.Transient, context.Component.LifeStyle);
 
             context = resolvingContextBuilder.BuildResolvingContext(typeof(IService<int>));
 
             Assert.NotNull(context);
-            Assert.Equal(LifeStyle.Singleton, context.Component.LifeStyle);
+            Assert.Equal(ServiceLifeStyle.Singleton, context.Component.LifeStyle);
 
             context = resolvingContextBuilder.BuildResolvingContext(typeof(IEnumerable<IService<int>>));
 

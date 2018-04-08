@@ -2,7 +2,7 @@
 
 namespace Tinja.Resolving
 {
-    public interface IServiceResolver
+    public interface IServiceResolver : IDisposable
     {
         object Resolve(Type serviceType);
     }

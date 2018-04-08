@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using Tinja.Resolving.Chain;
+using Tinja.LifeStyle;
 using Tinja.Resolving.Chain.Node;
 using Tinja.Resolving.Context;
 
@@ -10,19 +10,19 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceActivationBuilder : IServiceActivationBuilder
     {
-        public static ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>> Cache { get; }
+        public static ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Cache { get; }
 
         static ServiceActivationBuilder()
         {
-            Cache = new ConcurrentDictionary<Type, Func<IContainer, ILifeStyleScope, object>>();
+            Cache = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
         }
 
-        public Func<IContainer, ILifeStyleScope, object> Build(IServiceChainNode chain)
+        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(IServiceChainNode chain)
         {
             return Cache.GetOrAdd(chain.ResolvingContext.ReslovingType, (k) => BuildFactory(chain, new HashSet<IServiceChainNode>()));
         }
 
-        public Func<IContainer, ILifeStyleScope, object> Build(Type resolvingType)
+        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type resolvingType)
         {
             if (Cache.TryGetValue(resolvingType, out var factory))
             {
@@ -32,7 +32,7 @@ namespace Tinja.Resolving.Activation
             return null;
         }
 
-        public static Func<IContainer, ILifeStyleScope, object> BuildFactory(IServiceChainNode node, HashSet<IServiceChainNode> injectedProperties)
+        public static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(IServiceChainNode node, HashSet<IServiceChainNode> injectedProperties)
         {
             return new ServiceActivatorFacotry().CreateActivator(node);
         }
@@ -47,8 +47,8 @@ namespace Tinja.Resolving.Activation
 
             static ServiceActivatorFacotry()
             {
-                ParameterContainer = Expression.Parameter(typeof(IContainer));
-                ParameterLifeScope = Expression.Parameter(typeof(ILifeStyleScope));
+                ParameterContainer = Expression.Parameter(typeof(IServiceResolver));
+                ParameterLifeScope = Expression.Parameter(typeof(IServiceLifeStyleScope));
             }
 
             public ServiceActivatorFacotry()
@@ -56,7 +56,7 @@ namespace Tinja.Resolving.Activation
                 _resolvedPropertyTypes = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
             }
 
-            public Func<IContainer, ILifeStyleScope, object> CreateActivator(IServiceChainNode node)
+            public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(IServiceChainNode node)
             {
                 var lambdaBody = BuildExpression(node);
                 if (lambdaBody == null)
@@ -64,11 +64,11 @@ namespace Tinja.Resolving.Activation
                     throw new NullReferenceException(nameof(lambdaBody));
                 }
 
-                var factory = (Func<IContainer, ILifeStyleScope, object>)Expression
+                var factory = (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
                        .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
                        .Compile();
 
-                if (node.ResolvingContext.Component.LifeStyle != LifeStyle.Transient ||
+                if (node.ResolvingContext.Component.LifeStyle != ServiceLifeStyle.Transient ||
                     node.ResolvingContext.Component.ImplementionType.Is(typeof(IDisposable)))
                 {
                     return BuildProperty(
@@ -220,7 +220,7 @@ namespace Tinja.Resolving.Activation
                 return Expression.Block(vars, statements);
             }
 
-            public Func<IContainer, ILifeStyleScope, object> BuildProperty(Func<IContainer, ILifeStyleScope, object> factory, IServiceChainNode node)
+            public Func<IServiceResolver, IServiceLifeStyleScope, object> BuildProperty(Func<IServiceResolver, IServiceLifeStyleScope, object> factory, IServiceChainNode node)
             {
                 if (node.Properties != null && node.Properties.Count != 0)
                 {
@@ -232,7 +232,7 @@ namespace Tinja.Resolving.Activation
                         ),
                         node);
 
-                    return (Func<IContainer, ILifeStyleScope, object>)Expression
+                    return (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
                        .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
                        .Compile();
                 }

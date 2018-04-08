@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Tinja.LifeStyle;
 
 namespace Tinja.Resolving.Context
 {
@@ -84,7 +85,7 @@ namespace Tinja.Resolving.Context
                 ServiceType = typeof(IEnumerable<>),
                 ImplementionType = typeof(List<>).MakeGenericType(resolvingType.GenericTypeArguments),
                 ImplementionFactory = null,
-                LifeStyle = LifeStyle.Scoped
+                LifeStyle = ServiceLifeStyle.Scoped
             };
 
             var elementType = resolvingType.GenericTypeArguments.FirstOrDefault();

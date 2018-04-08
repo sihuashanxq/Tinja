@@ -1,12 +1,13 @@
 ﻿using System;
+using Tinja.LifeStyle;
 using Tinja.Resolving.Chain.Node;
 
 namespace Tinja.Resolving.Activation
 {
     public interface IServiceActivationBuilder
     {
-        Func<IContainer, ILifeStyleScope, object> Build(IServiceChainNode chain);
+        Func<IServiceResolver, IServiceLifeStyleScope, object> Build(IServiceChainNode chain);
 
-        Func<IContainer, ILifeStyleScope, object> Build(Type resolvingType);
+        Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type resolvingType);
     }
 }

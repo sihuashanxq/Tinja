@@ -8,11 +8,10 @@ namespace Tinja.Resolving.Chain
     public class ServiceConstructorChainFactory : ServiceChainBuilder
     {
         public ServiceConstructorChainFactory(
-            ServiceChainScope serviceChainScope,
             IServiceInfoFactory serviceInfoFactory,
             IResolvingContextBuilder resolvingContextBuilder
         ) : base(
-                  serviceChainScope,
+                  new ServiceChainScope(),
                   serviceInfoFactory,
                   resolvingContextBuilder
             )

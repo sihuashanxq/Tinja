@@ -1,16 +1,18 @@
 ﻿using System;
+using Tinja.LifeStyle;
+using Tinja.Resolving;
 
 namespace Tinja
 {
     public class Component
     {
-        public LifeStyle LifeStyle { get; set; }
+        public ServiceLifeStyle LifeStyle { get; set; }
 
         public Type ServiceType { get; set; }
 
         public Type ImplementionType { get; set; }
 
-        public Func<IContainer, object> ImplementionFactory { get; set; }
+        public Func<IServiceResolver, object> ImplementionFactory { get; set; }
 
         public override int GetHashCode()
         {

@@ -1,6 +1,6 @@
-﻿namespace Tinja
+﻿namespace Tinja.LifeStyle
 {
-    public enum LifeStyle
+    public enum ServiceLifeStyle
     {
         Singleton,
 

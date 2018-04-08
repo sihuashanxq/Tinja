@@ -1,80 +1,104 @@
 ﻿using System;
+using Tinja.LifeStyle;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Chain;
-using Tinja.Resolving.Service;
 using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving
 {
     public class ServiceResolver : IServiceResolver
     {
-        private IContainer _container;
+        /// <summary>
+        /// <see cref="ServiceChainBuilder"/>
+        /// </summary>
+        internal ServiceChainBuilder ChainBuilder { get; }
 
-        private ILifeStyleScope _lifeScope;
+        /// <summary>
+        /// <see cref="IServiceLifeStyleScope"/>
+        /// </summary>
+        internal IServiceLifeStyleScope LifeStyleScope { get; }
 
-        private IServiceInfoFactory _typeDescriptorProvider;
+        /// <summary>
+        /// <see cref="IResolvingContextBuilder"/>
+        /// </summary>
+        internal IResolvingContextBuilder ContextBuilder { get; }
 
-        private IResolvingContextBuilder _resolvingContextBuilder;
+        /// <summary>
+        /// <see cref="IServiceActivationBuilder"/>
+        /// </summary>
+        internal IServiceActivationBuilder ActivationBuilder { get; }
 
-        private IServiceActivationBuilder _instanceFacotryBuilder;
-
-        public ServiceResolver(
-            IContainer container,
-            ILifeStyleScope lifeScope,
-            IServiceInfoFactory typeDescriptorProvider,
-            IResolvingContextBuilder resolvingContextBuilder)
+        public ServiceResolver(IResolvingContextBuilder contextBuilder)
         {
-            _container = container;
-            _lifeScope = lifeScope;
-            _typeDescriptorProvider = typeDescriptorProvider;
-            _resolvingContextBuilder = resolvingContextBuilder;
-            _instanceFacotryBuilder = new ServiceActivationBuilder();
+            LifeStyleScope = new ServiceLifeStyleScope();
+            LifeStyleScope.ApplyLifeScope(typeof(IResolvingContextBuilder), contextBuilder, ServiceLifeStyle.Singleton);
+
+            ContextBuilder = contextBuilder;
+            ChainBuilder = this.Resolve<ServiceChainBuilder>();
+            ActivationBuilder = this.Resolve<IServiceActivationBuilder>();
+        }
+
+        internal ServiceResolver(IServiceLifeStyleScope scope, IResolvingContextBuilder contextBuilder)
+        {
+            ContextBuilder = contextBuilder;
+            LifeStyleScope = new ServiceLifeStyleScope(scope);
+
+            ChainBuilder = this.Resolve<ServiceChainBuilder>();
+            ActivationBuilder = this.Resolve<IServiceActivationBuilder>();
         }
 
         public object Resolve(Type resolvingType)
         {
-            var factory = _instanceFacotryBuilder.Build(resolvingType);
+            var factory = ActivationBuilder?.Build(resolvingType);
             if (factory != null)
             {
-                return factory(_container, _lifeScope);
+                return factory(this, LifeStyleScope);
             }
 
-            var context = _resolvingContextBuilder.BuildResolvingContext(resolvingType);
+            var context = ContextBuilder.BuildResolvingContext(resolvingType);
             if (context == null)
             {
                 return null;
             }
 
-            return _lifeScope.ApplyLifeScope(context, ctx =>
-            {
-                var iFactory = GetInstanceFactory(ctx);
-                if (iFactory == null)
-                {
-                    return null;
-                }
-
-                return iFactory(_container, _lifeScope);
-            });
+            return Resolve(context);
         }
 
-        protected Func<IContainer, ILifeStyleScope, object> GetInstanceFactory(IResolvingContext resolvingContext)
+        protected virtual object Resolve(IResolvingContext context)
         {
-            var component = resolvingContext.Component;
+            var component = context.Component;
             if (component.ImplementionFactory != null)
             {
-                return (o, scoped) =>
+                if (component.LifeStyle != ServiceLifeStyle.Transient ||
+                    component.ImplementionFactory.Method.ReturnType.Is(typeof(IDisposable)))
                 {
-                    return resolvingContext.Component.ImplementionFactory(_container);
-                };
+                    return LifeStyleScope.ApplyLifeScope(
+                        context,
+                        _ => component.ImplementionFactory(this)
+                    );
+                }
+
+                return component.ImplementionFactory(this);
             }
 
-            var node = new ServiceConstructorChainFactory(new ServiceChainScope(), _typeDescriptorProvider, _resolvingContextBuilder).BuildChain(resolvingContext);
-            if (node == null)
+            var chain = ChainBuilder.BuildChain(context);
+            if (chain == null)
             {
                 return null;
             }
 
-            return _instanceFacotryBuilder.Build(node);
+            var facotry = ActivationBuilder.Build(chain);
+            if (facotry == null)
+            {
+                return null;
+            }
+
+            return facotry(this, LifeStyleScope);
+        }
+
+        public void Dispose()
+        {
+            LifeStyleScope.Dispose();
         }
     }
 }

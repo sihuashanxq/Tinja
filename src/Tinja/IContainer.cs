@@ -1,11 +1,11 @@
 ﻿using System;
-using Tinja.Registration;
-using Tinja.Resolving;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace Tinja
 {
-    public interface IContainer : IServiceRegistrar, IServiceResolver, IDisposable
+    public interface IContainer
     {
-
+        ConcurrentDictionary<Type, List<Component>> Components { get; }
     }
 }

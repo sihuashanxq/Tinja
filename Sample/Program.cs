@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using Tinja;
+using Tinja.LifeStyle;
 
 namespace Sample
 {
@@ -89,9 +89,9 @@ namespace Sample
         {
             var ioc = new Container();
 
-            ioc.Register(typeof(IServiceA), typeof(ServiceA), LifeStyle.Transient);
-            ioc.Register(typeof(IServiceB), typeof(ServiceB), LifeStyle.Transient);
-            ioc.Register(typeof(IService), typeof(Service), LifeStyle.Transient);
+            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
+            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
+            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();
@@ -115,14 +115,16 @@ namespace Sample
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);
 
-            var service = ioc.Resolve(typeof(IService));
+            var resolver = ioc.BuildResolver();
+
+            var service = resolver.Resolve(typeof(IService));
 
             st.Reset();
             st.Start();
 
             for (var i = 0; i < 1000_00000; i++)
             {
-                ioc.Resolve(typeof(IService));
+                resolver.Resolve(typeof(IService));
             }
 
             st.Stop();
