@@ -8,6 +8,6 @@ namespace Tinja.Resolving.Activation
     {
         Func<IServiceResolver, IServiceLifeStyleScope, object> Build(IServiceChainNode chain);
 
-        Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type resolvingType);
+        Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type serviceType);
     }
 }

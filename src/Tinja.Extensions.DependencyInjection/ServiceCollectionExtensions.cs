@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Tinja.LifeStyle;
+using Tinja.Resolving;
 
 namespace Tinja.Extensions.DependencyInjection
 {
@@ -31,7 +32,8 @@ namespace Tinja.Extensions.DependencyInjection
                 }
             }
 
-            ioc.AddSingleton<IServiceScopeFactory, TinjaServiceScopeFactory>();
+            ioc.AddSingleton<IServiceScopeFactory, ServiceScopeAdapterFactory>();
+            ioc.AddSingleton<IServiceProviderFactory<IContainer>, ServiceProviderFactory>();
 
             return ioc;
         }
@@ -42,7 +44,7 @@ namespace Tinja.Extensions.DependencyInjection
             {
                 ioc.AddService(
                     service.ServiceType,
-                    (resolver) => service.ImplementationFactory((IServiceProvider)resolver.Resolve(typeof(IServiceProvider))),
+                    (resolver) => service.ImplementationFactory(resolver.GetService<IServiceProvider>()),
                     lifeStyle
                 );
             }

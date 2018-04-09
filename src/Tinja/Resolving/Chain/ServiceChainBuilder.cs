@@ -29,6 +29,17 @@ namespace Tinja.Resolving.Chain
 
         public virtual IServiceChainNode BuildChain(IResolvingContext resolvingContext)
         {
+            if (resolvingContext.Component.ImplementionFactory != null)
+            {
+                return new ServiceConstrutorChainNode()
+                {
+                    Constructor = null,
+                    Paramters = new Dictionary<ParameterInfo, IServiceChainNode>(),
+                    Properties = new Dictionary<PropertyInfo, IServiceChainNode>(),
+                    ResolvingContext = resolvingContext
+                };
+            }
+
             var implementionType = GetImplementionType(
                  resolvingContext.ReslovingType,
                  resolvingContext.Component.ImplementionType
@@ -70,40 +81,21 @@ namespace Tinja.Resolving.Chain
             {
                 foreach (var parameter in item.Paramters)
                 {
-                    var pContext = ResolvingContextBuilder.BuildResolvingContext(parameter.ParameterType);
-                    if (pContext == null)
+                    var paramterResolvingContext = ResolvingContextBuilder.BuildResolvingContext(parameter.ParameterType);
+                    if (paramterResolvingContext == null)
                     {
                         parameters.Clear();
                         break;
                     }
 
-                    if (pContext.Component.ImplementionFactory != null)
-                    {
-                        parameters[parameter] = new ServiceConstrutorChainNode()
-                        {
-                            Constructor = null,
-                            Paramters = null,
-                            ResolvingContext = pContext
-                        };
-
-                        continue;
-                    }
-
-                    var implementionType = GetImplementionType(
-                        pContext.ReslovingType,
-                        pContext.Component.ImplementionType
-                    );
-
-                    var paramterDescriptor = ServiceInfoFactory.Create(implementionType);
-                    var parameterTypeContext = BuildChain(pContext, paramterDescriptor);
-
-                    if (parameterTypeContext == null)
+                    var paramterChain = BuildChain(paramterResolvingContext);
+                    if (paramterChain == null)
                     {
                         parameters.Clear();
                         break;
                     }
 
-                    parameters[parameter] = parameterTypeContext;
+                    parameters[parameter] = paramterChain;
                 }
 
                 if (parameters.Count == item.Paramters.Length)
@@ -126,16 +118,13 @@ namespace Tinja.Resolving.Chain
 
             for (var i = 0; i < elements.Length; i++)
             {
-                var scoped = new Dictionary<Type, IServiceChainNode>();
-                var implementionType = GetImplementionType(
-                    context.ElementsResolvingContext[i].ReslovingType,
-                    context.ElementsResolvingContext[i].Component.ImplementionType
-                );
+                var chain = BuildChain(context.ElementsResolvingContext[i]);
+                if (chain == null)
+                {
+                    continue;
+                }
 
-                elements[i] = BuildChain(
-                    context.ElementsResolvingContext[i],
-                    ServiceInfoFactory.Create(implementionType)
-                );
+                elements[i] = chain;
             }
 
             return new ServiceEnumerableChainNode()

@@ -12,6 +12,8 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
+        public IService Service { get; set; }
+
         public ServiceA()
         {
 
@@ -53,7 +55,9 @@ namespace Sample
 
     public class Service : IService
     {
-        public Service(IServiceA ServiceA)
+        public IServiceA ServiceA { get; set; }
+
+        public Service()
         {
 
         }
@@ -107,24 +111,24 @@ namespace Sample
             st.Reset();
             st.Start();
 
-            for (var i = 0; i < 1000_00000; i++)
-            {
-                provider.GetService(typeof(IService));
-            }
+            //for (var i = 0; i < 1000_00000; i++)
+            //{
+            //    provider.GetService(typeof(IService));
+            //}
 
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);
 
             var resolver = ioc.BuildResolver();
 
-            var service = resolver.Resolve(typeof(IService));
+            var service = resolver.GetService(typeof(IService));
 
             st.Reset();
             st.Start();
 
             for (var i = 0; i < 1000_00000; i++)
             {
-                resolver.Resolve(typeof(IService));
+                resolver.GetService(typeof(IService));
             }
 
             st.Stop();

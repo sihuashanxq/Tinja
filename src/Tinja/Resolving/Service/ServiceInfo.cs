@@ -15,7 +15,7 @@ namespace Tinja.Resolving
         public ServiceInfo(Type type)
         {
             Type = type;
-            Properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty);
+            Properties = new PropertyInfo[0];
             Constructors = type
                 .GetConstructors()
                 .Select(i => new ServiceConstructorInfo(i, i.GetParameters()))

@@ -5,9 +5,9 @@ using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Chain
 {
-    public class ServiceConstructorChainFactory : ServiceChainBuilder
+    public class ServiceConstructorChainBuilder : ServiceChainBuilder
     {
-        public ServiceConstructorChainFactory(
+        public ServiceConstructorChainBuilder(
             IServiceInfoFactory serviceInfoFactory,
             IResolvingContextBuilder resolvingContextBuilder
         ) : base(
@@ -22,7 +22,7 @@ namespace Tinja.Resolving.Chain
         public override IServiceChainNode BuildChain(IResolvingContext resolvingContext)
         {
             var node = base.BuildChain(resolvingContext);
-            if (node != null)
+            if (node != null && node.Constructor != null)
             {
                 var propertyBinder = new ServicePropertyChainBuilder(
                     ServiceChainScope.CreateCacheContextScope(),

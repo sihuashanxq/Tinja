@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Tinja.Resolving;
 using Tinja.Resolving.Context;
 
 namespace Tinja.LifeStyle
@@ -10,60 +11,50 @@ namespace Tinja.LifeStyle
 
         private Dictionary<Type, object> _scopedObjects;
 
-        internal IServiceLifeStyleScope RootScope { get; }
+        private IServiceResolver _resolver;
 
-        public ServiceLifeStyleScope(IServiceLifeStyleScope lifeStyleScope)
-            : this()
+        public IServiceLifeStyleScope RootLifeStyleScope { get; }
+
+        internal ServiceLifeStyleScope(IServiceResolver resolver, IServiceLifeStyleScope scope)
+            : this(resolver)
         {
-            if (lifeStyleScope is ServiceLifeStyleScope scope)
+            while (scope != null && scope.RootLifeStyleScope != null)
             {
-                while (scope != null && scope.RootScope != null)
-                {
-                    RootScope = scope.RootScope;
+                scope = scope.RootLifeStyleScope;
+            }
 
-                    if (scope.RootScope is ServiceLifeStyleScope)
-                    {
-                        scope = scope.RootScope as ServiceLifeStyleScope;
-                    }
-                }
-            }
-            else
-            {
-                RootScope = lifeStyleScope;
-            }
+            RootLifeStyleScope = scope;
         }
 
-        public ServiceLifeStyleScope()
+        public ServiceLifeStyleScope(IServiceResolver resolver)
         {
+            _resolver = resolver;
             _transientDisposeObjects = new List<object>();
             _scopedObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyLifeScope(IResolvingContext context, Func<IResolvingContext, object> factory)
+        public object ApplyInstanceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
-            if (context.Component.LifeStyle == ServiceLifeStyle.Transient)
+            switch (context.Component.LifeStyle)
             {
-                var o = factory(context);
-                if (o is IDisposable)
-                {
-                    _transientDisposeObjects.Add(o);
-                }
-
-                return o;
+                case ServiceLifeStyle.Transient:
+                    return ApplyTransientInstance(context, factory);
+                case ServiceLifeStyle.Scoped:
+                    return ApplyScopedInstance(context, factory);
+                default:
+                    return ApplySingletonInstance(context, factory);
             }
+        }
 
-            if (context.Component.LifeStyle == ServiceLifeStyle.Singleton && RootScope != null)
-            {
-                return RootScope.ApplyLifeScope(context, factory);
-            }
-
+        protected virtual object ApplyScopedInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
+        {
             if (!_scopedObjects.ContainsKey(context.ReslovingType))
             {
                 lock (_scopedObjects)
                 {
                     if (!_scopedObjects.ContainsKey(context.ReslovingType))
                     {
-                        return _scopedObjects[context.ReslovingType] = factory(context);
+                        return _scopedObjects[context.ReslovingType] = factory(_resolver);
                     }
                 }
             }
@@ -71,41 +62,25 @@ namespace Tinja.LifeStyle
             return _scopedObjects[context.ReslovingType];
         }
 
-        public void ApplyLifeScope(Type serviceType, object instance, ServiceLifeStyle lifeStyle)
+        protected virtual object ApplyTransientInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
-            if (instance == null)
-            {
-                return;
-            }
-
-            if (lifeStyle == ServiceLifeStyle.Transient &&
-                !instance.GetType().Is(typeof(IDisposable)))
-            {
-                return;
-            }
-
-            if (lifeStyle == ServiceLifeStyle.Transient)
+            var instance = factory(_resolver);
+            if (instance is IDisposable)
             {
                 _transientDisposeObjects.Add(instance);
-                return;
             }
 
-            if (lifeStyle == ServiceLifeStyle.Singleton && RootScope != null)
+            return instance;
+        }
+
+        protected virtual object ApplySingletonInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
+        {
+            if (RootLifeStyleScope == null)
             {
-                RootScope.ApplyLifeScope(serviceType, instance, lifeStyle);
-                return;
+                return ApplyScopedInstance(context, factory);
             }
 
-            if (!_scopedObjects.ContainsKey(serviceType))
-            {
-                lock (_scopedObjects)
-                {
-                    if (!_scopedObjects.ContainsKey(serviceType))
-                    {
-                        _scopedObjects[serviceType] = instance;
-                    }
-                }
-            }
+            return RootLifeStyleScope.ApplyInstanceLifeStyle(context, factory);
         }
 
         public void Dispose()

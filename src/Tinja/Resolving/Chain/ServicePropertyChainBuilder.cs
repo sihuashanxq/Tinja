@@ -20,18 +20,19 @@ namespace Tinja.Resolving.Chain
                   resolvingContextBuilder
             )
         {
+
         }
 
-        public override IServiceChainNode BuildChain(IResolvingContext resolvingContext)
-        {
-            var node = base.BuildChain(resolvingContext);
-            if (node != null)
-            {
-                BuildProperties(node);
-            }
+        //public override IServiceChainNode BuildChain(IResolvingContext resolvingContext)
+        //{
+        //    var node = base.BuildChain(resolvingContext);
+        //    if (node != null)
+        //    {
+        //        BuildProperties(node);
+        //    }
 
-            return node;
-        }
+        //    return node;
+        //}
 
         protected override IServiceChainNode BuildChain(IResolvingContext context, ServiceInfo serviceInfo)
         {

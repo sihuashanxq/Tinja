@@ -1,12 +1,13 @@
 ﻿using System;
+using Tinja.Resolving;
 using Tinja.Resolving.Context;
 
 namespace Tinja.LifeStyle
 {
     public interface IServiceLifeStyleScope : IDisposable
     {
-        void ApplyLifeScope(Type serviceType, object instance, ServiceLifeStyle lifeStyle);
+        IServiceLifeStyleScope RootLifeStyleScope { get; }
 
-        object ApplyLifeScope(IResolvingContext context, Func<IResolvingContext, object> factory);
+        object ApplyInstanceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory);
     }
 }

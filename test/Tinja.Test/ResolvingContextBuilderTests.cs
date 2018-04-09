@@ -23,7 +23,7 @@ namespace Tinja.Test
         public void BuildContext()
         {
             var ioc = new Container();
-            var resolvingContextBuilder = new ResolvingContextBuilder(ioc.Components);
+            var resolvingContextBuilder = new ResolvingContextBuilder();
 
             var serviceType = typeof(IService<>);
             var implType = typeof(Service<>);
@@ -39,7 +39,7 @@ namespace Tinja.Test
         public void BuildGenericContext()
         {
             var ioc = new Container();
-            var resolvingContextBuilder = new ResolvingContextBuilder(ioc.Components);
+            var resolvingContextBuilder = new ResolvingContextBuilder();
 
             ioc.AddService(typeof(IService<>), typeof(Service<>), ServiceLifeStyle.Transient);
             ioc.AddService(typeof(IService<int>), typeof(Service<int>), ServiceLifeStyle.Singleton);

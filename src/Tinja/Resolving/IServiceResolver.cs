@@ -1,9 +1,10 @@
 ﻿using System;
+using Tinja.LifeStyle;
 
 namespace Tinja.Resolving
 {
-    public interface IServiceResolver : IDisposable
+    public interface IServiceResolver : IServiceProvider, IDisposable
     {
-        object Resolve(Type serviceType);
+        IServiceLifeStyleScope Scope { get; }
     }
 }

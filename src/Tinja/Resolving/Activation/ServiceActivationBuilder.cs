@@ -73,7 +73,7 @@ namespace Tinja.Resolving.Activation
                 {
                     return BuildProperty(
                         (o, scoped) =>
-                            scoped.ApplyLifeScope(node.ResolvingContext, (_) => factory(o, scoped)),
+                            scoped.ApplyInstanceLifeStyle(node.ResolvingContext, (_) => factory(o, scoped)),
                         node
                     );
                 }
@@ -137,31 +137,38 @@ namespace Tinja.Resolving.Activation
             public ListInitExpression BuildEnumerable(ServiceEnumerableChainNode node)
             {
                 var newExpression = BuildConstructor(node);
-                var elementInits = new ElementInit[node.Elements.Length];
+                var elementInits = new List<ElementInit>();
                 var addElement = node.ResolvingContext.Component.ImplementionType.GetMethod("Add");
 
-                for (var i = 0; i < elementInits.Length; i++)
+                for (var i = 0; i < node.Elements.Length; i++)
                 {
-                    var elementValueFactory = CreateActivator(node.Paramters[node.Constructor.Paramters[i]]);
+                    if (node.Elements[i] == null)
+                    {
+                        continue;
+                    }
+
+                    var elementValueFactory = CreateActivator(node.Elements[i]);
                     if (elementValueFactory == null)
                     {
                         continue;
                     }
 
-                    elementInits[i] = Expression.ElementInit(
-                        addElement,
-                        Expression.Convert(
-                            Expression.Invoke(
-                                Expression.Constant(elementValueFactory),
-                                ParameterContainer,
-                                ParameterLifeScope
-                            ),
-                            node.Elements[i].ResolvingContext.ReslovingType
+                    elementInits.Add(
+                        Expression.ElementInit(
+                            addElement,
+                            Expression.Convert(
+                                Expression.Invoke(
+                                    Expression.Constant(elementValueFactory),
+                                    ParameterContainer,
+                                    ParameterLifeScope
+                                ),
+                                node.Elements[i].ResolvingContext.ReslovingType
+                            )
                         )
                     );
                 }
 
-                return Expression.ListInit(newExpression, elementInits);
+                return Expression.ListInit(newExpression, elementInits.ToArray());
             }
 
             public Expression BuildPropertyInfo(Expression instance, IServiceChainNode node)

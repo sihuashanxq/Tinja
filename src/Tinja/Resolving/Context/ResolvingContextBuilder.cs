@@ -8,13 +8,19 @@ namespace Tinja.Resolving.Context
 {
     public class ResolvingContextBuilder : IResolvingContextBuilder
     {
-        private ConcurrentDictionary<Type, IResolvingContext> _cache = new ConcurrentDictionary<Type, IResolvingContext>();
-
         protected ConcurrentDictionary<Type, List<Component>> Components { get; }
 
-        public ResolvingContextBuilder(ConcurrentDictionary<Type, List<Component>> components)
+        public ResolvingContextBuilder()
         {
-            Components = components;
+            Components = new ConcurrentDictionary<Type, List<Component>>();
+        }
+
+        public virtual void Initialize(ConcurrentDictionary<Type, List<Component>> components)
+        {
+            foreach (var item in components)
+            {
+                Components[item.Key] = item.Value.ToList();
+            }
         }
 
         public virtual IResolvingContext BuildResolvingContext(Type resolvingType)

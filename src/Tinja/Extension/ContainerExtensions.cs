@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using Tinja.LifeStyle;
 using Tinja.Resolving;
+using Tinja.Resolving.Activation;
+using Tinja.Resolving.Chain;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Service;
 
 namespace Tinja
 {
@@ -10,7 +13,24 @@ namespace Tinja
     {
         public static IServiceResolver BuildResolver(this IContainer ioc)
         {
-            return new ServiceResolver(new ResolvingContextBuilder(ioc.Components));
+            var builder = new ResolvingContextBuilder();
+            var scopeFactory = new ServiceLifeStyleScopeFactory();
+
+            ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
+            ioc.AddScoped(typeof(IServiceProvider), resolver => resolver);
+            ioc.AddScoped(typeof(IServiceLifeStyleScope), resolver => resolver.Scope);
+
+            ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
+            ioc.AddSingleton(typeof(IServiceLifeStyleScopeFactory), _ => scopeFactory);
+            ioc.AddSingleton(typeof(IServiceInfoFactory), _ => new ServiceInfoFactory());
+            ioc.AddSingleton(typeof(IServiceActivationBuilder), _ => new ServiceActivationBuilder());
+            ioc.AddSingleton(
+                typeof(ServiceChainBuilder),
+                resolver => new ServiceConstructorChainBuilder(resolver.GetService<IServiceInfoFactory>(), builder)
+            );
+
+            builder.Initialize(ioc.Components);
+            return new ServiceResolver(builder, scopeFactory);
         }
 
         public static IContainer AddService(this IContainer ioc, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle)
