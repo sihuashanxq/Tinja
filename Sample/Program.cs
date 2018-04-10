@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Tinja;
+using Tinja.Annotations;
 using Tinja.LifeStyle;
 
 namespace Sample
@@ -12,7 +13,8 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        public IService Service { get; set; }
+        [Inject]
+        public IServiceB Service { get; set; }
 
         public ServiceA()
         {
@@ -27,6 +29,7 @@ namespace Sample
 
     public class ServiceB : IServiceB
     {
+        [Inject]
         public IService Service { get; set; }
 
         public void Up()
@@ -55,6 +58,7 @@ namespace Sample
 
     public class Service : IService
     {
+        [Inject]
         public IServiceA ServiceA { get; set; }
 
         public Service()
@@ -74,28 +78,15 @@ namespace Sample
         }
     }
 
-    public class ServiceC : IService
-    {
-        public void Give()
-        {
-
-        }
-    }
-
-    public class ServiceD : ServiceC
-    {
-
-    }
-
     class Program
     {
         static void Main(string[] args)
         {
             var ioc = new Container();
 
-            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
-            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
-            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
+            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
+            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
+            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();
@@ -121,14 +112,14 @@ namespace Sample
 
             var resolver = ioc.BuildResolver();
 
-            var service = resolver.GetService(typeof(IService));
+            var service = resolver.Resolve(typeof(IService));
 
             st.Reset();
             st.Start();
 
             for (var i = 0; i < 1000_00000; i++)
             {
-                resolver.GetService(typeof(IService));
+                resolver.Resolve(typeof(IService));
             }
 
             st.Stop();

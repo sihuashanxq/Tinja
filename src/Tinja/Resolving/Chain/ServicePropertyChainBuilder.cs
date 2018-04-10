@@ -23,22 +23,38 @@ namespace Tinja.Resolving.Chain
 
         }
 
-        //public override IServiceChainNode BuildChain(IResolvingContext resolvingContext)
-        //{
-        //    var node = base.BuildChain(resolvingContext);
-        //    if (node != null)
-        //    {
-        //        BuildProperties(node);
-        //    }
-
-        //    return node;
-        //}
-
-        protected override IServiceChainNode BuildChain(IResolvingContext context, ServiceInfo serviceInfo)
+        protected override IServiceChainNode BuildChainNode(IResolvingContext context)
         {
-            if (ServiceChainScope.ScopeContexts.TryGetValue(serviceInfo.Type, out var cachedContext))
+            if (context.Component.ImplementionFactory != null)
             {
-                if (cachedContext.Component.LifeStyle == ServiceLifeStyle.Transient)
+                return new ServiceConstrutorChainNode()
+                {
+                    Constructor = null,
+                    Paramters = new Dictionary<ParameterInfo, IServiceChainNode>(),
+                    Properties = new Dictionary<PropertyInfo, IServiceChainNode>(),
+                    ResolvingContext = context
+                };
+            }
+
+            var implementionType = GetImplementionType(
+                 context.ReslovingType,
+                 context.Component.ImplementionType
+             );
+
+            var serviceInfo = ServiceInfoFactory.Create(implementionType);
+            if (serviceInfo == null || serviceInfo.Constructors == null || serviceInfo.Constructors.Length == 0)
+            {
+                return null;
+            }
+
+            if (ServiceChainScope.ScopeContexts.TryGetValue(serviceInfo.Type, out var _))
+            {
+                if (context.Component.LifeStyle == ServiceLifeStyle.Transient)
+                {
+                    return null;
+                }
+
+                if (!ServiceChainScope.AllContexts.TryGetValue(serviceInfo.Type, out var cachedContext))
                 {
                     return null;
                 }
@@ -51,17 +67,33 @@ namespace Tinja.Resolving.Chain
                 return null;
             }
 
-            return base.BuildChain(context, serviceInfo);
+            return base.BuildChainNode(context);
         }
 
-        public virtual void BuildProperties(IServiceChainNode node)
+        protected override IServiceChainNode BuildChainNode(IResolvingContext context, ServiceInfo serviceInfo)
         {
-            if (node is ServiceEnumerableChainNode eNode)
+            var chain = base.BuildChainNode(context, serviceInfo);
+            if (chain != null)
+            {
+                return BuildProperties(chain);
+            }
+
+            return chain;
+        }
+
+        public virtual IServiceChainNode BuildProperties(IServiceChainNode chain)
+        {
+            if (chain == null || chain.Constructor == null)
+            {
+                return chain;
+            }
+            
+            if (chain is ServiceEnumerableChainNode eNode)
             {
                 BuildProperties(
-                    node,
+                    chain,
                     ServiceInfoFactory.Create(
-                        node.Constructor.ConstructorInfo.DeclaringType
+                        chain.Constructor.ConstructorInfo.DeclaringType
                     )
                 );
 
@@ -78,13 +110,13 @@ namespace Tinja.Resolving.Chain
             else
             {
                 BuildProperties(
-                    node,
+                    chain,
                     ServiceInfoFactory.Create(
-                        node.Constructor.ConstructorInfo.DeclaringType
+                        chain.Constructor.ConstructorInfo.DeclaringType
                     )
                 );
 
-                foreach (var item in node.Paramters.Where(i => i.Value.Constructor != null))
+                foreach (var item in chain.Paramters.Where(i => i.Value.Constructor != null))
                 {
                     BuildProperties(
                         item.Value,
@@ -94,26 +126,28 @@ namespace Tinja.Resolving.Chain
                     );
                 }
 
-                foreach (var item in node.Properties ?? new Dictionary<PropertyInfo, IServiceChainNode>())
+                foreach (var item in chain.Properties.Where(i => i.Value.Constructor != null))
                 {
                     BuildProperties(
-                       item.Value,
-                       ServiceInfoFactory.Create(
-                           item.Value.Constructor.ConstructorInfo.DeclaringType
-                       )
-                   );
+                        item.Value,
+                        ServiceInfoFactory.Create(
+                            item.Value.Constructor.ConstructorInfo.DeclaringType
+                        )
+                    );
                 }
             }
+
+            return chain;
         }
 
-        protected virtual void BuildProperties(IServiceChainNode node, ServiceInfo serviceInfo)
+        protected virtual void BuildProperties(IServiceChainNode chain, ServiceInfo serviceInfo)
         {
             if (serviceInfo.Properties == null || serviceInfo.Properties.Length == 0)
             {
                 return;
             }
 
-            var propertyNodes = new Dictionary<PropertyInfo, IServiceChainNode>();
+            var propertyChains = new Dictionary<PropertyInfo, IServiceChainNode>();
 
             foreach (var item in serviceInfo.Properties)
             {
@@ -123,39 +157,16 @@ namespace Tinja.Resolving.Chain
                     continue;
                 }
 
-                if (context.Component.ImplementionFactory != null)
-                {
-                    propertyNodes[item] = new ServiceConstrutorChainNode()
-                    {
-                        Constructor = null,
-                        Paramters = null,
-                        ResolvingContext = context
-                    };
-
-                    continue;
-                }
-
-                var implementionType = GetImplementionType(
-                    context.ReslovingType,
-                    context.Component.ImplementionType
-                );
-
-                var propertyDescriptor = ServiceInfoFactory.Create(implementionType);
-                if (propertyDescriptor == null)
+                var propertyChain = BuildChainNode(context);
+                if (propertyChain == null)
                 {
                     continue;
                 }
 
-                var propertyNode = BuildChain(context, propertyDescriptor);
-                if (propertyNode == null)
-                {
-                    continue;
-                }
-
-                propertyNodes[item] = propertyNode;
+                propertyChains[item] = propertyChain;
             }
 
-            node.Properties = propertyNodes;
+            chain.Properties = propertyChains;
         }
     }
 }

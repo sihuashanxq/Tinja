@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using Tinja.Annotations;
 
 namespace Tinja.Resolving
 {
@@ -12,11 +13,16 @@ namespace Tinja.Resolving
 
         public ServiceConstructorInfo[] Constructors { get; }
 
-        public ServiceInfo(Type type)
+        public ServiceInfo(Type serviceType)
         {
-            Type = type;
-            Properties = new PropertyInfo[0];
-            Constructors = type
+            Type = serviceType;
+
+            Properties = serviceType
+                .GetProperties()
+                .Where(i => i.SetMethod != null && i.GetCustomAttribute<InjectAttribute>() != null)
+                .ToArray();
+
+            Constructors = serviceType
                 .GetConstructors()
                 .Select(i => new ServiceConstructorInfo(i, i.GetParameters()))
                 .ToArray();

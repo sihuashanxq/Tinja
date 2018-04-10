@@ -27,22 +27,27 @@ namespace Tinja.Resolving.Chain
             ResolvingContextBuilder = resolvingContextBuilder;
         }
 
-        public virtual IServiceChainNode BuildChain(IResolvingContext resolvingContext)
+        public virtual IServiceChainNode BuildChain(IResolvingContext context)
         {
-            if (resolvingContext.Component.ImplementionFactory != null)
+            return BuildChainNode(context);
+        }
+
+        protected virtual IServiceChainNode BuildChainNode(IResolvingContext context)
+        {
+            if (context.Component.ImplementionFactory != null)
             {
                 return new ServiceConstrutorChainNode()
                 {
                     Constructor = null,
                     Paramters = new Dictionary<ParameterInfo, IServiceChainNode>(),
                     Properties = new Dictionary<PropertyInfo, IServiceChainNode>(),
-                    ResolvingContext = resolvingContext
+                    ResolvingContext = context
                 };
             }
 
             var implementionType = GetImplementionType(
-                 resolvingContext.ReslovingType,
-                 resolvingContext.Component.ImplementionType
+                 context.ReslovingType,
+                 context.Component.ImplementionType
              );
 
             var serviceInfo = ServiceInfoFactory.Create(implementionType);
@@ -51,20 +56,15 @@ namespace Tinja.Resolving.Chain
                 return null;
             }
 
-            return BuildChain(resolvingContext, serviceInfo);
-        }
-
-        protected virtual IServiceChainNode BuildChain(IResolvingContext context, ServiceInfo serviceInfo)
-        {
             using (ServiceChainScope.BeginScope(context, serviceInfo))
             {
-                var node = BuildChainNode(context, serviceInfo);
-                if (node != null)
+                var chain = BuildChainNode(context, serviceInfo);
+                if (chain != null)
                 {
-                    ServiceChainScope.Chains[context] = node;
+                    ServiceChainScope.Chains[context] = chain;
                 }
 
-                return node;
+                return chain;
             }
         }
 
@@ -81,14 +81,14 @@ namespace Tinja.Resolving.Chain
             {
                 foreach (var parameter in item.Paramters)
                 {
-                    var paramterResolvingContext = ResolvingContextBuilder.BuildResolvingContext(parameter.ParameterType);
-                    if (paramterResolvingContext == null)
+                    var paramterContext = ResolvingContextBuilder.BuildResolvingContext(parameter.ParameterType);
+                    if (paramterContext == null)
                     {
                         parameters.Clear();
                         break;
                     }
 
-                    var paramterChain = BuildChain(paramterResolvingContext);
+                    var paramterChain = BuildChainNode(paramterContext);
                     if (paramterChain == null)
                     {
                         parameters.Clear();
@@ -114,17 +114,17 @@ namespace Tinja.Resolving.Chain
 
         protected IServiceChainNode BuildEnumerableChainNode(ResolvingEnumerableContext context, ServiceInfo serviceInfo)
         {
-            var elements = new IServiceChainNode[context.ElementsResolvingContext.Count];
+            var elements = new List<IServiceChainNode>();
 
-            for (var i = 0; i < elements.Length; i++)
+            for (var i = 0; i < context.ElementsResolvingContext.Count; i++)
             {
-                var chain = BuildChain(context.ElementsResolvingContext[i]);
+                var chain = BuildChainNode(context.ElementsResolvingContext[i]);
                 if (chain == null)
                 {
                     continue;
                 }
 
-                elements[i] = chain;
+                elements.Add(chain);
             }
 
             return new ServiceEnumerableChainNode()
@@ -132,7 +132,7 @@ namespace Tinja.Resolving.Chain
                 Constructor = serviceInfo.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
                 Paramters = new Dictionary<ParameterInfo, IServiceChainNode>(),
                 ResolvingContext = context,
-                Elements = elements
+                Elements = elements.ToArray()
             };
         }
 

@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using Tinja.Resolving;
 
 namespace Tinja.Extensions.DependencyInjection
 {
@@ -8,9 +7,9 @@ namespace Tinja.Extensions.DependencyInjection
     {
         public IServiceProvider ServiceProvider { get; }
 
-        public ServiceScopeAdapter(IServiceResolver resolver)
+        public ServiceScopeAdapter(IServiceProvider serviceProvider)
         {
-            ServiceProvider = resolver;
+            ServiceProvider = serviceProvider;
         }
 
         public void Dispose()

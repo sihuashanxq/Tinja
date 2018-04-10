@@ -7,23 +7,26 @@ namespace Tinja.LifeStyle
 {
     public class ServiceLifeStyleScope : IServiceLifeStyleScope
     {
+        private bool _disposed;
+
+        private IServiceResolver _resolver;
+
+        private IServiceLifeStyleScope _root;
+
         private List<object> _transientDisposeObjects;
 
         private Dictionary<Type, object> _scopedObjects;
 
-        private IServiceResolver _resolver;
-
-        public IServiceLifeStyleScope RootLifeStyleScope { get; }
-
-        internal ServiceLifeStyleScope(IServiceResolver resolver, IServiceLifeStyleScope scope)
-            : this(resolver)
+        internal ServiceLifeStyleScope(IServiceResolver resolver, IServiceLifeStyleScope root) : this(resolver)
         {
-            while (scope != null && scope.RootLifeStyleScope != null)
+            if (!(root is ServiceLifeStyleScope))
             {
-                scope = scope.RootLifeStyleScope;
+                _root = root;
             }
-
-            RootLifeStyleScope = scope;
+            else
+            {
+                _root = (root as ServiceLifeStyleScope)._root ?? root;
+            }
         }
 
         public ServiceLifeStyleScope(IServiceResolver resolver)
@@ -35,6 +38,11 @@ namespace Tinja.LifeStyle
 
         public object ApplyInstanceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
+            if (_disposed)
+            {
+                throw new NotSupportedException("scope has disposed!");
+            }
+
             switch (context.Component.LifeStyle)
             {
                 case ServiceLifeStyle.Transient:
@@ -75,34 +83,59 @@ namespace Tinja.LifeStyle
 
         protected virtual object ApplySingletonInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
-            if (RootLifeStyleScope == null)
+            if (_root == null)
             {
                 return ApplyScopedInstance(context, factory);
             }
 
-            return RootLifeStyleScope.ApplyInstanceLifeStyle(context, factory);
+            return _root.ApplyInstanceLifeStyle(context, factory);
+        }
+
+        ~ServiceLifeStyleScope()
+        {
+            Dispose(true);
         }
 
         public void Dispose()
         {
-            foreach (var item in _transientDisposeObjects)
+            Dispose(true);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposing || _disposed)
             {
-                if (item is IDisposable dispose)
-                {
-                    dispose.Dispose();
-                }
+                return;
             }
 
-            foreach (var item in _scopedObjects.Values)
+            lock (this)
             {
-                if (item is IDisposable dispose)
+                if (_disposed)
                 {
-                    dispose.Dispose();
+                    return;
                 }
-            }
 
-            _transientDisposeObjects.Clear();
-            _scopedObjects.Clear();
+                _disposed = true;
+
+                foreach (var item in _transientDisposeObjects)
+                {
+                    if (item is IDisposable dispose)
+                    {
+                        dispose.Dispose();
+                    }
+                }
+
+                foreach (var item in _scopedObjects.Values)
+                {
+                    if (item is IDisposable dispose)
+                    {
+                        dispose.Dispose();
+                    }
+                }
+
+                _transientDisposeObjects.Clear();
+                _scopedObjects.Clear();
+            }
         }
     }
 }

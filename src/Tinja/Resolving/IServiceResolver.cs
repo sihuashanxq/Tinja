@@ -3,8 +3,10 @@ using Tinja.LifeStyle;
 
 namespace Tinja.Resolving
 {
-    public interface IServiceResolver : IServiceProvider, IDisposable
+    public interface IServiceResolver : IDisposable
     {
         IServiceLifeStyleScope Scope { get; }
+
+        object Resolve(Type serviceType);
     }
 }

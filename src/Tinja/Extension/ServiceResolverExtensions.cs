@@ -4,9 +4,9 @@ namespace Tinja
 {
     public static class ServiceResolverExtensions
     {
-        public static TType GetService<TType>(this IServiceResolver resolver)
+        public static TType Resolve<TType>(this IServiceResolver resolver)
         {
-            return (TType)resolver.GetService(typeof(TType));
+            return (TType)resolver.Resolve(typeof(TType));
         }
 
         public static IServiceResolver CreateScope(this IServiceResolver resolver)

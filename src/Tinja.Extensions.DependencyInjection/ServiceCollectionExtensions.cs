@@ -33,7 +33,7 @@ namespace Tinja.Extensions.DependencyInjection
             }
 
             ioc.AddSingleton<IServiceScopeFactory, ServiceScopeAdapterFactory>();
-            ioc.AddSingleton<IServiceProviderFactory<IContainer>, ServiceProviderFactory>();
+            ioc.AddSingleton<IServiceProviderFactory<IContainer>, ServiceProviderAdapterFactory>();
 
             return ioc;
         }
@@ -44,7 +44,7 @@ namespace Tinja.Extensions.DependencyInjection
             {
                 ioc.AddService(
                     service.ServiceType,
-                    (resolver) => service.ImplementationFactory(resolver.GetService<IServiceProvider>()),
+                    (resolver) => service.ImplementationFactory(resolver.Resolve<IServiceProvider>()),
                     lifeStyle
                 );
             }

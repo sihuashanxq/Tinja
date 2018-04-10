@@ -11,17 +11,17 @@ namespace Tinja.Resolving.Chain
 
         public Dictionary<IResolvingContext, IServiceChainNode> Chains { get; private set; }
 
-        protected Dictionary<Type, IResolvingContext> CacheContexts { get; set; }
+        public Dictionary<Type, IResolvingContext> AllContexts { get; private set; }
 
         public ServiceChainScope()
         {
             ScopeContexts = new Dictionary<Type, IResolvingContext>();
-            CacheContexts = new Dictionary<Type, IResolvingContext>();
+            AllContexts = new Dictionary<Type, IResolvingContext>();
             Chains = new Dictionary<IResolvingContext, IServiceChainNode>();
         }
 
         private ServiceChainScope(
-            Dictionary<Type, IResolvingContext> scopeContexts,
+            Dictionary<Type, IResolvingContext> allContexts,
             Dictionary<IResolvingContext, IServiceChainNode> chains
         ) : this()
         {
@@ -30,16 +30,21 @@ namespace Tinja.Resolving.Chain
                 Chains[chain.Key] = chain.Value;
             }
 
-            foreach (var context in scopeContexts)
+            foreach (var context in allContexts)
             {
-                ScopeContexts[context.Key] = context.Value;
+                AllContexts[context.Key] = context.Value;
             }
+        }
+
+        public ServiceChainScope CreateResolvedCacheScope()
+        {
+            return new ServiceChainScope(AllContexts, Chains);
         }
 
         public IDisposable BeginScope(IResolvingContext context, ServiceInfo serviceInfo)
         {
             ScopeContexts[serviceInfo.Type] = context;
-            CacheContexts[serviceInfo.Type] = context;
+            AllContexts[serviceInfo.Type] = context;
 
             return new DisposableAction(() =>
             {
@@ -47,9 +52,16 @@ namespace Tinja.Resolving.Chain
             });
         }
 
-        public ServiceChainScope CreateCacheContextScope()
+        public void AddChain(IServiceChainNode chain)
         {
-            return new ServiceChainScope(CacheContexts, Chains);
+            Chains[chain.ResolvingContext] = chain;
+            AllContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.ResolvingContext;
+            ScopeContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.ResolvingContext;
+        }
+
+        public bool Constains(IServiceChainNode chain)
+        {
+            return ScopeContexts.ContainsKey(chain.Constructor?.ConstructorInfo?.DeclaringType);
         }
 
         private class DisposableAction : IDisposable

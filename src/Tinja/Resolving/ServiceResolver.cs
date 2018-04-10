@@ -28,66 +28,69 @@ namespace Tinja.Resolving
         /// </summary>
         internal IServiceActivationBuilder ServiceActivationBuilder { get; }
 
+        static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
+
         public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeStyleScopeFactory scopeFactory)
         {
             Scope = scopeFactory.Create(this);
             ResolvingContextBuilder = builder;
-            ServiceChainBuilder = this.GetService<ServiceChainBuilder>();
-            ServiceActivationBuilder = this.GetService<IServiceActivationBuilder>();
+
+            ServiceChainBuilder = this.Resolve<ServiceChainBuilder>();
+            ServiceActivationBuilder = this.Resolve<IServiceActivationBuilder>();
         }
 
         internal ServiceResolver(IServiceResolver root)
         {
-            Scope = root.GetService<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
-            ServiceChainBuilder = root.GetService<ServiceChainBuilder>();
-            ResolvingContextBuilder = root.GetService<IResolvingContextBuilder>();
-            ServiceActivationBuilder = root.GetService<IServiceActivationBuilder>();
+            Scope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
+            ServiceChainBuilder = root.Resolve<ServiceChainBuilder>();
+            ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
+            ServiceActivationBuilder = root.Resolve<IServiceActivationBuilder>();
         }
 
-        public object GetService(Type serviceType)
+        public object Resolve(Type serviceType)
+        {
+            return GetInstanceFactory(serviceType)(this, Scope);
+        }
+
+        protected virtual Func<IServiceResolver, IServiceLifeStyleScope, object> GetInstanceFactory(Type serviceType)
         {
             var factory = ServiceActivationBuilder?.Build(serviceType);
             if (factory != null)
             {
-                return factory(this, Scope);
+                return factory;
             }
 
             var context = ResolvingContextBuilder.BuildResolvingContext(serviceType);
             if (context == null)
             {
-                return null;
+                return DefaultFacotry;
             }
 
-            return GetService(context);
-        }
-
-        protected virtual object GetService(IResolvingContext context)
-        {
             var component = context.Component;
             if (component.ImplementionFactory != null)
             {
                 if (component.LifeStyle != ServiceLifeStyle.Transient ||
                     component.ImplementionFactory.Method.ReturnType.Is(typeof(IDisposable)))
                 {
-                    return Scope.ApplyInstanceLifeStyle(context, resolver => component.ImplementionFactory(resolver));
+                    return (resolver, scope) =>
+                    {
+                        return scope.ApplyInstanceLifeStyle(
+                            context,
+                            scopeResolver => component.ImplementionFactory(scopeResolver)
+                        );
+                    };
                 }
 
-                return component.ImplementionFactory(this);
+                return (resolver, scope) => component.ImplementionFactory(resolver);
             }
 
             var chain = ServiceChainBuilder.BuildChain(context);
             if (chain == null)
             {
-                return null;
+                return DefaultFacotry;
             }
 
-            var facotry = ServiceActivationBuilder.Build(chain);
-            if (facotry == null)
-            {
-                return null;
-            }
-
-            return facotry(this, Scope);
+            return ServiceActivationBuilder.Build(chain) ?? DefaultFacotry;
         }
 
         public void Dispose()

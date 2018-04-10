@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Reflection;
+using Tinja.Annotations;
 
 namespace Tinja.Resolving.Service
 {
@@ -12,9 +15,9 @@ namespace Tinja.Resolving.Service
             _caches = new ConcurrentDictionary<Type, ServiceInfo>();
         }
 
-        public ServiceInfo Create(Type type)
+        public ServiceInfo Create(Type serviceType)
         {
-            return _caches.GetOrAdd(type, (_) => new ServiceInfo(type));
+            return _caches.GetOrAdd(serviceType, (_) => new ServiceInfo(serviceType));
         }
     }
 }

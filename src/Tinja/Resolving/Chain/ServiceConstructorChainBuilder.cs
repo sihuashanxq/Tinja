@@ -2,6 +2,8 @@
 using Tinja.Resolving.Chain.Node;
 using Tinja.Resolving.Service;
 using Tinja.Resolving.Context;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Tinja.Resolving.Chain
 {
@@ -21,29 +23,53 @@ namespace Tinja.Resolving.Chain
 
         public override IServiceChainNode BuildChain(IResolvingContext resolvingContext)
         {
-            var node = base.BuildChain(resolvingContext);
-            if (node != null && node.Constructor != null)
+            var chain = base.BuildChain(resolvingContext);
+            if (chain == null || chain.Constructor == null)
             {
-                var propertyBinder = new ServicePropertyChainBuilder(
-                    ServiceChainScope.CreateCacheContextScope(),
-                    ServiceInfoFactory,
-                    ResolvingContextBuilder
-                );
-
-                propertyBinder.BuildProperties(node);
+                return chain;
             }
 
-            return node;
+            var resolvedCacheScope = ServiceChainScope.CreateResolvedCacheScope();
+            var builder = new ServicePropertyChainBuilder(resolvedCacheScope, ServiceInfoFactory, ResolvingContextBuilder);
+
+            if (!resolvedCacheScope.Constains(chain))
+            {
+                resolvedCacheScope.AddChain(chain);
+            }
+
+            return builder.BuildProperties(chain);
         }
 
-        protected override IServiceChainNode BuildChain(IResolvingContext context, ServiceInfo serviceInfo)
+        protected override IServiceChainNode BuildChainNode(IResolvingContext context)
         {
+            if (context.Component.ImplementionFactory != null)
+            {
+                return new ServiceConstrutorChainNode()
+                {
+                    Constructor = null,
+                    Paramters = new Dictionary<ParameterInfo, IServiceChainNode>(),
+                    Properties = new Dictionary<PropertyInfo, IServiceChainNode>(),
+                    ResolvingContext = context
+                };
+            }
+
+            var implementionType = GetImplementionType(
+                 context.ReslovingType,
+                 context.Component.ImplementionType
+             );
+
+            var serviceInfo = ServiceInfoFactory.Create(implementionType);
+            if (serviceInfo == null || serviceInfo.Constructors == null || serviceInfo.Constructors.Length == 0)
+            {
+                return null;
+            }
+
             if (ServiceChainScope.ScopeContexts.ContainsKey(serviceInfo.Type))
             {
                 throw new NotSupportedException($"Circulard ependencies at type:{serviceInfo.Type.FullName}");
             }
 
-            return base.BuildChain(context, serviceInfo);
+            return base.BuildChainNode(context);
         }
     }
 }

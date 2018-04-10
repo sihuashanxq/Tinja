@@ -39,21 +39,21 @@ namespace Tinja.Resolving.Activation
 
         private class ServiceActivatorFacotry
         {
-            static ParameterExpression ParameterContainer { get; }
+            static ParameterExpression ParameterResolver{ get; }
 
             static ParameterExpression ParameterLifeScope { get; }
 
-            private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedPropertyTypes;
+            private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _handledProperties;
 
             static ServiceActivatorFacotry()
             {
-                ParameterContainer = Expression.Parameter(typeof(IServiceResolver));
+                ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
                 ParameterLifeScope = Expression.Parameter(typeof(IServiceLifeStyleScope));
             }
 
             public ServiceActivatorFacotry()
             {
-                _resolvedPropertyTypes = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
+                _handledProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
             }
 
             public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(IServiceChainNode node)
@@ -65,7 +65,7 @@ namespace Tinja.Resolving.Activation
                 }
 
                 var factory = (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
-                       .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
+                       .Lambda(lambdaBody, ParameterResolver, ParameterLifeScope)
                        .Compile();
 
                 if (node.ResolvingContext.Component.LifeStyle != ServiceLifeStyle.Transient ||
@@ -103,7 +103,7 @@ namespace Tinja.Resolving.Activation
                 return
                     Expression.Invoke(
                         Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
-                        ParameterContainer
+                        ParameterResolver
                     );
             }
 
@@ -123,7 +123,7 @@ namespace Tinja.Resolving.Activation
                         parameterValues[i] = Expression.Convert(
                             Expression.Invoke(
                                 Expression.Constant(parameterValueFactory),
-                                ParameterContainer,
+                                ParameterResolver,
                                 ParameterLifeScope
                             ),
                             node.Constructor.Paramters[i].ParameterType
@@ -159,7 +159,7 @@ namespace Tinja.Resolving.Activation
                             Expression.Convert(
                                 Expression.Invoke(
                                     Expression.Constant(elementValueFactory),
-                                    ParameterContainer,
+                                    ParameterResolver,
                                     ParameterLifeScope
                                 ),
                                 node.Elements[i].ResolvingContext.ReslovingType
@@ -204,7 +204,7 @@ namespace Tinja.Resolving.Activation
                     var propertyValue = Expression.Convert(
                             Expression.Invoke(
                                 Expression.Constant(CreateActivator(item.Value)),
-                                ParameterContainer,
+                                ParameterResolver,
                                 ParameterLifeScope
                             ),
                             item.Value.ResolvingContext.ReslovingType
@@ -234,13 +234,13 @@ namespace Tinja.Resolving.Activation
                     var lambdaBody = BuildPropertyInfo(
                         Expression.Invoke(
                             Expression.Constant(factory),
-                            ParameterContainer,
+                            ParameterResolver,
                             ParameterLifeScope
                         ),
                         node);
 
                     return (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
-                       .Lambda(lambdaBody, ParameterContainer, ParameterLifeScope)
+                       .Lambda(lambdaBody, ParameterResolver, ParameterLifeScope)
                        .Compile();
                 }
 
@@ -249,17 +249,17 @@ namespace Tinja.Resolving.Activation
 
             public bool IsPropertyCircularDependeny(IServiceChainNode instance, IServiceChainNode propertyNode)
             {
-                if (!_resolvedPropertyTypes.ContainsKey(instance.ResolvingContext))
+                if (!_handledProperties.ContainsKey(instance.ResolvingContext))
                 {
-                    _resolvedPropertyTypes[instance.ResolvingContext] = new HashSet<IResolvingContext>()
-                {
-                   propertyNode.ResolvingContext
-                };
+                    _handledProperties[instance.ResolvingContext] = new HashSet<IResolvingContext>()
+                    {
+                        propertyNode.ResolvingContext
+                    };
 
                     return false;
                 }
 
-                var properties = _resolvedPropertyTypes[instance.ResolvingContext];
+                var properties = _handledProperties[instance.ResolvingContext];
                 if (properties.Contains(propertyNode.ResolvingContext))
                 {
                     return true;

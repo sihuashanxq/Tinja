@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using Tinja.Resolving;
 
 namespace Tinja.Extensions.DependencyInjection
@@ -14,7 +15,7 @@ namespace Tinja.Extensions.DependencyInjection
 
         public IServiceScope CreateScope()
         {
-            return new ServiceScopeAdapter(Resolver.CreateScope());
+            return new ServiceScopeAdapter(Resolver.CreateScope().Resolve<IServiceProvider>());
         }
     }
 }
