@@ -8,10 +8,13 @@ namespace Tinja.Resolving.Context
 {
     public class ResolvingContextBuilder : IResolvingContextBuilder
     {
+        protected ConcurrentDictionary<Type, IResolvingContext> Cache { get; }
+
         protected ConcurrentDictionary<Type, List<Component>> Components { get; }
 
         public ResolvingContextBuilder()
         {
+            Cache = new ConcurrentDictionary<Type, IResolvingContext>();
             Components = new ConcurrentDictionary<Type, List<Component>>();
         }
 
@@ -25,10 +28,12 @@ namespace Tinja.Resolving.Context
 
         public virtual IResolvingContext BuildResolvingContext(Type resolvingType)
         {
-            return
+        
+                return
                 BuildResolvingContextWithDirectly(resolvingType) ??
                 BuildResolvingContextWithOpenGeneric(resolvingType) ??
                 BuildResolvingContextWithEnumerable(resolvingType);
+            //});
         }
 
         protected virtual IResolvingContext BuildResolvingContextWithDirectly(Type resolvingType)

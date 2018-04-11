@@ -30,7 +30,7 @@ namespace Sample
     public class ServiceB : IServiceB
     {
         [Inject]
-        public IService Service { get; set; }
+        public IService ServiceA { get; set; }
 
         public void Up()
         {
@@ -59,11 +59,14 @@ namespace Sample
     public class Service : IService
     {
         [Inject]
-        public IServiceA ServiceA { get; set; }
+        public IServiceB ServiceA { get; set; }
 
-        public Service()
+        public static IService A { get; set; }
+
+        public Service(IServiceB serviceA)
         {
-
+            if (A == null) A = this;
+            Console.WriteLine(serviceA.GetHashCode());
         }
 
         public void Dispose()
@@ -74,7 +77,6 @@ namespace Sample
         public void Give()
         {
             Console.WriteLine("Give");
-
         }
     }
 
@@ -84,9 +86,9 @@ namespace Sample
         {
             var ioc = new Container();
 
-            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
-            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
-            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
+            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
+            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
+            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
 
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();

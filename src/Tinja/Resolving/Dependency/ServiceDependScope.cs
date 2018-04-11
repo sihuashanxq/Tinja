@@ -1,28 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using Tinja.Resolving.Chain.Node;
 using Tinja.Resolving.Context;
 
-namespace Tinja.Resolving.Chain
+namespace Tinja.Resolving.Dependency
 {
-    public class ServiceChainScope
+    public class ServiceDependScope
     {
         public Dictionary<Type, IResolvingContext> ScopeContexts { get; private set; }
 
-        public Dictionary<IResolvingContext, IServiceChainNode> Chains { get; private set; }
+        public Dictionary<IResolvingContext, ServiceDependChain> Chains { get; private set; }
 
         public Dictionary<Type, IResolvingContext> AllContexts { get; private set; }
 
-        public ServiceChainScope()
+        public ServiceDependScope()
         {
             ScopeContexts = new Dictionary<Type, IResolvingContext>();
             AllContexts = new Dictionary<Type, IResolvingContext>();
-            Chains = new Dictionary<IResolvingContext, IServiceChainNode>();
+            Chains = new Dictionary<IResolvingContext, ServiceDependChain>();
         }
 
-        private ServiceChainScope(
+        private ServiceDependScope(
             Dictionary<Type, IResolvingContext> allContexts,
-            Dictionary<IResolvingContext, IServiceChainNode> chains
+            Dictionary<IResolvingContext, ServiceDependChain> chains
         ) : this()
         {
             foreach (var chain in chains)
@@ -36,15 +35,21 @@ namespace Tinja.Resolving.Chain
             }
         }
 
-        public ServiceChainScope CreateResolvedCacheScope()
+        public ServiceDependScope CreateAllContextScope(ServiceDependChain startedChain)
         {
-            return new ServiceChainScope(AllContexts, Chains);
+            var scope = new ServiceDependScope(AllContexts, Chains);
+            if (!scope.Constains(startedChain))
+            {
+                scope.AddChain(startedChain);
+            }
+
+            return scope;
         }
 
         public IDisposable BeginScope(IResolvingContext context, ServiceInfo serviceInfo)
         {
-            ScopeContexts[serviceInfo.Type] = context;
             AllContexts[serviceInfo.Type] = context;
+            ScopeContexts[serviceInfo.Type] = context;
 
             return new DisposableAction(() =>
             {
@@ -52,14 +57,14 @@ namespace Tinja.Resolving.Chain
             });
         }
 
-        public void AddChain(IServiceChainNode chain)
+        public void AddChain(ServiceDependChain chain)
         {
-            Chains[chain.ResolvingContext] = chain;
-            AllContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.ResolvingContext;
-            ScopeContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.ResolvingContext;
+            Chains[chain.Context] = chain;
+            AllContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.Context;
+            ScopeContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.Context;
         }
 
-        public bool Constains(IServiceChainNode chain)
+        public bool Constains(ServiceDependChain chain)
         {
             return ScopeContexts.ContainsKey(chain.Constructor?.ConstructorInfo?.DeclaringType);
         }

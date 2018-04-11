@@ -1,8 +1,8 @@
 ﻿using System;
 using Tinja.LifeStyle;
 using Tinja.Resolving.Activation;
-using Tinja.Resolving.Chain;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency.Builder;
 
 namespace Tinja.Resolving
 {
@@ -14,9 +14,9 @@ namespace Tinja.Resolving
         public IServiceLifeStyleScope Scope { get; }
 
         /// <summary>
-        /// <see cref="Chain.ServiceChainBuilder"/>
+        /// <see cref="Chain.ServiceDependencyBuilder"/>
         /// </summary>
-        internal ServiceChainBuilder ServiceChainBuilder { get; }
+        internal ServiceDependencyBuilder ServiceChainBuilder { get; }
 
         /// <summary>
         /// <see cref="IResolvingContextBuilder"/>
@@ -35,14 +35,14 @@ namespace Tinja.Resolving
             Scope = scopeFactory.Create(this);
             ResolvingContextBuilder = builder;
 
-            ServiceChainBuilder = this.Resolve<ServiceChainBuilder>();
+            ServiceChainBuilder = this.Resolve<ServiceDependencyBuilder>();
             ServiceActivationBuilder = this.Resolve<IServiceActivationBuilder>();
         }
 
         internal ServiceResolver(IServiceResolver root)
         {
             Scope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
-            ServiceChainBuilder = root.Resolve<ServiceChainBuilder>();
+            ServiceChainBuilder = root.Resolve<ServiceDependencyBuilder>();
             ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
             ServiceActivationBuilder = root.Resolve<IServiceActivationBuilder>();
         }
@@ -84,7 +84,7 @@ namespace Tinja.Resolving
                 return (resolver, scope) => component.ImplementionFactory(resolver);
             }
 
-            var chain = ServiceChainBuilder.BuildChain(context);
+            var chain = ServiceChainBuilder.BuildDependChain(context);
             if (chain == null)
             {
                 return DefaultFacotry;

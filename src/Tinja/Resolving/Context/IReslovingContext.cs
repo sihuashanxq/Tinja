@@ -4,7 +4,7 @@ namespace Tinja.Resolving.Context
 {
     public interface IResolvingContext
     {
-        Type ReslovingType { get; }
+        Type ServiceType { get; }
 
         Component Component { get; }
     }

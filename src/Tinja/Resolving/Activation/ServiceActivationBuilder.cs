@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Tinja.LifeStyle;
-using Tinja.Resolving.Chain.Node;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
@@ -17,9 +17,9 @@ namespace Tinja.Resolving.Activation
             Cache = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
         }
 
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(IServiceChainNode chain)
+        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(ServiceDependChain chain)
         {
-            return Cache.GetOrAdd(chain.ResolvingContext.ReslovingType, (k) => BuildFactory(chain, new HashSet<IServiceChainNode>()));
+            return Cache.GetOrAdd(chain.Context.ServiceType, (k) => BuildFactory(chain, new HashSet<ServiceDependChain>()));
         }
 
         public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type resolvingType)
@@ -32,14 +32,14 @@ namespace Tinja.Resolving.Activation
             return null;
         }
 
-        public static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(IServiceChainNode node, HashSet<IServiceChainNode> injectedProperties)
+        public static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(ServiceDependChain node, HashSet<ServiceDependChain> injectedProperties)
         {
             return new ServiceActivatorFacotry().CreateActivator(node);
         }
 
         private class ServiceActivatorFacotry
         {
-            static ParameterExpression ParameterResolver{ get; }
+            static ParameterExpression ParameterResolver { get; }
 
             static ParameterExpression ParameterLifeScope { get; }
 
@@ -56,7 +56,7 @@ namespace Tinja.Resolving.Activation
                 _handledProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
             }
 
-            public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(IServiceChainNode node)
+            public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain node)
             {
                 var lambdaBody = BuildExpression(node);
                 if (lambdaBody == null)
@@ -68,12 +68,14 @@ namespace Tinja.Resolving.Activation
                        .Lambda(lambdaBody, ParameterResolver, ParameterLifeScope)
                        .Compile();
 
-                if (node.ResolvingContext.Component.LifeStyle != ServiceLifeStyle.Transient ||
-                    node.ResolvingContext.Component.ImplementionType.Is(typeof(IDisposable)))
+                if (node.Context.Component.LifeStyle != ServiceLifeStyle.Transient ||
+                    node.Context.Component.ImplementionType.Is(typeof(IDisposable)))
                 {
+                    //return (o, scoped) =>
+                    //        scoped.ApplyInstanceLifeStyle(node.Context, (_) => factory(_, scoped));
                     return BuildProperty(
                         (o, scoped) =>
-                            scoped.ApplyInstanceLifeStyle(node.ResolvingContext, (_) => factory(o, scoped)),
+                            scoped.ApplyInstanceLifeStyle(node.Context, (_) => factory(_, scoped)),
                         node
                     );
                 }
@@ -81,39 +83,39 @@ namespace Tinja.Resolving.Activation
                 return BuildProperty(factory, node);
             }
 
-            public Expression BuildExpression(IServiceChainNode serviceNode)
+            public Expression BuildExpression(ServiceDependChain serviceNode)
             {
                 if (serviceNode.Constructor == null)
                 {
                     return BuildImplFactory(serviceNode);
                 }
 
-                if (serviceNode is ServiceEnumerableChainNode enumerable)
+                if (serviceNode is ServiceEnumerableDependChain enumerable)
                 {
                     return BuildEnumerable(enumerable);
                 }
                 else
                 {
-                    return BuildConstructor(serviceNode as ServiceConstrutorChainNode);
+                    return BuildConstructor(serviceNode as ServiceDependChain);
                 }
             }
 
-            public Expression BuildImplFactory(IServiceChainNode node)
+            public Expression BuildImplFactory(ServiceDependChain node)
             {
                 return
                     Expression.Invoke(
-                        Expression.Constant(node.ResolvingContext.Component.ImplementionFactory),
+                        Expression.Constant(node.Context.Component.ImplementionFactory),
                         ParameterResolver
                     );
             }
 
-            public NewExpression BuildConstructor(ServiceConstrutorChainNode node)
+            public Expression BuildConstructor(ServiceDependChain node)
             {
-                var parameterValues = new Expression[node.Paramters?.Count ?? 0];
+                var parameterValues = new Expression[node.Parameters?.Count ?? 0];
 
                 for (var i = 0; i < parameterValues.Length; i++)
                 {
-                    var parameterValueFactory = CreateActivator(node.Paramters[node.Constructor.Paramters[i]]);
+                    var parameterValueFactory = CreateActivator(node.Parameters[node.Constructor.Paramters[i]]);
                     if (parameterValueFactory == null)
                     {
                         parameterValues[i] = Expression.Constant(null, node.Constructor.Paramters[i].ParameterType);
@@ -134,11 +136,10 @@ namespace Tinja.Resolving.Activation
                 return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
             }
 
-            public ListInitExpression BuildEnumerable(ServiceEnumerableChainNode node)
+            public Expression BuildEnumerable(ServiceEnumerableDependChain node)
             {
-                var newExpression = BuildConstructor(node);
                 var elementInits = new List<ElementInit>();
-                var addElement = node.ResolvingContext.Component.ImplementionType.GetMethod("Add");
+                var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
 
                 for (var i = 0; i < node.Elements.Length; i++)
                 {
@@ -162,18 +163,24 @@ namespace Tinja.Resolving.Activation
                                     ParameterResolver,
                                     ParameterLifeScope
                                 ),
-                                node.Elements[i].ResolvingContext.ReslovingType
+                                node.Elements[i].Context.ServiceType
                             )
                         )
                     );
                 }
 
-                return Expression.ListInit(newExpression, elementInits.ToArray());
+                return Expression.ListInit(
+                    Expression.New(node.Constructor.ConstructorInfo),
+                    elementInits.ToArray()
+                );
             }
 
-            public Expression BuildPropertyInfo(Expression instance, IServiceChainNode node)
+            public Expression BuildPropertyInfo(Expression instance, ServiceDependChain node)
             {
-                instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
+                if (instance.Type != node.Constructor.ConstructorInfo.DeclaringType)
+                {
+                    instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
+                }
 
                 var vars = new List<ParameterExpression>();
                 var statements = new List<Expression>();
@@ -207,7 +214,7 @@ namespace Tinja.Resolving.Activation
                                 ParameterResolver,
                                 ParameterLifeScope
                             ),
-                            item.Value.ResolvingContext.ReslovingType
+                            item.Value.Context.ServiceType
                         );
 
                     var setPropertyVarValue = Expression.Assign(propertyVar, propertyValue);
@@ -227,7 +234,7 @@ namespace Tinja.Resolving.Activation
                 return Expression.Block(vars, statements);
             }
 
-            public Func<IServiceResolver, IServiceLifeStyleScope, object> BuildProperty(Func<IServiceResolver, IServiceLifeStyleScope, object> factory, IServiceChainNode node)
+            public Func<IServiceResolver, IServiceLifeStyleScope, object> BuildProperty(Func<IServiceResolver, IServiceLifeStyleScope, object> factory, ServiceDependChain node)
             {
                 if (node.Properties != null && node.Properties.Count != 0)
                 {
@@ -247,25 +254,25 @@ namespace Tinja.Resolving.Activation
                 return factory;
             }
 
-            public bool IsPropertyCircularDependeny(IServiceChainNode instance, IServiceChainNode propertyNode)
+            public bool IsPropertyCircularDependeny(ServiceDependChain instance, ServiceDependChain propertyNode)
             {
-                if (!_handledProperties.ContainsKey(instance.ResolvingContext))
+                if (!_handledProperties.ContainsKey(instance.Context))
                 {
-                    _handledProperties[instance.ResolvingContext] = new HashSet<IResolvingContext>()
+                    _handledProperties[instance.Context] = new HashSet<IResolvingContext>()
                     {
-                        propertyNode.ResolvingContext
+                        propertyNode.Context
                     };
 
                     return false;
                 }
 
-                var properties = _handledProperties[instance.ResolvingContext];
-                if (properties.Contains(propertyNode.ResolvingContext))
+                var properties = _handledProperties[instance.Context];
+                if (properties.Contains(propertyNode.Context))
                 {
                     return true;
                 }
 
-                properties.Add(propertyNode.ResolvingContext);
+                properties.Add(propertyNode.Context);
 
                 return false;
             }

@@ -5,20 +5,17 @@ namespace Tinja.Resolving.Context
 {
     public class ResolvingEnumerableContext : IResolvingContext
     {
-        public Type ReslovingType { get; }
+        public Type ServiceType { get; }
 
         public Component Component { get; }
 
-        public List<IResolvingContext> ElementsResolvingContext { get; }
+        public List<IResolvingContext> ElementContexts { get; }
 
-        public ResolvingEnumerableContext(
-            Type resolvingType,
-            Component component,
-            List<IResolvingContext> elementsResolvingContext)
+        public ResolvingEnumerableContext(Type serviceType, Component component, List<IResolvingContext> elementContexts)
         {
-            ReslovingType = resolvingType;
             Component = component;
-            ElementsResolvingContext = elementsResolvingContext;
+            ServiceType = serviceType;
+            ElementContexts = elementContexts;
         }
     }
 }

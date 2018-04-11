@@ -56,7 +56,7 @@ namespace Tinja.Test
             context = resolvingContextBuilder.BuildResolvingContext(typeof(IEnumerable<IService<int>>));
 
             Assert.NotNull(context);
-            Assert.Equal(2, (context as ResolvingEnumerableContext).ElementsResolvingContext.Count);
+            Assert.Equal(2, (context as ResolvingEnumerableContext).ElementContexts.Count);
         }
     }
 }

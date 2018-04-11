@@ -56,18 +56,23 @@ namespace Tinja.LifeStyle
 
         protected virtual object ApplyScopedInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
-            if (!_scopedObjects.ContainsKey(context.ReslovingType))
+            if (!_scopedObjects.ContainsKey(context.ServiceType))
             {
                 lock (_scopedObjects)
                 {
-                    if (!_scopedObjects.ContainsKey(context.ReslovingType))
+                    if (!_scopedObjects.ContainsKey(context.ServiceType))
                     {
-                        return _scopedObjects[context.ReslovingType] = factory(_resolver);
+                        var instance = factory(_resolver);
+
+                        if (!_scopedObjects.ContainsKey(context.ServiceType))
+                        {
+                            return _scopedObjects[context.ServiceType] = instance;
+                        }
                     }
                 }
             }
 
-            return _scopedObjects[context.ReslovingType];
+            return _scopedObjects[context.ServiceType];
         }
 
         protected virtual object ApplyTransientInstance(IResolvingContext context, Func<IServiceResolver, object> factory)

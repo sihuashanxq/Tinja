@@ -15,9 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{488D
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample", "Sample\Sample.csproj", "{0E948AC0-E992-4174-A02D-C78683E8E603}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tinja.Extensions.DependencyInjection", "src\Tinja.Extensions.DependencyInjection\Tinja.Extensions.DependencyInjection.csproj", "{A0A40588-629E-4280-872E-C927C5BC16DF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Extensions.DependencyInjection", "src\Tinja.Extensions.DependencyInjection\Tinja.Extensions.DependencyInjection.csproj", "{A0A40588-629E-4280-872E-C927C5BC16DF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspnetCore", "samples\AspnetCore\AspnetCore.csproj", "{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspnetCore", "samples\AspnetCore\AspnetCore.csproj", "{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using Tinja.LifeStyle;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
-using Tinja.Resolving.Chain;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency;
+using Tinja.Resolving.Dependency.Builder;
 using Tinja.Resolving.Service;
 
 namespace Tinja
@@ -24,8 +25,8 @@ namespace Tinja
             ioc.AddSingleton(typeof(IServiceInfoFactory), _ => new ServiceInfoFactory());
             ioc.AddSingleton(typeof(IServiceActivationBuilder), _ => new ServiceActivationBuilder());
             ioc.AddSingleton(
-                typeof(ServiceChainBuilder),
-                resolver => new ServiceConstructorChainBuilder(resolver.Resolve<IServiceInfoFactory>(), builder)
+                typeof(ServiceDependencyBuilder),
+                resolver => new ConstructorDependencyBuilder(resolver.Resolve<IServiceInfoFactory>(), builder)
             );
 
             builder.Initialize(ioc.Components);
