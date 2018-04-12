@@ -13,12 +13,12 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        [Inject]
+        //[Inject]
         public IServiceB Service { get; set; }
 
         public ServiceA()
         {
-
+            Console.WriteLine(GetHashCode());
         }
     }
 
@@ -29,8 +29,13 @@ namespace Sample
 
     public class ServiceB : IServiceB
     {
-        [Inject]
-        public IService ServiceA { get; set; }
+        //[Inject]
+        public IServiceA Service { get; set; }
+
+        public ServiceB()
+        {
+            Console.WriteLine(GetHashCode());
+        }
 
         public void Up()
         {
@@ -58,15 +63,12 @@ namespace Sample
 
     public class Service : IService
     {
-        [Inject]
-        public IServiceB ServiceA { get; set; }
+        //[Inject]
+        public IServiceA ServiceA { get; set; }
 
-        public static IService A { get; set; }
-
-        public Service(IServiceB serviceA)
+        public Service(IServiceB b)
         {
-            if (A == null) A = this;
-            Console.WriteLine(serviceA.GetHashCode());
+            Console.WriteLine(GetHashCode());
         }
 
         public void Dispose()
@@ -104,10 +106,10 @@ namespace Sample
             st.Reset();
             st.Start();
 
-            //for (var i = 0; i < 1000_00000; i++)
-            //{
-            //    provider.GetService(typeof(IService));
-            //}
+            for (var i = 0; i < 1000_00000; i++)
+            {
+                provider.GetService(typeof(IService));
+            }
 
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);

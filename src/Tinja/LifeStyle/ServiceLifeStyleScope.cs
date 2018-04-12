@@ -36,7 +36,7 @@ namespace Tinja.LifeStyle
             _scopedObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyInstanceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory)
+        public object ApplyServiceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {
@@ -62,12 +62,7 @@ namespace Tinja.LifeStyle
                 {
                     if (!_scopedObjects.ContainsKey(context.ServiceType))
                     {
-                        var instance = factory(_resolver);
-
-                        if (!_scopedObjects.ContainsKey(context.ServiceType))
-                        {
-                            return _scopedObjects[context.ServiceType] = instance;
-                        }
+                        return _scopedObjects[context.ServiceType] = factory(_resolver);
                     }
                 }
             }
@@ -93,7 +88,7 @@ namespace Tinja.LifeStyle
                 return ApplyScopedInstance(context, factory);
             }
 
-            return _root.ApplyInstanceLifeStyle(context, factory);
+            return _root.ApplyServiceLifeStyle(context, factory);
         }
 
         ~ServiceLifeStyleScope()

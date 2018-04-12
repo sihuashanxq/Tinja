@@ -34,248 +34,226 @@ namespace Tinja.Resolving.Activation
 
         public static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(ServiceDependChain node, HashSet<ServiceDependChain> injectedProperties)
         {
-            return new ServiceActivatorFacotry().CreateActivator(node);
+            return new ServiceActivationFactory().CreateActivator(node);
+        }
+    }
+
+    public class ServiceActivationFactory
+    {
+        delegate object ApplyLifeStyleDelegate(IServiceLifeStyleScope scope, IResolvingContext context, Func<IServiceResolver, object> factory);
+
+        static ParameterExpression ScopeParameter { get; }
+
+        static ParameterExpression ResolverParameter { get; }
+
+        static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
+
+        static ConstantExpression ApplyLifeStyleFuncConstant { get; }
+
+        private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _handledProperties;
+
+        static ServiceActivationFactory()
+        {
+            ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
+            ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
+
+            ApplyLifeStyleFunc = (scope, context, factory)
+                => scope.ApplyServiceLifeStyle(context, factory);
+
+            ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        private class ServiceActivatorFacotry
+        public ServiceActivationFactory()
         {
-            static ParameterExpression ParameterResolver { get; }
+            _handledProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
+        }
 
-            static ParameterExpression ParameterLifeScope { get; }
-
-            private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _handledProperties;
-
-            static ServiceActivatorFacotry()
+        public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain)
+        {
+            var lambdaBody = BuildExpression(chain);
+            if (lambdaBody == null)
             {
-                ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
-                ParameterLifeScope = Expression.Parameter(typeof(IServiceLifeStyleScope));
+                throw new NullReferenceException(nameof(lambdaBody));
             }
 
-            public ServiceActivatorFacotry()
+            return (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
+                .Lambda(lambdaBody, ResolverParameter, ScopeParameter)
+                .Compile();
+        }
+
+        public Expression BuildExpression(ServiceDependChain chain)
+        {
+            if (chain.Constructor == null)
             {
-                _handledProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
+                return BuildImplFactory(chain);
             }
 
-            public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain node)
+            if (chain is ServiceEnumerableDependChain enumerable)
             {
-                var lambdaBody = BuildExpression(node);
-                if (lambdaBody == null)
-                {
-                    throw new NullReferenceException(nameof(lambdaBody));
-                }
-
-                var factory = (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
-                       .Lambda(lambdaBody, ParameterResolver, ParameterLifeScope)
-                       .Compile();
-
-                if (node.Context.Component.LifeStyle != ServiceLifeStyle.Transient ||
-                    node.Context.Component.ImplementionType.Is(typeof(IDisposable)))
-                {
-                    //return (o, scoped) =>
-                    //        scoped.ApplyInstanceLifeStyle(node.Context, (_) => factory(_, scoped));
-                    return BuildProperty(
-                        (o, scoped) =>
-                            scoped.ApplyInstanceLifeStyle(node.Context, (_) => factory(_, scoped)),
-                        node
-                    );
-                }
-
-                return BuildProperty(factory, node);
+                return BuildEnumerable(enumerable);
             }
 
-            public Expression BuildExpression(ServiceDependChain serviceNode)
+            var instance = BuildConstructor(chain as ServiceDependChain);
+            if (instance == null)
             {
-                if (serviceNode.Constructor == null)
-                {
-                    return BuildImplFactory(serviceNode);
-                }
-
-                if (serviceNode is ServiceEnumerableDependChain enumerable)
-                {
-                    return BuildEnumerable(enumerable);
-                }
-                else
-                {
-                    return BuildConstructor(serviceNode as ServiceDependChain);
-                }
+                return instance;
             }
 
-            public Expression BuildImplFactory(ServiceDependChain node)
+            instance = ApplyServiceLifeStyle(instance, chain);
+            instance = Expression.Convert(
+                instance,
+                chain.Constructor?.ConstructorInfo?.DeclaringType ??
+                chain.Context.ServiceType
+            );
+
+            if (chain.Properties == null || chain.Properties.Count == 0)
             {
-                return
-                    Expression.Invoke(
-                        Expression.Constant(node.Context.Component.ImplementionFactory),
-                        ParameterResolver
-                    );
+                return instance;
             }
 
-            public Expression BuildConstructor(ServiceDependChain node)
+            return BuildPropertyInfo(instance, chain);
+        }
+
+        protected virtual Expression ApplyServiceLifeStyle(Expression instance, ServiceDependChain chain)
+        {
+            if (chain.Context.Component.LifeStyle == ServiceLifeStyle.Transient &&
+                chain.Constructor != null &&
+                !chain.Constructor.ConstructorInfo.DeclaringType.Is(typeof(IDisposable)))
             {
-                var parameterValues = new Expression[node.Parameters?.Count ?? 0];
-
-                for (var i = 0; i < parameterValues.Length; i++)
-                {
-                    var parameterValueFactory = CreateActivator(node.Parameters[node.Constructor.Paramters[i]]);
-                    if (parameterValueFactory == null)
-                    {
-                        parameterValues[i] = Expression.Constant(null, node.Constructor.Paramters[i].ParameterType);
-                    }
-                    else
-                    {
-                        parameterValues[i] = Expression.Convert(
-                            Expression.Invoke(
-                                Expression.Constant(parameterValueFactory),
-                                ParameterResolver,
-                                ParameterLifeScope
-                            ),
-                            node.Constructor.Paramters[i].ParameterType
-                        );
-                    }
-                }
-
-                return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
+                return instance;
             }
 
-            public Expression BuildEnumerable(ServiceEnumerableDependChain node)
-            {
-                var elementInits = new List<ElementInit>();
-                var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
+            //optimization
+            var preCompiledFunc = (Func<IServiceResolver, IServiceLifeStyleScope, object>)
+                Expression.Lambda(instance, ResolverParameter, ScopeParameter).Compile();
 
-                for (var i = 0; i < node.Elements.Length; i++)
-                {
-                    if (node.Elements[i] == null)
-                    {
-                        continue;
-                    }
-
-                    var elementValueFactory = CreateActivator(node.Elements[i]);
-                    if (elementValueFactory == null)
-                    {
-                        continue;
-                    }
-
-                    elementInits.Add(
-                        Expression.ElementInit(
-                            addElement,
-                            Expression.Convert(
-                                Expression.Invoke(
-                                    Expression.Constant(elementValueFactory),
-                                    ParameterResolver,
-                                    ParameterLifeScope
-                                ),
-                                node.Elements[i].Context.ServiceType
-                            )
-                        )
-                    );
-                }
-
-                return Expression.ListInit(
-                    Expression.New(node.Constructor.ConstructorInfo),
-                    elementInits.ToArray()
+            var factory = (Func<IServiceResolver, object>)
+                (
+                    resolver => preCompiledFunc(resolver, resolver.Scope)
                 );
+
+            return
+                Expression.Invoke(
+                    Expression.Constant(ApplyLifeStyleFunc),
+                    ScopeParameter,
+                    Expression.Constant(chain.Context),
+                    Expression.Constant(factory)
+                );
+        }
+
+        public Expression BuildImplFactory(ServiceDependChain chain)
+        {
+            return
+                ApplyServiceLifeStyle(
+                    Expression.Invoke(
+                        Expression.Constant(chain.Context.Component.ImplementionFactory),
+                        ResolverParameter
+                    ),
+                    chain);
+        }
+
+        public Expression BuildConstructor(ServiceDependChain node)
+        {
+            var parameterValues = new Expression[node.Parameters?.Count ?? 0];
+
+            for (var i = 0; i < parameterValues.Length; i++)
+            {
+                parameterValues[i] = BuildExpression(node.Parameters[node.Constructor.Paramters[i]]);
             }
 
-            public Expression BuildPropertyInfo(Expression instance, ServiceDependChain node)
+            return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
+        }
+
+        public Expression BuildEnumerable(ServiceEnumerableDependChain node)
+        {
+            var elementInits = new ElementInit[node.Elements.Length];
+            var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
+
+            for (var i = 0; i < elementInits.Length; i++)
             {
-                if (instance.Type != node.Constructor.ConstructorInfo.DeclaringType)
-                {
-                    instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
-                }
-
-                var vars = new List<ParameterExpression>();
-                var statements = new List<Expression>();
-                var instanceVar = Expression.Parameter(instance.Type);
-                var assignInstance = Expression.Assign(instanceVar, instance);
-
-                var label = Expression.Label(instanceVar.Type);
-
-                vars.Add(instanceVar);
-                statements.Add(assignInstance);
-                statements.Add(
-                    Expression.IfThen(
-                        Expression.Equal(Expression.Constant(null), instanceVar),
-                        Expression.Return(label, instanceVar)
+                elementInits[i] = Expression.ElementInit(
+                    addElement,
+                    Expression.Convert(
+                        BuildExpression(node.Elements[i]),
+                        node.Elements[i].Context.ServiceType
                     )
                 );
-
-                foreach (var item in node.Properties)
-                {
-                    if (IsPropertyCircularDependeny(node, item.Value))
-                    {
-                        continue;
-                    }
-
-                    var property = Expression.MakeMemberAccess(instanceVar, item.Key);
-                    var propertyVar = Expression.Variable(item.Key.PropertyType, item.Key.Name);
-
-                    var propertyValue = Expression.Convert(
-                            Expression.Invoke(
-                                Expression.Constant(CreateActivator(item.Value)),
-                                ParameterResolver,
-                                ParameterLifeScope
-                            ),
-                            item.Value.Context.ServiceType
-                        );
-
-                    var setPropertyVarValue = Expression.Assign(propertyVar, propertyValue);
-                    var setPropertyValue = Expression.IfThen(
-                        Expression.NotEqual(Expression.Constant(null), propertyVar),
-                        Expression.Assign(property, propertyVar)
-                    );
-
-                    vars.Add(propertyVar);
-                    statements.Add(setPropertyVarValue);
-                    statements.Add(setPropertyValue);
-                }
-
-                statements.Add(Expression.Return(label, instanceVar));
-                statements.Add(Expression.Label(label, instanceVar));
-
-                return Expression.Block(vars, statements);
             }
 
-            public Func<IServiceResolver, IServiceLifeStyleScope, object> BuildProperty(Func<IServiceResolver, IServiceLifeStyleScope, object> factory, ServiceDependChain node)
+            return Expression.ListInit(
+                Expression.New(node.Constructor.ConstructorInfo),
+                elementInits);
+        }
+
+        public Expression BuildPropertyInfo(Expression instance, ServiceDependChain node)
+        {
+            var label = Expression.Label(instance.Type);
+            var instanceVariable = Expression.Variable(instance.Type);
+
+            var variables = new List<ParameterExpression>()
             {
-                if (node.Properties != null && node.Properties.Count != 0)
+                instanceVariable
+            };
+
+            var statements = new List<Expression>()
+            {
+                Expression.Assign(instanceVariable, instance),
+                Expression.IfThen(
+                    Expression.Equal(Expression.Constant(null), instanceVariable),
+                    Expression.Return(label, instanceVariable)
+                )
+            };
+
+            foreach (var item in node.Properties)
+            {
+                if (IsPropertyCircularDependeny(node, item.Value))
                 {
-                    var lambdaBody = BuildPropertyInfo(
-                        Expression.Invoke(
-                            Expression.Constant(factory),
-                            ParameterResolver,
-                            ParameterLifeScope
-                        ),
-                        node);
+                    continue;
+                };
 
-                    return (Func<IServiceResolver, IServiceLifeStyleScope, object>)Expression
-                       .Lambda(lambdaBody, ParameterResolver, ParameterLifeScope)
-                       .Compile();
-                }
+                var property = Expression.MakeMemberAccess(instanceVariable, item.Key);
+                var propertyVariable = Expression.Variable(item.Key.PropertyType, item.Key.Name);
 
-                return factory;
+                var propertyValue = BuildExpression(item.Value);
+
+                var setPropertyVariableValue = Expression.Assign(propertyVariable, propertyValue);
+                var setPropertyValue = Expression.IfThen(
+                    Expression.NotEqual(Expression.Constant(null), propertyVariable),
+                    Expression.Assign(property, propertyVariable)
+                );
+
+                variables.Add(propertyVariable);
+                statements.Add(setPropertyVariableValue);
+                statements.Add(setPropertyValue);
             }
 
-            public bool IsPropertyCircularDependeny(ServiceDependChain instance, ServiceDependChain propertyNode)
+            statements.Add(Expression.Return(label, instanceVariable));
+            statements.Add(Expression.Label(label, instanceVariable));
+
+            return Expression.Block(variables, statements);
+        }
+
+        public bool IsPropertyCircularDependeny(ServiceDependChain instance, ServiceDependChain propertyNode)
+        {
+            if (!_handledProperties.ContainsKey(instance.Context))
             {
-                if (!_handledProperties.ContainsKey(instance.Context))
+                _handledProperties[instance.Context] = new HashSet<IResolvingContext>()
                 {
-                    _handledProperties[instance.Context] = new HashSet<IResolvingContext>()
-                    {
-                        propertyNode.Context
-                    };
-
-                    return false;
-                }
-
-                var properties = _handledProperties[instance.Context];
-                if (properties.Contains(propertyNode.Context))
-                {
-                    return true;
-                }
-
-                properties.Add(propertyNode.Context);
+                    propertyNode.Context
+                };
 
                 return false;
             }
+
+            var properties = _handledProperties[instance.Context];
+            if (properties.Contains(propertyNode.Context))
+            {
+                return true;
+            }
+
+            properties.Add(propertyNode.Context);
+
+            return false;
         }
     }
 }

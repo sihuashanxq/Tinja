@@ -36,13 +36,6 @@ namespace Tinja.Resolving.Dependency.Builder
 
             if (ServiceDependScope.Chains.TryGetValue(cachedContext, out var cachedChain))
             {
-                //if (cachedChain != null &&
-                //    cachedChain.Properties.Count == 0 &&
-                //    serviceInfo.Properties.Length != 0)
-                //{
-                //    return BuildPropertyDependChain(cachedChain);
-                //}
-
                 return cachedChain;
             }
 

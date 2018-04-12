@@ -74,7 +74,7 @@ namespace Tinja.Resolving
                 {
                     return (resolver, scope) =>
                     {
-                        return scope.ApplyInstanceLifeStyle(
+                        return scope.ApplyServiceLifeStyle(
                             context,
                             scopeResolver => component.ImplementionFactory(scopeResolver)
                         );
