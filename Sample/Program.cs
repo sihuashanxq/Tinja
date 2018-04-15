@@ -3,7 +3,6 @@ using System;
 using Tinja;
 using Tinja.Annotations;
 using Tinja.LifeStyle;
-
 namespace Sample
 {
     public interface IServiceA
@@ -14,11 +13,11 @@ namespace Sample
     public class ServiceA : IServiceA
     {
         //[Inject]
-        public IServiceB Service { get; set; }
+        public IServiceA Service { get; set; }
 
         public ServiceA()
         {
-            Console.WriteLine(GetHashCode());
+            //Console.WriteLine("A" + GetHashCode());
         }
     }
 
@@ -32,9 +31,9 @@ namespace Sample
         //[Inject]
         public IServiceA Service { get; set; }
 
-        public ServiceB()
+        public ServiceB(IServiceA serviceA)
         {
-            Console.WriteLine(GetHashCode());
+            //Console.WriteLine("B" + GetHashCode());
         }
 
         public void Up()
@@ -64,11 +63,19 @@ namespace Sample
     public class Service : IService
     {
         //[Inject]
-        public IServiceA ServiceA { get; set; }
-
-        public Service(IServiceB b)
+        public IServiceB ServiceA
         {
-            Console.WriteLine(GetHashCode());
+            get;set;
+        }
+
+        public ServiceB S { get; set; }
+
+        public Service(IServiceB b,IServiceA s)
+        {
+            S = b as ServiceB;
+            //Console.WriteLine("A" + b.GetHashCode());
+            ////Console.WriteLine("A" + serviceA.GetHashCode());
+            //Console.WriteLine( GetHashCode());
         }
 
         public void Dispose()
@@ -95,9 +102,9 @@ namespace Sample
             var st = new System.Diagnostics.Stopwatch();
             var services = new ServiceCollection();
 
-            services.AddScoped<IServiceA, ServiceA>();
+            services.AddTransient<IServiceA, ServiceA>();
             services.AddScoped<IServiceB, ServiceB>();
-            services.AddScoped<IService, Service>();
+            services.AddTransient<IService, Service>();
 
             var provider = services.BuildServiceProvider();
             //provider.GetService(typeof(IEnumerable<IEnumerable<IService>>));
@@ -106,10 +113,10 @@ namespace Sample
             st.Reset();
             st.Start();
 
-            for (var i = 0; i < 1000_00000; i++)
-            {
-                provider.GetService(typeof(IService));
-            }
+            //for (var i = 0; i < 1000_00000; i++)
+            //{
+            //    provider.GetService(typeof(IService));
+            //}
 
             st.Stop();
             Console.WriteLine(st.ElapsedMilliseconds);
@@ -117,13 +124,13 @@ namespace Sample
             var resolver = ioc.BuildResolver();
 
             var service = resolver.Resolve(typeof(IService));
-
+            var x = service as Service;
             st.Reset();
             st.Start();
 
-            for (var i = 0; i < 1000_00000; i++)
+            for (var i = 0; i < 1000_0000; i++)
             {
-                resolver.Resolve(typeof(IService));
+                service = resolver.Resolve(typeof(IService));
             }
 
             st.Stop();

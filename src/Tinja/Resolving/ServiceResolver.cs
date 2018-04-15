@@ -30,6 +30,8 @@ namespace Tinja.Resolving
 
         static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
 
+        public static IServiceResolver Resolver;
+
         public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeStyleScopeFactory scopeFactory)
         {
             Scope = scopeFactory.Create(this);
@@ -37,6 +39,8 @@ namespace Tinja.Resolving
 
             ServiceChainBuilder = this.Resolve<ServiceDependencyBuilder>();
             ServiceActivationBuilder = this.Resolve<IServiceActivationBuilder>();
+
+            Resolver = this;
         }
 
         internal ServiceResolver(IServiceResolver root)

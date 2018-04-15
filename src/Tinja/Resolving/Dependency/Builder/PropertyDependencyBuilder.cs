@@ -62,13 +62,6 @@ namespace Tinja.Resolving.Dependency.Builder
 
             if (chain is ServiceEnumerableDependChain eNode)
             {
-                BuildPropertyDependChain(
-                    chain,
-                    ServiceInfoFactory.Create(
-                        chain.Constructor.ConstructorInfo.DeclaringType
-                    )
-                );
-
                 foreach (var item in eNode.Elements.Where(i => i.Constructor != null))
                 {
                     BuildPropertyDependChain(
@@ -90,12 +83,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
                 foreach (var item in chain.Parameters.Where(i => i.Value.Constructor != null))
                 {
-                    BuildPropertyDependChain(
-                        item.Value,
-                        ServiceInfoFactory.Create(
-                            item.Value.Constructor.ConstructorInfo.DeclaringType
-                        )
-                    );
+                    BuildPropertyDependChain(item.Value);
                 }
             }
 
