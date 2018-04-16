@@ -13,8 +13,8 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        //[Inject]
-        public IServiceA Service { get; set; }
+        [Inject]
+        public IServiceB Service { get; set; }
 
         public ServiceA()
         {
@@ -55,6 +55,9 @@ namespace Sample
 
     public class ServiceXX<T> : IServiceXX<T>
     {
+        [Inject]
+        public IServiceXX<T> Instance { get; set; }
+
         public ServiceXX(T t)
         {
 
@@ -98,31 +101,37 @@ namespace Sample
             var container = new Container();
             var services = new ServiceCollection();
 
-            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
-            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
+            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
 
             services.AddTransient<IServiceA, ServiceA>();
             services.AddTransient<IServiceB, ServiceB>();
             services.AddTransient<IService, Service>();
+
             var provider = services.BuildServiceProvider();
             var resolver = container.BuildResolver();
 
             watch.Reset();
             watch.Start();
 
-            for (var i = 0; i < 1000_0000; i++)
-            {
-                provider.GetService(typeof(IService));
-            }
+            //for (var i = 0; i < 1000_0000; i++)
+            //{
+            //    provider.GetService(typeof(IService));
+            //}
 
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
+            //var x = resolver.Resolve<Nullable<int>>();
 
+            var serviceXX = resolver.Resolve<IServiceXX<IService>>();
             var service = resolver.Resolve(typeof(IService));
+
             watch.Reset();
             watch.Start();
-            for (var i = 0; i < 1000_0000; i++)
+
+            for (var i = 0; i < 10000000; i++)
             {
                 service = resolver.Resolve(typeof(IService));
             }

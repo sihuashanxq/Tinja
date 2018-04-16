@@ -110,6 +110,11 @@ namespace Tinja.Resolving.Activation
                 throw new NullReferenceException(nameof(lambdaBody));
             }
 
+            if (lambdaBody.Type != typeof(object))
+            {
+                lambdaBody = Expression.Convert(lambdaBody, typeof(object));
+            }
+
             return (Func<IServiceResolver, IServiceLifeStyleScope, object>)
                 Expression
                 .Lambda(lambdaBody, ResolverParameter, ScopeParameter)

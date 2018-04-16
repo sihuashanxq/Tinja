@@ -17,4 +17,10 @@
     <ProjectReference Include="..\..\src\Tinja\Tinja.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Fakes\Generic\" />
+    <Folder Include="Fakes\Enumerable\" />
+    <Folder Include="Fakes\Property\" />
+  </ItemGroup>
+
 </Project>

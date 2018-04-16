@@ -4,7 +4,6 @@ using Tinja.LifeStyle;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Context;
-using Tinja.Resolving.Dependency;
 using Tinja.Resolving.Dependency.Builder;
 using Tinja.Resolving.Service;
 
@@ -110,6 +109,14 @@ namespace Tinja
 
         internal static void AddComponent(this IContainer ioc, Component component)
         {
+            if (component.ImplementionType != null)
+            {
+                if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
+                {
+                    throw new NotImplementedException($"ImplementionType:{component.ImplementionType.FullName} is abstract or interface!");
+                }
+            }
+
             var components = new List<Component>() { component };
 
             ioc.Components.AddOrUpdate(
