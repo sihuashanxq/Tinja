@@ -24,9 +24,9 @@ namespace Tinja.Resolving
         internal IResolvingContextBuilder ResolvingContextBuilder { get; }
 
         /// <summary>
-        /// <see cref="IServiceActivationBuilder"/>
+        /// <see cref="IServiceActivatorProvider"/>
         /// </summary>
-        internal IServiceActivationBuilder ServiceActivationBuilder { get; }
+        internal IServiceActivatorProvider ServiceActivationBuilder { get; }
 
         static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
 
@@ -38,7 +38,7 @@ namespace Tinja.Resolving
             ResolvingContextBuilder = builder;
 
             ServiceChainBuilder = this.Resolve<ServiceDependencyBuilder>();
-            ServiceActivationBuilder = this.Resolve<IServiceActivationBuilder>();
+            ServiceActivationBuilder = this.Resolve<IServiceActivatorProvider>();
 
             Resolver = this;
         }
@@ -48,7 +48,7 @@ namespace Tinja.Resolving
             Scope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
             ServiceChainBuilder = root.Resolve<ServiceDependencyBuilder>();
             ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
-            ServiceActivationBuilder = root.Resolve<IServiceActivationBuilder>();
+            ServiceActivationBuilder = root.Resolve<IServiceActivatorProvider>();
         }
 
         public object Resolve(Type serviceType)
@@ -58,7 +58,7 @@ namespace Tinja.Resolving
 
         protected virtual Func<IServiceResolver, IServiceLifeStyleScope, object> GetInstanceFactory(Type serviceType)
         {
-            var factory = ServiceActivationBuilder?.Build(serviceType);
+            var factory = ServiceActivationBuilder?.Get(serviceType);
             if (factory != null)
             {
                 return factory;
@@ -94,7 +94,7 @@ namespace Tinja.Resolving
                 return DefaultFacotry;
             }
 
-            return ServiceActivationBuilder.Build(chain) ?? DefaultFacotry;
+            return ServiceActivationBuilder.Get(chain) ?? DefaultFacotry;
         }
 
         public void Dispose()

@@ -34,9 +34,14 @@ namespace Tinja.Resolving.Dependency.Builder
                 return null;
             }
 
-            if (ServiceDependScope.Chains.TryGetValue(cachedContext, out var cachedChain))
+            if (ServiceDependScope.Chains.TryGetValue(cachedContext, out var chain))
             {
-                return cachedChain;
+                if (chain != null)
+                {
+                    chain.IsPropertyCircularDependencies = true;
+                }
+
+                return chain;
             }
 
             return null;

@@ -3,6 +3,7 @@ using System;
 using Tinja;
 using Tinja.Annotations;
 using Tinja.LifeStyle;
+
 namespace Sample
 {
     public interface IServiceA
@@ -28,7 +29,7 @@ namespace Sample
 
     public class ServiceB : IServiceB
     {
-        //[Inject]
+        [Inject]
         public IServiceA Service { get; set; }
 
         public ServiceB(IServiceA serviceA)
@@ -62,20 +63,20 @@ namespace Sample
 
     public class Service : IService
     {
-        //[Inject]
+        [Inject]
         public IServiceB ServiceA
         {
-            get;set;
+            get; set;
         }
 
         public ServiceB S { get; set; }
 
-        public Service(IServiceB b,IServiceA s)
+        public Service(IServiceB b, IServiceA s)
         {
             S = b as ServiceB;
             //Console.WriteLine("A" + b.GetHashCode());
             ////Console.WriteLine("A" + serviceA.GetHashCode());
-            //Console.WriteLine( GetHashCode());
+            //Console.WriteLine(GetHashCode());
         }
 
         public void Dispose()
@@ -93,48 +94,41 @@ namespace Sample
     {
         static void Main(string[] args)
         {
-            var ioc = new Container();
-
-            ioc.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
-            ioc.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
-            ioc.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
-
-            var st = new System.Diagnostics.Stopwatch();
+            var watch = new System.Diagnostics.Stopwatch();
+            var container = new Container();
             var services = new ServiceCollection();
 
+            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
+
             services.AddTransient<IServiceA, ServiceA>();
-            services.AddScoped<IServiceB, ServiceB>();
+            services.AddTransient<IServiceB, ServiceB>();
             services.AddTransient<IService, Service>();
-
             var provider = services.BuildServiceProvider();
-            //provider.GetService(typeof(IEnumerable<IEnumerable<IService>>));
-            //provider.GetService<IService>();
+            var resolver = container.BuildResolver();
 
-            st.Reset();
-            st.Start();
+            watch.Reset();
+            watch.Start();
 
-            //for (var i = 0; i < 1000_00000; i++)
-            //{
-            //    provider.GetService(typeof(IService));
-            //}
+            for (var i = 0; i < 1000_0000; i++)
+            {
+                provider.GetService(typeof(IService));
+            }
 
-            st.Stop();
-            Console.WriteLine(st.ElapsedMilliseconds);
-
-            var resolver = ioc.BuildResolver();
+            watch.Stop();
+            Console.WriteLine(watch.ElapsedMilliseconds);
 
             var service = resolver.Resolve(typeof(IService));
-            var x = service as Service;
-            st.Reset();
-            st.Start();
-
+            watch.Reset();
+            watch.Start();
             for (var i = 0; i < 1000_0000; i++)
             {
                 service = resolver.Resolve(typeof(IService));
             }
 
-            st.Stop();
-            Console.WriteLine(st.ElapsedMilliseconds);
+            watch.Stop();
+            Console.WriteLine(watch.ElapsedMilliseconds);
 
             Console.WriteLine("Hello World!");
             Console.ReadKey();

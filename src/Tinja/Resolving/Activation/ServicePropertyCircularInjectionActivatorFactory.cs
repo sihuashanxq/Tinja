@@ -1,52 +1,20 @@
 ﻿using System;
-using System.Reflection;
-using System.Linq.Expressions;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Reflection;
 using Tinja.LifeStyle;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
-
 namespace Tinja.Resolving.Activation
 {
-    public class ServiceActivationBuilder : IServiceActivationBuilder
-    {
-        static ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Cache { get; }
-
-        static ServiceActivationBuilder()
-        {
-            Cache = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
-        }
-
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(ServiceDependChain chain)
-        {
-            return Cache.GetOrAdd(chain.Context.ServiceType, (k) => BuildFactory(chain, new HashSet<ServiceDependChain>()));
-        }
-
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> Build(Type resolvingType)
-        {
-            if (Cache.TryGetValue(resolvingType, out var factory))
-            {
-                return factory;
-            }
-
-            return null;
-        }
-
-        static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(ServiceDependChain node, HashSet<ServiceDependChain> injectedProperties)
-        {
-            return new ServiceActivationFactory().CreateActivator(node);
-        }
-    }
-
-    public class ServiceActivationFactory
+    public class ServicePropertyCircularInjectionActivatorFactory : IServiceInjectionActivatorFactory
     {
         delegate object ApplyLifeStyleDelegate(
-            IServiceLifeStyleScope scope,
-            IResolvingContext context,
-            Dictionary<ServiceDependChain, object> services,
-            Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object> factory
+           IServiceLifeStyleScope scope,
+           IResolvingContext context,
+           Dictionary<ServiceDependChain, object> services,
+           Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object> factory
         );
 
         static ParameterExpression ScopeParameter { get; }
@@ -61,13 +29,13 @@ namespace Tinja.Resolving.Activation
 
         static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
 
-        static Action<ServiceActivationFactory, Dictionary<ServiceDependChain, object>, IServiceResolver> SetPropertyValueFunc { get; }
+        static Action<ServicePropertyCircularInjectionActivatorFactory, Dictionary<ServiceDependChain, object>, IServiceResolver> SetPropertyValueFunc { get; }
 
         private static ConcurrentDictionary<Type, Delegate> _propertySetters;
 
         private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedProperties;
 
-        static ServiceActivationFactory()
+        static ServicePropertyCircularInjectionActivatorFactory()
         {
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
@@ -78,12 +46,13 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFunc = (scope, context, services, factory) => scope.ApplyServiceLifeStyle(context, resolver => factory(resolver.Scope, resolver, services));
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
 
-            AddResolvedServiceMethod = typeof(ServiceActivationFactory).GetMethod(nameof(AddResolvedService));
+            AddResolvedServiceMethod = typeof(ServicePropertyCircularInjectionActivatorFactory).GetMethod(nameof(AddResolvedService));
+
+            _propertySetters = new ConcurrentDictionary<Type, Delegate>();
         }
 
-        public ServiceActivationFactory()
+        public ServicePropertyCircularInjectionActivatorFactory()
         {
-            _propertySetters = new ConcurrentDictionary<Type, Delegate>();
             _resolvedProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
         }
 
@@ -181,15 +150,18 @@ namespace Tinja.Resolving.Activation
         {
             var parameterValues = new Expression[node.Parameters?.Count ?? 0];
             var varible = Expression.Variable(node.Constructor.ConstructorInfo.DeclaringType);
-            var statements = new List<Expression>();
             var lable = Expression.Label(varible.Type);
+            var statements = new List<Expression>();
 
             for (var i = 0; i < parameterValues.Length; i++)
             {
-                parameterValues[i] = Expression.Convert(
-                     BuildExpression(node.Parameters[node.Constructor.Paramters[i]]),
-                     node.Constructor.Paramters[i].ParameterType
-                    );
+                var parameterValue = BuildExpression(node.Parameters[node.Constructor.Paramters[i]]);
+                if (!node.Constructor.Paramters[i].ParameterType.IsAssignableFrom(parameterValue.Type))
+                {
+                    parameterValue = Expression.Convert(parameterValue, node.Constructor.Paramters[i].ParameterType);
+                }
+
+                parameterValues[i] = parameterValue;
             }
 
             statements.Add(
@@ -269,10 +241,11 @@ namespace Tinja.Resolving.Activation
                 var property = Expression.MakeMemberAccess(instance, item.Key);
                 var propertyVariable = Expression.Variable(item.Key.PropertyType);
 
-                var propertyValue =
-                    Expression.Convert(
-                        CreatePropertyValue(item.Value),
-                         propertyVariable.Type);
+                var propertyValue = CreatePropertyValue(item.Value);
+                if (!propertyVariable.Type.IsAssignableFrom(propertyValue.Type))
+                {
+                    propertyValue = Expression.Convert(propertyValue, propertyVariable.Type);
+                }
 
                 var setPropertyVariableValue = Expression.Assign(propertyVariable, propertyValue);
                 var setPropertyValue = Expression.IfThen(
@@ -316,7 +289,19 @@ namespace Tinja.Resolving.Activation
         {
             foreach (var item in services)
             {
-                var setter = _propertySetters.GetOrAdd(item.Key.Constructor.ConstructorInfo.DeclaringType, _ => BuildPropertySetter(item.Key));
+                var serviceType = item.Key.Constructor.ConstructorInfo.DeclaringType;
+                if (!_propertySetters.ContainsKey(serviceType))
+                {
+                    lock (_propertySetters)
+                    {
+                        if (!_propertySetters.ContainsKey(serviceType))
+                        {
+                            _propertySetters[serviceType] = BuildPropertySetter(item.Key);
+                        }
+                    }
+                }
+
+                var setter = _propertySetters[serviceType];
                 if (setter != null)
                 {
                     setter.DynamicInvoke(item.Value, resolver, resolver.Scope);
@@ -349,7 +334,7 @@ namespace Tinja.Resolving.Activation
 
         protected virtual Expression WrapperWithLifeStyle(Expression func, ServiceDependChain chain)
         {
-            if (!IsNeedWrappedLifeStyle(chain))
+            if (!chain.IsNeedWrappedLifeStyle())
             {
                 return
                     Expression.Invoke(
@@ -379,21 +364,5 @@ namespace Tinja.Resolving.Activation
                 services.Add(chain, instance);
             }
         }
-
-        protected static bool IsNeedWrappedLifeStyle(ServiceDependChain chain)
-        {
-            if (chain.Context.Component.LifeStyle != ServiceLifeStyle.Transient)
-            {
-                return true;
-            }
-
-            if (chain.Constructor != null)
-            {
-                return chain.Constructor.ConstructorInfo.DeclaringType.Is(typeof(IDisposable));
-            }
-
-            return true;
-        }
     }
 }
-

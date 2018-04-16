@@ -23,7 +23,7 @@ namespace Tinja
             ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeStyleScopeFactory), _ => scopeFactory);
             ioc.AddSingleton(typeof(IServiceInfoFactory), _ => new ServiceInfoFactory());
-            ioc.AddSingleton(typeof(IServiceActivationBuilder), _ => new ServiceActivationBuilder());
+            ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => new ServiceActivatorProvider());
             ioc.AddSingleton(
                 typeof(ServiceDependencyBuilder),
                 resolver => new ConstructorDependencyBuilder(resolver.Resolve<IServiceInfoFactory>(), builder)
