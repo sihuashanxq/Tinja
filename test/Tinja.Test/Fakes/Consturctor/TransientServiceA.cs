@@ -19,4 +19,17 @@
             ServiceB = serviceB;
         }
     }
+
+    public class TransientServiceA2 : ITransientServiceA
+    {
+        public ITransientServiceC ServiceC { get; }
+
+        public ITransientServiceB ServiceB { get; }
+
+        public TransientServiceA2(ITransientServiceB serviceB, ITransientServiceC serviceC)
+        {
+            ServiceC = serviceC;
+            ServiceB = serviceB;
+        }
+    }
 }

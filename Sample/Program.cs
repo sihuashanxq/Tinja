@@ -14,7 +14,7 @@ namespace Sample
     public class ServiceA : IServiceA
     {
         [Inject]
-        public IServiceB Service { get; set; }
+        public IService Service { get; set; }
 
         public ServiceA()
         {
@@ -102,7 +102,7 @@ namespace Sample
             var services = new ServiceCollection();
 
             container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
+            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
 
@@ -131,7 +131,7 @@ namespace Sample
             watch.Reset();
             watch.Start();
 
-            for (var i = 0; i < 10000000; i++)
+            for (var i = 0; i < 10000_000; i++)
             {
                 service = resolver.Resolve(typeof(IService));
             }

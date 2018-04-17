@@ -5,16 +5,15 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using Tinja.LifeStyle;
-using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorProvider : IServiceActivatorProvider
     {
-        static ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Cache { get; }
+        private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Cache { get; }
 
-        static ServiceActivatorProvider()
+        public ServiceActivatorProvider()
         {
             Cache = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
         }

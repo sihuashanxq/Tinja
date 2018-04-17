@@ -35,7 +35,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
         protected override ServiceDependChain ResolveCircularDependencies(IResolvingContext context, ServiceInfo serviceInfo)
         {
-            throw new NotSupportedException($"Circulard ependencies at type:{serviceInfo.Type.FullName}");
+            throw new ConstructorCircularExpcetion(serviceInfo.Type, $"Circulard ependencies at type:{serviceInfo.Type.FullName}");
         }
     }
 }

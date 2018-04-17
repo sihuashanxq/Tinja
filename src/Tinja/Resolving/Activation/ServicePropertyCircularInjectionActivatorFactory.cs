@@ -6,6 +6,7 @@ using System.Reflection;
 using Tinja.LifeStyle;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
+
 namespace Tinja.Resolving.Activation
 {
     public class ServicePropertyCircularInjectionActivatorFactory : IServiceInjectionActivatorFactory
@@ -31,7 +32,7 @@ namespace Tinja.Resolving.Activation
 
         static Action<ServicePropertyCircularInjectionActivatorFactory, Dictionary<ServiceDependChain, object>, IServiceResolver> SetPropertyValueFunc { get; }
 
-        private static ConcurrentDictionary<Type, Delegate> _propertySetters;
+        private ConcurrentDictionary<Type, Delegate> _propertySetters;
 
         private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedProperties;
 
@@ -47,12 +48,11 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
 
             AddResolvedServiceMethod = typeof(ServicePropertyCircularInjectionActivatorFactory).GetMethod(nameof(AddResolvedService));
-
-            _propertySetters = new ConcurrentDictionary<Type, Delegate>();
         }
 
         public ServicePropertyCircularInjectionActivatorFactory()
         {
+            _propertySetters = new ConcurrentDictionary<Type, Delegate>();
             _resolvedProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
         }
 
