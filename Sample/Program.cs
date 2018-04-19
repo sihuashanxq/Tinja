@@ -58,25 +58,33 @@ namespace Sample
         [Inject]
         public IServiceXX<T> Instance { get; set; }
 
+        public T t;
+
         public ServiceXX(T t)
         {
-
+            this.t = t;
         }
     }
 
     public class Service : IService
     {
         [Inject]
-        public IServiceB ServiceA
+        public IServiceB ServiceB
         {
             get; set;
         }
 
-        public ServiceB S { get; set; }
+        [Inject]
+        public IServiceB ServiceB2
+        {
+            get; set;
+        }
+
+        public IServiceB B { get; }
 
         public Service(IServiceB b, IServiceA s)
         {
-            S = b as ServiceB;
+            B = b;
             //Console.WriteLine("A" + b.GetHashCode());
             ////Console.WriteLine("A" + serviceA.GetHashCode());
             //Console.WriteLine(GetHashCode());
@@ -93,6 +101,12 @@ namespace Sample
         }
     }
 
+    public class A
+    {
+        [Inject]
+        public A A2 { get; set; }
+    }
+
     class Program
     {
         static void Main(string[] args)
@@ -101,10 +115,11 @@ namespace Sample
             var container = new Container();
             var services = new ServiceCollection();
 
-            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
+            container.AddService(typeof(A), typeof(A), ServiceLifeStyle.Scoped);
 
             services.AddTransient<IServiceA, ServiceA>();
             services.AddTransient<IServiceB, ServiceB>();
@@ -125,7 +140,7 @@ namespace Sample
             Console.WriteLine(watch.ElapsedMilliseconds);
             //var x = resolver.Resolve<Nullable<int>>();
 
-            var serviceXX = resolver.Resolve<IServiceXX<IService>>();
+            //var serviceXX = resolver.Resolve<ServiceXX<IService>>() ;
             var service = resolver.Resolve(typeof(IService));
 
             watch.Reset();

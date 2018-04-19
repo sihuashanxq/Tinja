@@ -46,31 +46,31 @@ namespace Tinja.LifeStyle
             switch (context.Component.LifeStyle)
             {
                 case ServiceLifeStyle.Transient:
-                    return ApplyTransientInstance(context, factory);
+                    return ApplyTransientInstance(context.ServiceType, factory);
                 case ServiceLifeStyle.Scoped:
-                    return ApplyScopedInstance(context, factory);
+                    return ApplyScopedInstance(context.ServiceType, factory);
                 default:
-                    return ApplySingletonInstance(context, factory);
+                    return ApplySingletonInstance(context.ServiceType, factory);
             }
         }
 
-        protected virtual object ApplyScopedInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
+        protected virtual object ApplyScopedInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
-            if (!_scopedObjects.ContainsKey(context.ServiceType))
+            if (!_scopedObjects.ContainsKey(serviceType))
             {
                 lock (_scopedObjects)
                 {
-                    if (!_scopedObjects.ContainsKey(context.ServiceType))
+                    if (!_scopedObjects.ContainsKey(serviceType))
                     {
-                        return _scopedObjects[context.ServiceType] = factory(_resolver);
+                        return _scopedObjects[serviceType] = factory(_resolver);
                     }
                 }
             }
 
-            return _scopedObjects[context.ServiceType];
+            return _scopedObjects[serviceType];
         }
 
-        protected virtual object ApplyTransientInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
+        protected virtual object ApplyTransientInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
             var instance = factory(_resolver);
             if (instance is IDisposable)
@@ -81,14 +81,32 @@ namespace Tinja.LifeStyle
             return instance;
         }
 
-        protected virtual object ApplySingletonInstance(IResolvingContext context, Func<IServiceResolver, object> factory)
+        protected virtual object ApplySingletonInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
             if (_root == null)
             {
-                return ApplyScopedInstance(context, factory);
+                return ApplyScopedInstance(serviceType, factory);
             }
 
-            return _root.ApplyServiceLifeStyle(context, factory);
+            return _root.ApplyServiceLifeStyle(serviceType, ServiceLifeStyle.Singleton, factory);
+        }
+
+        public object ApplyServiceLifeStyle(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
+        {
+            if (_disposed)
+            {
+                throw new NotSupportedException("scope has disposed!");
+            }
+
+            switch (lifeStyle)
+            {
+                case ServiceLifeStyle.Transient:
+                    return ApplyTransientInstance(serviceType, factory);
+                case ServiceLifeStyle.Scoped:
+                    return ApplyScopedInstance(serviceType, factory);
+                default:
+                    return ApplySingletonInstance(serviceType, factory);
+            }
         }
 
         ~ServiceLifeStyleScope()

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using System.Linq.Expressions;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 
 using Tinja.LifeStyle;
@@ -11,21 +8,21 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorProvider : IServiceActivatorProvider
     {
-        private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Cache { get; }
+        protected ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>> Activators { get; }
 
         public ServiceActivatorProvider()
         {
-            Cache = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
+            Activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeStyleScope, object>>();
         }
 
         public Func<IServiceResolver, IServiceLifeStyleScope, object> Get(ServiceDependChain chain)
         {
-            return Cache.GetOrAdd(chain.Context.ServiceType, (k) => BuildFactory(chain, new HashSet<ServiceDependChain>()));
+            return Activators.GetOrAdd(chain.Context.ServiceType, (k) => GetActivator(chain));
         }
 
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> Get(Type resolvingType)
+        public Func<IServiceResolver, IServiceLifeStyleScope, object> Get(Type serviceType)
         {
-            if (Cache.TryGetValue(resolvingType, out var factory))
+            if (Activators.TryGetValue(serviceType, out var factory))
             {
                 return factory;
             }
@@ -33,14 +30,14 @@ namespace Tinja.Resolving.Activation
             return null;
         }
 
-        static Func<IServiceResolver, IServiceLifeStyleScope, object> BuildFactory(ServiceDependChain node, HashSet<ServiceDependChain> injectedProperties)
+        private Func<IServiceResolver, IServiceLifeStyleScope, object> GetActivator(ServiceDependChain chain)
         {
-            if (node.ContainsPropertyCircularDependencies())
+            if (chain.ContainsPropertyCircularDependencies())
             {
-                return new ServicePropertyCircularInjectionActivatorFactory().CreateActivator(node);
+                return new ServicePropertyCircularInjectionActivatorFactory().CreateActivator(chain);
             }
 
-            return new ServiceInjectionActivatorFactory().CreateActivator(node);
+            return new ServiceInjectionActivatorFactory().CreateActivator(chain);
         }
     }
 }

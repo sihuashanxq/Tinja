@@ -5,6 +5,7 @@ using Xunit;
 using Tinja.Test.Fakes;
 using System.Linq;
 using Tinja.Resolving.Dependency.Builder;
+using System.Threading.Tasks;
 
 namespace Tinja.Test
 {
@@ -234,14 +235,34 @@ namespace Tinja.Test
                 .AddTransient<IPropertyInjectionService, PropertyInjectionService>()
                 .BuildResolver();
 
-            var service = resolver.Resolve<IPropertyInjectionService>();
-            var serviceB = resolver.Resolve<ITransientServiceB>();
+            for (var i = 0; i < 10000; i++)
+            {
+                var t1 = Task.Run(() =>
+                {
+                    var service = resolver.Resolve<IPropertyInjectionService>();
+                    var serviceB = resolver.Resolve<ITransientServiceB>();
 
-            Assert.NotNull(service);
-            Assert.NotNull(service.ServiceB);
-            Assert.NotNull(serviceB);
+                    Assert.NotNull(service);
+                    Assert.NotNull(service.ServiceB);
+                    Assert.NotNull(serviceB);
 
-            Assert.Equal(serviceB, service.ServiceB);
+                    Assert.Equal(serviceB, service.ServiceB);
+                });
+
+                var t2 = Task.Run(() =>
+                {
+                    var service = resolver.Resolve<IPropertyInjectionService>();
+                    var serviceB = resolver.Resolve<ITransientServiceB>();
+
+                    Assert.NotNull(service);
+                    Assert.NotNull(service.ServiceB);
+                    Assert.NotNull(serviceB);
+
+                    Assert.Equal(serviceB, service.ServiceB);
+                });
+
+                Task.WaitAll(t1, t2);
+            }
         }
 
         [Fact]
@@ -367,34 +388,97 @@ namespace Tinja.Test
         {
             //just one scoped/singleton service in circular property dependency chain,injection success
             var resolver = new Container()
-               .AddScoped<IPropertyServiceA, PropertyServiceA>()
-               .AddScoped<IPropertyServiceB, PropertyServiceB>()
-               .AddScoped<IPropertyCircularInjectionService, PropertyCircularInjectionService>()
-               .BuildResolver();
+                   .AddScoped<IPropertyServiceA, PropertyServiceA>()
+                   .AddScoped<IPropertyServiceB, PropertyServiceB>()
+                   .AddScoped<IPropertyCircularInjectionService, PropertyCircularInjectionService>()
+                   .BuildResolver();
 
-            var propertyServiceA = resolver.Resolve<IPropertyServiceA>();
-            var propertyServiceB = resolver.Resolve<IPropertyServiceB>();
-            var propertyServiceC = resolver.Resolve<IPropertyCircularInjectionService>();
+            for (var i = 0; i < 1000; i++)
+            {
 
-            Assert.NotNull(propertyServiceA);
-            Assert.NotNull(propertyServiceB);
-            Assert.NotNull(propertyServiceC);
+                var t1 = Task.Run(() =>
+                {
+                    var propertyServiceA = resolver.Resolve<IPropertyServiceA>();
+                    var propertyServiceB = resolver.Resolve<IPropertyServiceB>();
+                    var propertyServiceC = resolver.Resolve<IPropertyCircularInjectionService>();
 
-            Assert.NotNull(propertyServiceA.Service);
-            Assert.NotNull(propertyServiceB.Service);
-            Assert.NotNull(propertyServiceC.Service);
+                    Assert.NotNull(propertyServiceA);
+                    Assert.NotNull(propertyServiceB);
+                    Assert.NotNull(propertyServiceC);
 
-            Assert.NotNull(propertyServiceA.Service.Service);
-            Assert.NotNull(propertyServiceB.Service.Service);
-            Assert.NotNull(propertyServiceC.Service.Service);
+                    Assert.NotNull(propertyServiceA.Service);
+                    Assert.NotNull(propertyServiceB.Service);
+                    Assert.NotNull(propertyServiceC.Service);
 
-            Assert.NotNull(propertyServiceA.Service.Service.Service);
-            Assert.NotNull(propertyServiceB.Service.Service.Service);
-            Assert.NotNull(propertyServiceC.Service.Service.Service);
+                    Assert.NotNull(propertyServiceA.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service);
 
-            Assert.Equal(propertyServiceA.Service, propertyServiceC);
-            Assert.Equal(propertyServiceC.Service, propertyServiceB);
-            Assert.Equal(propertyServiceB.Service, propertyServiceA);
+                    Assert.NotNull(propertyServiceA.Service.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service.Service);
+
+                    Assert.Equal(propertyServiceA.Service, propertyServiceC);
+                    Assert.Equal(propertyServiceC.Service, propertyServiceB);
+                    Assert.Equal(propertyServiceB.Service, propertyServiceA);
+                });
+
+                var t2 = Task.Run(() =>
+                {
+                    var propertyServiceA = resolver.Resolve<IPropertyServiceA>();
+                    var propertyServiceB = resolver.Resolve<IPropertyServiceB>();
+                    var propertyServiceC = resolver.Resolve<IPropertyCircularInjectionService>();
+
+                    Assert.NotNull(propertyServiceA);
+                    Assert.NotNull(propertyServiceB);
+                    Assert.NotNull(propertyServiceC);
+
+                    Assert.NotNull(propertyServiceA.Service);
+                    Assert.NotNull(propertyServiceB.Service);
+                    Assert.NotNull(propertyServiceC.Service);
+
+                    Assert.NotNull(propertyServiceA.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service);
+
+                    Assert.NotNull(propertyServiceA.Service.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service.Service);
+
+                    Assert.Equal(propertyServiceA.Service, propertyServiceC);
+                    Assert.Equal(propertyServiceC.Service, propertyServiceB);
+                    Assert.Equal(propertyServiceB.Service, propertyServiceA);
+                });
+
+                var t3 = Task.Run(() =>
+                {
+                    var propertyServiceA = resolver.Resolve<IPropertyServiceA>();
+                    var propertyServiceB = resolver.Resolve<IPropertyServiceB>();
+                    var propertyServiceC = resolver.Resolve<IPropertyCircularInjectionService>();
+
+                    Assert.NotNull(propertyServiceA);
+                    Assert.NotNull(propertyServiceB);
+                    Assert.NotNull(propertyServiceC);
+
+                    Assert.NotNull(propertyServiceA.Service);
+                    Assert.NotNull(propertyServiceB.Service);
+                    Assert.NotNull(propertyServiceC.Service);
+
+                    Assert.NotNull(propertyServiceA.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service);
+
+                    Assert.NotNull(propertyServiceA.Service.Service.Service);
+                    Assert.NotNull(propertyServiceB.Service.Service.Service);
+                    Assert.NotNull(propertyServiceC.Service.Service.Service);
+
+                    Assert.Equal(propertyServiceA.Service, propertyServiceC);
+                    Assert.Equal(propertyServiceC.Service, propertyServiceB);
+                    Assert.Equal(propertyServiceB.Service, propertyServiceA);
+                });
+
+                Task.WaitAll(t1, t2, t3);
+            }
         }
     }
 }

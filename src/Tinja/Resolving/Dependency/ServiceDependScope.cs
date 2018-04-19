@@ -4,23 +4,30 @@ using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
+    public class ScopeItem
+    {
+        public IResolvingContext Context { get; set; }
+
+        public int Counter { get; set; }
+    }
+
     public class ServiceDependScope
     {
-        public Dictionary<Type, IResolvingContext> ScopeContexts { get; private set; }
+        public Dictionary<Type, ScopeItem> ScopeContexts { get; private set; }
 
         public Dictionary<IResolvingContext, ServiceDependChain> Chains { get; private set; }
 
-        public Dictionary<Type, IResolvingContext> AllContexts { get; private set; }
+        public Dictionary<Type, ScopeItem> AllContexts { get; private set; }
 
         public ServiceDependScope()
         {
-            ScopeContexts = new Dictionary<Type, IResolvingContext>();
-            AllContexts = new Dictionary<Type, IResolvingContext>();
+            ScopeContexts = new Dictionary<Type, ScopeItem>();
+            AllContexts = new Dictionary<Type, ScopeItem>();
             Chains = new Dictionary<IResolvingContext, ServiceDependChain>();
         }
 
         private ServiceDependScope(
-            Dictionary<Type, IResolvingContext> allContexts,
+            Dictionary<Type, ScopeItem> allContexts,
             Dictionary<IResolvingContext, ServiceDependChain> chains
         ) : this()
         {
@@ -48,20 +55,45 @@ namespace Tinja.Resolving.Dependency
 
         public IDisposable BeginScope(IResolvingContext context, ServiceInfo serviceInfo)
         {
-            AllContexts[serviceInfo.Type] = context;
-            ScopeContexts[serviceInfo.Type] = context;
+            AllContexts[serviceInfo.Type] = new ScopeItem()
+            {
+                Context = context
+            };
+
+            if (!ScopeContexts.ContainsKey(serviceInfo.Type))
+            {
+                ScopeContexts[serviceInfo.Type] = new ScopeItem()
+                {
+                    Context = context,
+                    Counter = 0
+                };
+            }
+
+            ScopeContexts[serviceInfo.Type].Counter++;
 
             return new DisposableAction(() =>
             {
-                ScopeContexts.Remove(serviceInfo.Type);
+                ScopeContexts[serviceInfo.Type].Counter--;
+                if (ScopeContexts[serviceInfo.Type].Counter == 0)
+                {
+                    ScopeContexts.Remove(serviceInfo.Type);
+                }
             });
         }
 
         public void AddChain(ServiceDependChain chain)
         {
             Chains[chain.Context] = chain;
-            AllContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.Context;
-            ScopeContexts[chain.Constructor.ConstructorInfo.DeclaringType] = chain.Context;
+            AllContexts[chain.Constructor.ConstructorInfo.DeclaringType] = new ScopeItem()
+            {
+                Context = chain.Context
+            };
+            ScopeContexts[chain.Constructor.ConstructorInfo.DeclaringType] =
+                new ScopeItem()
+                {
+                    Context = chain.Context,
+                    Counter = 1
+                };
         }
 
         public bool Constains(ServiceDependChain chain)

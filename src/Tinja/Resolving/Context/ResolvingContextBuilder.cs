@@ -25,7 +25,7 @@ namespace Tinja.Resolving.Context
 
         public virtual IResolvingContext BuildResolvingContext(Type resolvingType)
         {
-            return
+            return 
                 BuildResolvingContextWithDirectly(resolvingType) ??
                 BuildResolvingContextWithOpenGeneric(resolvingType) ??
                 BuildResolvingContextWithEnumerable(resolvingType);

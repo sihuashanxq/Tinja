@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using Tinja.LifeStyle;
-using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
@@ -12,10 +11,11 @@ namespace Tinja.Resolving.Activation
     public class ServicePropertyCircularInjectionActivatorFactory : IServiceInjectionActivatorFactory
     {
         delegate object ApplyLifeStyleDelegate(
-           IServiceLifeStyleScope scope,
-           IResolvingContext context,
-           Dictionary<ServiceDependChain, object> services,
-           Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object> factory
+            IServiceLifeStyleScope scope,
+            Type serviceType,
+            ServiceLifeStyle lifeStyle,
+            PropertyCircularInjectionContext injectionContext,
+            Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object> factory
         );
 
         static ParameterExpression ScopeParameter { get; }
@@ -24,39 +24,25 @@ namespace Tinja.Resolving.Activation
 
         static ConstantExpression ApplyLifeStyleFuncConstant { get; }
 
-        static ParameterExpression ResolvedServicesParameter { get; }
-
-        static MethodInfo AddResolvedServiceMethod { get; }
+        static ParameterExpression InjectionContextParameter { get; }
 
         static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
 
-        static Action<ServicePropertyCircularInjectionActivatorFactory, Dictionary<ServiceDependChain, object>, IServiceResolver> SetPropertyValueFunc { get; }
-
-        private ConcurrentDictionary<Type, Delegate> _propertySetters;
-
-        private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedProperties;
+        static Action<IServiceResolver, PropertyCircularInjectionContext> SetPropertyValueFunc { get; }
 
         static ServicePropertyCircularInjectionActivatorFactory()
         {
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
-            ResolvedServicesParameter = Expression.Parameter(typeof(Dictionary<ServiceDependChain, object>));
+            InjectionContextParameter = Expression.Parameter(typeof(PropertyCircularInjectionContext));
 
-            SetPropertyValueFunc = (factory, services, resolver) => factory.SetPropertyValue(services, resolver);
+            SetPropertyValueFunc = (resolver, context) => SetPropertyValue(resolver, context);
 
-            ApplyLifeStyleFunc = (scope, context, services, factory) => scope.ApplyServiceLifeStyle(context, resolver => factory(resolver.Scope, resolver, services));
+            ApplyLifeStyleFunc = (scope, serviceType, lifeStyle, injectionContext, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, resolver => factory(resolver.Scope, resolver, injectionContext));
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
-
-            AddResolvedServiceMethod = typeof(ServicePropertyCircularInjectionActivatorFactory).GetMethod(nameof(AddResolvedService));
         }
 
-        public ServicePropertyCircularInjectionActivatorFactory()
-        {
-            _propertySetters = new ConcurrentDictionary<Type, Delegate>();
-            _resolvedProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
-        }
-
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain)
+        public virtual Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -66,12 +52,15 @@ namespace Tinja.Resolving.Activation
 
             return (resolver, scope) =>
             {
-                return factory(resolver, scope, new Dictionary<ServiceDependChain, object>());
+                lock (this)
+                {
+                    return factory(resolver, scope, new PropertyCircularInjectionContext());
+                }
             };
         }
 
-        protected virtual
-            Func<IServiceResolver, IServiceLifeStyleScope, Dictionary<ServiceDependChain, object>, object>
+        protected static
+            Func<IServiceResolver, IServiceLifeStyleScope, PropertyCircularInjectionContext, object>
             CreateActivatorCore(ServiceDependChain chain)
         {
             var lambdaBody = BuildExpression(chain);
@@ -88,24 +77,25 @@ namespace Tinja.Resolving.Activation
                 Expression.Assign(varible, Expression.Convert(lambdaBody,varible.Type)),
                 Expression.Invoke(
                     Expression.Constant(SetPropertyValueFunc),
-                    Expression.Constant(this),
-                    ResolvedServicesParameter,
-                    ResolverParameter
+                    ResolverParameter,
+                    InjectionContextParameter
                 ),
                 Expression.Return(lable,varible),
                 Expression.Label(lable, varible)
             };
 
-            return (Func<IServiceResolver, IServiceLifeStyleScope, Dictionary<ServiceDependChain, object>, object>)
+            return (Func<IServiceResolver, IServiceLifeStyleScope, PropertyCircularInjectionContext, object>)
                 Expression
                 .Lambda(
                     Expression.Block(new[] { varible }, statements),
-                    ResolverParameter, ScopeParameter,
-                    ResolvedServicesParameter)
+                    ResolverParameter,
+                    ScopeParameter,
+                    InjectionContextParameter
+                )
                 .Compile();
         }
 
-        protected Expression BuildExpression(ServiceDependChain chain)
+        protected static Expression BuildExpression(ServiceDependChain chain)
         {
             var func = null as Expression;
             if (chain.Constructor == null)
@@ -129,9 +119,9 @@ namespace Tinja.Resolving.Activation
             return WrapperWithLifeStyle(func, chain);
         }
 
-        protected virtual Expression BuildWithImplFactory(ServiceDependChain chain)
+        protected static Expression BuildWithImplFactory(ServiceDependChain chain)
         {
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object>)
+            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
                 .Lambda(
                     Expression.Invoke(
@@ -140,13 +130,13 @@ namespace Tinja.Resolving.Activation
                     ),
                     ScopeParameter,
                     ResolverParameter,
-                    ResolvedServicesParameter)
+                    InjectionContextParameter)
                 .Compile();
 
             return Expression.Constant(factory);
         }
 
-        protected virtual Expression BuildWithConstructor(ServiceDependChain node)
+        protected static Expression BuildWithConstructor(ServiceDependChain node)
         {
             var parameterValues = new Expression[node.Parameters?.Count ?? 0];
             var varible = Expression.Variable(node.Constructor.ConstructorInfo.DeclaringType);
@@ -178,8 +168,8 @@ namespace Tinja.Resolving.Activation
             {
                 statements.Add(
                     Expression.Call(
-                        AddResolvedServiceMethod,
-                        ResolvedServicesParameter,
+                        InjectionContextParameter,
+                        PropertyCircularInjectionContext.AddResolvedServiceMethod,
                         Expression.Constant(node),
                         varible
                     )
@@ -190,15 +180,15 @@ namespace Tinja.Resolving.Activation
             statements.Add(Expression.Label(lable, varible));
 
             var lambdaBody = Expression.Block(new[] { varible }, statements);
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object>)
+            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
-                    .Lambda(lambdaBody, ScopeParameter, ResolverParameter, ResolvedServicesParameter)
+                    .Lambda(lambdaBody, ScopeParameter, ResolverParameter, InjectionContextParameter)
                     .Compile();
 
             return Expression.Constant(factory);
         }
 
-        protected virtual Expression BuildWithEnumerable(ServiceEnumerableDependChain node)
+        protected static Expression BuildWithEnumerable(ServiceEnumerableDependChain node)
         {
             var elementInits = new ElementInit[node.Elements.Length];
             var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
@@ -215,15 +205,15 @@ namespace Tinja.Resolving.Activation
             }
 
             var listInit = Expression.ListInit(Expression.New(node.Constructor.ConstructorInfo), elementInits);
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, Dictionary<ServiceDependChain, object>, object>)
+            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
-                    .Lambda(listInit, ScopeParameter, ResolverParameter, ResolvedServicesParameter)
+                    .Lambda(listInit, ScopeParameter, ResolverParameter, InjectionContextParameter)
                     .Compile();
 
             return Expression.Constant(factory);
         }
 
-        protected virtual Delegate BuildPropertySetter(ServiceDependChain node)
+        protected static Delegate BuildPropertySetter(ServiceDependChain node, PropertyCircularInjectionContext context)
         {
             var instance = Expression.Parameter(node.Constructor.ConstructorInfo.DeclaringType);
             var label = Expression.Label();
@@ -233,7 +223,8 @@ namespace Tinja.Resolving.Activation
 
             foreach (var item in node.Properties)
             {
-                if (IsPropertyCircularDependeny(node, item.Value))
+                if (node.Context.Component.LifeStyle != ServiceLifeStyle.Transient &&
+                    context.IsPropertyHandled(node.Constructor.ConstructorInfo.DeclaringType, item.Key))
                 {
                     continue;
                 };
@@ -263,11 +254,11 @@ namespace Tinja.Resolving.Activation
 
             return
                 Expression
-                .Lambda(Expression.Block(variables, statements), instance, ResolverParameter, ScopeParameter)
+                .Lambda(Expression.Block(variables, statements), instance, ResolverParameter, ScopeParameter, InjectionContextParameter)
                 .Compile();
         }
 
-        protected virtual Expression CreatePropertyValue(ServiceDependChain chain)
+        protected static Expression CreatePropertyValue(ServiceDependChain chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -280,59 +271,26 @@ namespace Tinja.Resolving.Activation
                     Expression.Constant(factory),
                     ResolverParameter,
                     ScopeParameter,
-                    Expression.Constant(new Dictionary<ServiceDependChain, object>()
-                )
-            );
+                    Expression.Call(InjectionContextParameter, PropertyCircularInjectionContext.CreateScopeMethod)
+                );
         }
 
-        protected void SetPropertyValue(Dictionary<ServiceDependChain, object> services, IServiceResolver resolver)
+        protected static void SetPropertyValue(IServiceResolver resolver, PropertyCircularInjectionContext context)
         {
-            foreach (var item in services)
+            foreach (var item in context.ResolvedServices)
             {
-                var serviceType = item.Key.Constructor.ConstructorInfo.DeclaringType;
-                if (!_propertySetters.ContainsKey(serviceType))
-                {
-                    lock (_propertySetters)
-                    {
-                        if (!_propertySetters.ContainsKey(serviceType))
-                        {
-                            _propertySetters[serviceType] = BuildPropertySetter(item.Key);
-                        }
-                    }
-                }
+                var setter = context.PropertySetters.GetOrAdd(
+                    item.Key.Constructor.ConstructorInfo.DeclaringType,
+                    _ => BuildPropertySetter(item.Key, context));
 
-                var setter = _propertySetters[serviceType];
                 if (setter != null)
                 {
-                    setter.DynamicInvoke(item.Value, resolver, resolver.Scope);
+                    setter.DynamicInvoke(item.Value, resolver, resolver.Scope, context);
                 }
             }
         }
 
-        protected bool IsPropertyCircularDependeny(ServiceDependChain instanceChain, ServiceDependChain propertyChain)
-        {
-            if (!_resolvedProperties.ContainsKey(instanceChain.Context))
-            {
-                _resolvedProperties[instanceChain.Context] = new HashSet<IResolvingContext>()
-                {
-                    propertyChain.Context
-                };
-
-                return false;
-            }
-
-            var properties = _resolvedProperties[instanceChain.Context];
-            if (properties.Contains(propertyChain.Context))
-            {
-                return true;
-            }
-
-            properties.Add(propertyChain.Context);
-
-            return false;
-        }
-
-        protected virtual Expression WrapperWithLifeStyle(Expression func, ServiceDependChain chain)
+        protected static Expression WrapperWithLifeStyle(Expression func, ServiceDependChain chain)
         {
             if (!chain.IsNeedWrappedLifeStyle())
             {
@@ -341,27 +299,90 @@ namespace Tinja.Resolving.Activation
                         func,
                         ScopeParameter,
                         ResolverParameter,
-                        ResolvedServicesParameter
+                        InjectionContextParameter
                     );
             }
-
-            var wrappedContext = Expression.Constant(chain.Context);
 
             return
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
-                    wrappedContext,
-                    ResolvedServicesParameter,
+                    Expression.Constant(chain.Context.ServiceType),
+                    Expression.Constant(chain.Context.Component.LifeStyle),
+                    InjectionContextParameter,
                     func
                 );
         }
 
-        public static void AddResolvedService(Dictionary<ServiceDependChain, object> services, ServiceDependChain chain, object instance)
+        protected internal class PropertyCircularInjectionContext
         {
-            if (!services.ContainsKey(chain) && instance != null)
+            /// <summary>
+            /// need property inject instance
+            /// </summary>
+            public Dictionary<ServiceDependChain, object> ResolvedServices { get; }
+
+            public Dictionary<Type, HashSet<PropertyInfo>> HandledProperties { get; }
+
+            public static MethodInfo AddResolvedServiceMethod { get; }
+
+            public static MethodInfo CreateScopeMethod { get; }
+
+            public ConcurrentDictionary<Type, Delegate> PropertySetters { get; private set; }
+
+            static PropertyCircularInjectionContext()
             {
-                services.Add(chain, instance);
+                AddResolvedServiceMethod = typeof(PropertyCircularInjectionContext)
+                    .GetMethod(nameof(AddResolvedService));
+
+                CreateScopeMethod = typeof(PropertyCircularInjectionContext)
+                    .GetMethod(nameof(CreateScope));
+            }
+
+            public PropertyCircularInjectionContext()
+            {
+                HandledProperties = new Dictionary<Type, HashSet<PropertyInfo>>();
+                ResolvedServices = new Dictionary<ServiceDependChain, object>();
+                PropertySetters = new ConcurrentDictionary<Type, Delegate>();
+            }
+
+            private PropertyCircularInjectionContext(Dictionary<Type, HashSet<PropertyInfo>> handledProperties)
+            {
+                HandledProperties = handledProperties;
+                ResolvedServices = new Dictionary<ServiceDependChain, object>();
+            }
+
+            public bool IsPropertyHandled(Type serviceType, PropertyInfo propertyInfo)
+            {
+                if (!HandledProperties.ContainsKey(serviceType))
+                {
+                    HandledProperties[serviceType] = new HashSet<PropertyInfo>() { propertyInfo };
+                    return false;
+                }
+
+                var properties = HandledProperties[serviceType];
+                if (properties.Contains(propertyInfo))
+                {
+                    return true;
+                }
+
+                properties.Add(propertyInfo);
+                return false;
+            }
+
+            public void AddResolvedService(ServiceDependChain chain, object instance)
+            {
+                if (!ResolvedServices.ContainsKey(chain) && instance != null)
+                {
+                    ResolvedServices.Add(chain, instance);
+                }
+            }
+
+            public PropertyCircularInjectionContext CreateScope()
+            {
+                return new PropertyCircularInjectionContext(HandledProperties)
+                {
+                    PropertySetters = PropertySetters
+                };
             }
         }
     }

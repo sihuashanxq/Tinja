@@ -3,6 +3,7 @@ using Tinja.LifeStyle;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency.Builder;
+using Tinja.Resolving.Service;
 
 namespace Tinja.Resolving
 {
@@ -16,7 +17,7 @@ namespace Tinja.Resolving
         /// <summary>
         /// <see cref="Chain.ServiceDependencyBuilder"/>
         /// </summary>
-        internal ServiceDependencyBuilder ServiceChainBuilder { get; }
+        internal IServiceInfoFactory ServiceInfoFactory { get; }
 
         /// <summary>
         /// <see cref="IResolvingContextBuilder"/>
@@ -30,23 +31,19 @@ namespace Tinja.Resolving
 
         static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
 
-        public static IServiceResolver Resolver;
-
         public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeStyleScopeFactory scopeFactory)
         {
             Scope = scopeFactory.Create(this);
             ResolvingContextBuilder = builder;
 
-            ServiceChainBuilder = this.Resolve<ServiceDependencyBuilder>();
+            ServiceInfoFactory = this.Resolve<IServiceInfoFactory>();
             ServiceActivationBuilder = this.Resolve<IServiceActivatorProvider>();
-
-            Resolver = this;
         }
 
         internal ServiceResolver(IServiceResolver root)
         {
             Scope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
-            ServiceChainBuilder = root.Resolve<ServiceDependencyBuilder>();
+            ServiceInfoFactory = root.Resolve<IServiceInfoFactory>();
             ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
             ServiceActivationBuilder = root.Resolve<IServiceActivatorProvider>();
         }
@@ -88,7 +85,7 @@ namespace Tinja.Resolving
                 return (resolver, scope) => component.ImplementionFactory(resolver);
             }
 
-            var chain = ServiceChainBuilder.BuildDependChain(context);
+            var chain = new ConstructorDependencyBuilder(ServiceInfoFactory, ResolvingContextBuilder).BuildDependChain(context);
             if (chain == null)
             {
                 return DefaultFacotry;

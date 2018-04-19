@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+
 using Tinja.LifeStyle;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
@@ -9,7 +10,12 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceInjectionActivatorFactory : IServiceInjectionActivatorFactory
     {
-        delegate object ApplyLifeStyleDelegate(IServiceLifeStyleScope scope, IResolvingContext context, Func<IServiceResolver, object> factory);
+        delegate object ApplyLifeStyleDelegate(
+            IServiceLifeStyleScope scope,
+            Type serviceType,
+            ServiceLifeStyle lifeStyle,
+            Func<IServiceResolver, object> factory
+        );
 
         static ParameterExpression ScopeParameter { get; }
 
@@ -24,7 +30,7 @@ namespace Tinja.Resolving.Activation
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
 
-            ApplyLifeStyleFunc = (scope, context, factory) => scope.ApplyServiceLifeStyle(context, factory);
+            ApplyLifeStyleFunc = (scope, serviceType, lifeStyle, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, factory);
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
@@ -69,11 +75,6 @@ namespace Tinja.Resolving.Activation
 
             foreach (var item in node.Properties)
             {
-                if (IsPropertyCircularDependeny(node, item.Value))
-                {
-                    continue;
-                };
-
                 var property = Expression.MakeMemberAccess(instanceVariable, item.Key);
                 var propertyVariable = Expression.Variable(item.Key.PropertyType, item.Key.Name);
 
@@ -163,7 +164,8 @@ namespace Tinja.Resolving.Activation
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
-                    Expression.Constant(chain.Context),
+                    Expression.Constant(chain.Context.ServiceType),
+                    Expression.Constant(chain.Context.Component.LifeStyle),
                     Expression.Constant(chain.Context.Component.ImplementionFactory)
                 );
         }
@@ -228,32 +230,10 @@ namespace Tinja.Resolving.Activation
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
-                    Expression.Constant(chain.Context),
+                    Expression.Constant(chain.Context.ServiceType),
+                    Expression.Constant(chain.Context.Component.LifeStyle),
                     Expression.Constant(factory)
                 );
-        }
-
-        protected bool IsPropertyCircularDependeny(ServiceDependChain instanceChain, ServiceDependChain propertyChain)
-        {
-            if (!_resolvedProperties.ContainsKey(instanceChain.Context))
-            {
-                _resolvedProperties[instanceChain.Context] = new HashSet<IResolvingContext>()
-                {
-                    propertyChain.Context
-                };
-
-                return false;
-            }
-
-            var properties = _resolvedProperties[instanceChain.Context];
-            if (properties.Contains(propertyChain.Context))
-            {
-                return true;
-            }
-
-            properties.Add(propertyChain.Context);
-
-            return false;
         }
 
         private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedProperties;

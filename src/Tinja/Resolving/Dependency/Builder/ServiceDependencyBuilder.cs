@@ -58,7 +58,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
             if (ServiceDependScope.ScopeContexts.ContainsKey(serviceInfo.Type))
             {
-                return ResolveCircularDependencies(context, serviceInfo);
+                ResolveCircularDependencies(context, serviceInfo);
             }
 
             using (ServiceDependScope.BeginScope(context, serviceInfo))
