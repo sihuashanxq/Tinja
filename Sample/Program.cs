@@ -32,9 +32,9 @@ namespace Sample
         [Inject]
         public IServiceA Service { get; set; }
 
-        public ServiceB(IServiceA serviceA)
+        public ServiceB()
         {
-            //Console.WriteLine("B" + GetHashCode());
+            Console.WriteLine("B" + GetHashCode());
         }
 
         public void Up()
@@ -69,7 +69,7 @@ namespace Sample
     public class Service : IService
     {
         [Inject]
-        public IServiceB ServiceB
+        public IService ServiceB
         {
             get; set;
         }
@@ -82,7 +82,7 @@ namespace Sample
 
         public IServiceB B { get; }
 
-        public Service(IServiceB b, IServiceA s)
+        public Service(IServiceB b, IServiceB s)
         {
             B = b;
             //Console.WriteLine("A" + b.GetHashCode());
@@ -121,7 +121,7 @@ namespace Sample
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddService(typeof(A), typeof(A), ServiceLifeStyle.Scoped);
 
-            services.AddTransient<IServiceA, ServiceA>();
+            services.AddScoped<IServiceA, ServiceA>();
             services.AddTransient<IServiceB, ServiceB>();
             services.AddTransient<IService, Service>();
 
@@ -138,9 +138,9 @@ namespace Sample
 
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
-            //var x = resolver.Resolve<Nullable<int>>();
 
-            //var serviceXX = resolver.Resolve<ServiceXX<IService>>() ;
+            var y = resolver.Resolve(typeof(IServiceA));
+            var b = resolver.Resolve(typeof(IServiceB));
             var service = resolver.Resolve(typeof(IService));
 
             watch.Reset();

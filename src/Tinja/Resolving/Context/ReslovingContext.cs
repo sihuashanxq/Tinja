@@ -8,10 +8,13 @@ namespace Tinja.Resolving.Context
 
         public Component Component { get; }
 
-        public ResolvingContext(Type resolvingType, Component component)
+        public ServiceInfo ServiceInfo { get; }
+
+        public ResolvingContext(Type serviceType, ServiceInfo serviceInfo, Component component)
         {
             Component = component;
-            ServiceType = resolvingType;
+            ServiceInfo = serviceInfo;
+            ServiceType = serviceType;
         }
     }
 }

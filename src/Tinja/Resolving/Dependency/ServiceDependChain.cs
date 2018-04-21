@@ -27,24 +27,6 @@ namespace Tinja.Resolving.Dependency
             Parameters = new Dictionary<ParameterInfo, ServiceDependChain>();
         }
 
-        public virtual bool ContainsPropertyInjection()
-        {
-            if (Properties != null && Properties.Count != 0)
-            {
-                return true;
-            }
-
-            foreach (var item in Parameters)
-            {
-                if (item.Value.ContainsPropertyInjection())
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public virtual bool ContainsPropertyCircularDependencies()
         {
             if (IsPropertyCircularDependencies)

@@ -85,7 +85,7 @@ namespace Tinja.Resolving
                 return (resolver, scope) => component.ImplementionFactory(resolver);
             }
 
-            var chain = new ConstructorDependencyBuilder(ServiceInfoFactory, ResolvingContextBuilder).BuildDependChain(context);
+            var chain = new ServiceDependencyBuilder(ResolvingContextBuilder).BuildDependChain(context);
             if (chain == null)
             {
                 return DefaultFacotry;

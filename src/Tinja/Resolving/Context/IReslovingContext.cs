@@ -7,5 +7,7 @@ namespace Tinja.Resolving.Context
         Type ServiceType { get; }
 
         Component Component { get; }
+
+        ServiceInfo ServiceInfo { get; }
     }
 }

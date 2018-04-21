@@ -144,7 +144,7 @@ namespace Tinja.Resolving.Activation
                 return null;
             }
 
-            if (!chain.ContainsPropertyInjection())
+            if (chain.Properties == null || chain.Properties.Count == 0)
             {
                 return WrapperWithLifeStyle(instance, chain);
             }
@@ -156,6 +156,15 @@ namespace Tinja.Resolving.Activation
             }
 
             return WrapperWithLifeStyle(wInstance, chain);
+
+            //var wInstance = WrapperWithLifeStyle(instance, chain);
+
+            //if (chain.Properties != null && chain.Properties.Count != 0)
+            //{
+            //    return BuildPropertyInfo(wInstance, chain);
+            //}
+
+            //return wInstance;
         }
 
         protected virtual Expression BuildWithImplFactory(ServiceDependChain chain)

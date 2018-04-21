@@ -2,11 +2,11 @@
 
 namespace Tinja.Resolving.Dependency.Builder
 {
-    public class ConstructorCircularExpcetion : Exception
+    public class ServiceConstructorCircularExpcetion : Exception
     {
         public Type ServiceType { get; }
 
-        public ConstructorCircularExpcetion(Type serviceType, string message) : base(message)
+        public ServiceConstructorCircularExpcetion(Type serviceType, string message) : base(message)
         {
             ServiceType = serviceType;
         }

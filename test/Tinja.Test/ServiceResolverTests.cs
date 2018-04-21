@@ -318,8 +318,8 @@ namespace Tinja.Test
                 .AddTransient<IConstructorCircularDepenencyService, ConstructorCircularDepenencyService>()
                 .BuildResolver();
 
-            Assert.Throws<ConstructorCircularExpcetion>(() => resolver.Resolve<IConstructorCircularDepenencyService>());
-            Assert.Throws<ConstructorCircularExpcetion>(() => resolver.Resolve<IParamterService>());
+            Assert.Throws<ServiceConstructorCircularExpcetion>(() => resolver.Resolve<IConstructorCircularDepenencyService>());
+            Assert.Throws<ServiceConstructorCircularExpcetion>(() => resolver.Resolve<IParamterService>());
         }
 
         [Fact]

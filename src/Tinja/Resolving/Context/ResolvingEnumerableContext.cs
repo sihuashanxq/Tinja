@@ -9,11 +9,14 @@ namespace Tinja.Resolving.Context
 
         public Component Component { get; }
 
+        public ServiceInfo ServiceInfo { get; }
+
         public List<IResolvingContext> ElementContexts { get; }
 
-        public ResolvingEnumerableContext(Type serviceType, Component component, List<IResolvingContext> elementContexts)
+        public ResolvingEnumerableContext(Type serviceType, ServiceInfo serviceInfo, Component component, List<IResolvingContext> elementContexts)
         {
             Component = component;
+            ServiceInfo = serviceInfo;
             ServiceType = serviceType;
             ElementContexts = elementContexts;
         }

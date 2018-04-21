@@ -10,19 +10,6 @@
             Elements = new ServiceDependChain[0];
         }
 
-        public override bool ContainsPropertyInjection()
-        {
-            foreach (var item in Elements)
-            {
-                if (item.ContainsPropertyInjection())
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public override bool ContainsPropertyCircularDependencies()
         {
             foreach (var item in Elements)

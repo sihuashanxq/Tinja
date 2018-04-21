@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.LifeStyle;
+using Tinja.Resolving.Service;
 
 namespace Tinja.Resolving.Context
 {
@@ -10,8 +11,11 @@ namespace Tinja.Resolving.Context
     {
         protected ConcurrentDictionary<Type, List<Component>> Components { get; }
 
-        public ResolvingContextBuilder()
+        protected IServiceInfoFactory ServiceInfoFactory { get; }
+
+        public ResolvingContextBuilder(IServiceInfoFactory serviceInfoFactory)
         {
+            ServiceInfoFactory = serviceInfoFactory;
             Components = new ConcurrentDictionary<Type, List<Component>>();
         }
 
@@ -25,7 +29,7 @@ namespace Tinja.Resolving.Context
 
         public virtual IResolvingContext BuildResolvingContext(Type resolvingType)
         {
-            return 
+            return
                 BuildResolvingContextWithDirectly(resolvingType) ??
                 BuildResolvingContextWithOpenGeneric(resolvingType) ??
                 BuildResolvingContextWithEnumerable(resolvingType);
@@ -46,7 +50,11 @@ namespace Tinja.Resolving.Context
                     return null;
                 }
 
-                return new ResolvingContext(resolvingType, component);
+                return new ResolvingContext(
+                    resolvingType,
+                    GetServiceInfo(resolvingType, component),
+                    component
+                );
             }
 
             return null;
@@ -72,7 +80,11 @@ namespace Tinja.Resolving.Context
                     return null;
                 }
 
-                return new ResolvingContext(resolvingType, component);
+                return new ResolvingContext(
+                    resolvingType,
+                    GetServiceInfo(resolvingType, component),
+                    component
+                );
             }
 
             return null;
@@ -97,7 +109,12 @@ namespace Tinja.Resolving.Context
             var elementType = resolvingType.GenericTypeArguments.FirstOrDefault();
             var elesContext = BuildAllResolvingContext(elementType).Reverse().ToList();
 
-            return new ResolvingEnumerableContext(resolvingType, component, elesContext);
+            return new ResolvingEnumerableContext(
+                resolvingType, 
+                GetServiceInfo(resolvingType, component), 
+                component, 
+                elesContext
+            );
         }
 
         protected virtual IEnumerable<IResolvingContext> BuildAllResolvingContext(Type resolvingType)
@@ -120,7 +137,7 @@ namespace Tinja.Resolving.Context
         {
             if (Components.TryGetValue(resolvingType, out var components))
             {
-                return components.Select(i => new ResolvingContext(resolvingType, i));
+                return components.Select(i => new ResolvingContext(resolvingType, GetServiceInfo(resolvingType, i), i));
             }
 
             return new IResolvingContext[0];
@@ -135,10 +152,32 @@ namespace Tinja.Resolving.Context
 
             if (Components.TryGetValue(resolvingType.GetGenericTypeDefinition(), out var components))
             {
-                return components.Select(i => new ResolvingContext(resolvingType, i));
+                return components.Select(i => new ResolvingContext(resolvingType, GetServiceInfo(resolvingType, i), i));
             }
 
             return new IResolvingContext[0];
+        }
+
+        protected ServiceInfo GetServiceInfo(Type serviceType, Component component)
+        {
+            if (component.ImplementionFactory != null)
+            {
+                return null;
+            }
+
+            var implementionType = component.ImplementionType;
+            if (implementionType.IsGenericTypeDefinition && serviceType.IsConstructedGenericType)
+            {
+                implementionType = implementionType.MakeGenericType(serviceType.GenericTypeArguments);
+            }
+
+            var serviceInfo = ServiceInfoFactory.Create(implementionType);
+            if (serviceInfo == null || serviceInfo.Constructors == null || serviceInfo.Constructors.Length == 0)
+            {
+                return null;
+            }
+
+            return serviceInfo;
         }
     }
 }
