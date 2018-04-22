@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
@@ -11,11 +11,11 @@ namespace Tinja.Resolving.Activation
     public class ServicePropertyCircularInjectionActivatorFactory : IServiceInjectionActivatorFactory
     {
         delegate object ApplyLifeStyleDelegate(
-            IServiceLifeStyleScope scope,
+            IServiceLifeScope scope,
             Type serviceType,
             ServiceLifeStyle lifeStyle,
             PropertyCircularInjectionContext injectionContext,
-            Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object> factory
+            Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object> factory
         );
 
         static ParameterExpression ScopeParameter { get; }
@@ -32,7 +32,7 @@ namespace Tinja.Resolving.Activation
 
         static ServicePropertyCircularInjectionActivatorFactory()
         {
-            ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
+            ScopeParameter = Expression.Parameter(typeof(IServiceLifeScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
             InjectionContextParameter = Expression.Parameter(typeof(PropertyCircularInjectionContext));
 
@@ -42,7 +42,7 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        public virtual Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain)
+        public virtual Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(ServiceDependChain chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -60,7 +60,7 @@ namespace Tinja.Resolving.Activation
         }
 
         protected static
-            Func<IServiceResolver, IServiceLifeStyleScope, PropertyCircularInjectionContext, object>
+            Func<IServiceResolver, IServiceLifeScope, PropertyCircularInjectionContext, object>
             CreateActivatorCore(ServiceDependChain chain)
         {
             var lambdaBody = BuildExpression(chain);
@@ -84,7 +84,7 @@ namespace Tinja.Resolving.Activation
                 Expression.Label(lable, varible)
             };
 
-            return (Func<IServiceResolver, IServiceLifeStyleScope, PropertyCircularInjectionContext, object>)
+            return (Func<IServiceResolver, IServiceLifeScope, PropertyCircularInjectionContext, object>)
                 Expression
                 .Lambda(
                     Expression.Block(new[] { varible }, statements),
@@ -121,7 +121,7 @@ namespace Tinja.Resolving.Activation
 
         protected static Expression BuildWithImplFactory(ServiceDependChain chain)
         {
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
+            var factory = (Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
                 .Lambda(
                     Expression.Invoke(
@@ -180,7 +180,7 @@ namespace Tinja.Resolving.Activation
             statements.Add(Expression.Label(lable, varible));
 
             var lambdaBody = Expression.Block(new[] { varible }, statements);
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
+            var factory = (Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
                     .Lambda(lambdaBody, ScopeParameter, ResolverParameter, InjectionContextParameter)
                     .Compile();
@@ -205,7 +205,7 @@ namespace Tinja.Resolving.Activation
             }
 
             var listInit = Expression.ListInit(Expression.New(node.Constructor.ConstructorInfo), elementInits);
-            var factory = (Func<IServiceLifeStyleScope, IServiceResolver, PropertyCircularInjectionContext, object>)
+            var factory = (Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
                     .Lambda(listInit, ScopeParameter, ResolverParameter, InjectionContextParameter)
                     .Compile();

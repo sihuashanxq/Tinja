@@ -6,7 +6,7 @@ namespace Tinja.Extensions.DependencyInjection
 {
     public class ServiceScopeAdapterFactory : IServiceScopeFactory
     {
-        public IServiceResolver Resolver { get; }
+        protected IServiceResolver Resolver { get; }
 
         public ServiceScopeAdapterFactory(IServiceResolver resolver)
         {

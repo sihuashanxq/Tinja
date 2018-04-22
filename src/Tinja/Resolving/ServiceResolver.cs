@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency.Builder;
@@ -9,9 +9,9 @@ namespace Tinja.Resolving
     public class ServiceResolver : IServiceResolver
     {
         /// <summary>
-        /// <see cref="IServiceLifeStyleScope"/>
+        /// <see cref="IServiceLifeScope"/>
         /// </summary>
-        public IServiceLifeStyleScope LifeScope { get; }
+        public IServiceLifeScope LifeScope { get; }
 
         /// <summary>
         /// <see cref="IResolvingContextBuilder"/>
@@ -23,9 +23,9 @@ namespace Tinja.Resolving
         /// </summary>
         internal IServiceActivatorProvider ServiceActivatorProvider { get; }
 
-        static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
+        static Func<IServiceResolver, IServiceLifeScope, object> DefaultFacotry = (resolver, scope) => null;
 
-        public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeStyleScopeFactory scopeFactory)
+        public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeScopeFactory scopeFactory)
         {
             LifeScope = scopeFactory.Create(this);
             ResolvingContextBuilder = builder;
@@ -34,7 +34,7 @@ namespace Tinja.Resolving
 
         internal ServiceResolver(IServiceResolver root)
         {
-            LifeScope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.LifeScope);
+            LifeScope = root.Resolve<IServiceLifeScopeFactory>().Create(this, root.LifeScope);
             ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
             ServiceActivatorProvider = root.Resolve<IServiceActivatorProvider>();
         }
@@ -44,7 +44,7 @@ namespace Tinja.Resolving
             return GetFactory(serviceType)(this, LifeScope);
         }
 
-        protected virtual Func<IServiceResolver, IServiceLifeStyleScope, object> GetFactory(Type serviceType)
+        protected virtual Func<IServiceResolver, IServiceLifeScope, object> GetFactory(Type serviceType)
         {
             var factory = ServiceActivatorProvider?.Get(serviceType);
             if (factory != null)

@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Tinja;
-using Tinja.Annotations;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 
 namespace Sample
 {

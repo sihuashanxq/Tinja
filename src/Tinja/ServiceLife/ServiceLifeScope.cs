@@ -3,33 +3,33 @@ using System.Collections.Generic;
 using Tinja.Resolving;
 using Tinja.Resolving.Context;
 
-namespace Tinja.LifeStyle
+namespace Tinja.ServiceLife
 {
-    public class ServiceLifeStyleScope : IServiceLifeStyleScope
+    public class ServiceLifeScope : IServiceLifeScope
     {
         private bool _disposed;
 
         private IServiceResolver _resolver;
 
-        private IServiceLifeStyleScope _root;
+        private IServiceLifeScope _root;
 
         private List<object> _transientDisposeObjects;
 
         private Dictionary<Type, object> _scopedObjects;
 
-        internal ServiceLifeStyleScope(IServiceResolver resolver, IServiceLifeStyleScope root) : this(resolver)
+        internal ServiceLifeScope(IServiceResolver resolver, IServiceLifeScope root) : this(resolver)
         {
-            if (!(root is ServiceLifeStyleScope))
+            if (!(root is ServiceLifeScope))
             {
                 _root = root;
             }
             else
             {
-                _root = (root as ServiceLifeStyleScope)._root ?? root;
+                _root = (root as ServiceLifeScope)._root ?? root;
             }
         }
 
-        public ServiceLifeStyleScope(IServiceResolver resolver)
+        public ServiceLifeScope(IServiceResolver resolver)
         {
             _resolver = resolver;
             _transientDisposeObjects = new List<object>();
@@ -109,7 +109,7 @@ namespace Tinja.LifeStyle
             }
         }
 
-        ~ServiceLifeStyleScope()
+        ~ServiceLifeScope()
         {
             Dispose(true);
         }

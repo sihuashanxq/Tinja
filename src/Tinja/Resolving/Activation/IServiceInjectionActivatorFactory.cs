@@ -1,11 +1,11 @@
 ﻿using System;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
     public interface IServiceInjectionActivatorFactory
     {
-        Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain);
+        Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(ServiceDependChain chain);
     }
 }

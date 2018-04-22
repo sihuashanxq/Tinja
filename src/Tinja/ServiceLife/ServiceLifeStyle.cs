@@ -1,4 +1,4 @@
-﻿namespace Tinja.LifeStyle
+﻿namespace Tinja.ServiceLife
 {
     public enum ServiceLifeStyle
     {

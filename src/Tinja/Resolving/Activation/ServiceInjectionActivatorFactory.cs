@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
 
@@ -11,7 +11,7 @@ namespace Tinja.Resolving.Activation
     public class ServiceInjectionActivatorFactory : IServiceInjectionActivatorFactory
     {
         delegate object ApplyLifeStyleDelegate(
-            IServiceLifeStyleScope scope,
+            IServiceLifeScope scope,
             Type serviceType,
             ServiceLifeStyle lifeStyle,
             Func<IServiceResolver, object> factory
@@ -27,7 +27,7 @@ namespace Tinja.Resolving.Activation
 
         static ServiceInjectionActivatorFactory()
         {
-            ScopeParameter = Expression.Parameter(typeof(IServiceLifeStyleScope));
+            ScopeParameter = Expression.Parameter(typeof(IServiceLifeScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
 
             ApplyLifeStyleFunc = (scope, serviceType, lifeStyle, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, factory);
@@ -39,7 +39,7 @@ namespace Tinja.Resolving.Activation
             _resolvedProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
         }
 
-        public Func<IServiceResolver, IServiceLifeStyleScope, object> CreateActivator(ServiceDependChain chain)
+        public Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(ServiceDependChain chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -102,7 +102,7 @@ namespace Tinja.Resolving.Activation
         }
 
         protected virtual
-            Func<IServiceResolver, IServiceLifeStyleScope, object>
+            Func<IServiceResolver, IServiceLifeScope, object>
             CreateActivatorCore(ServiceDependChain chain)
         {
             var lambdaBody = BuildExpression(chain);
@@ -116,7 +116,7 @@ namespace Tinja.Resolving.Activation
                 lambdaBody = Expression.Convert(lambdaBody, typeof(object));
             }
 
-            return (Func<IServiceResolver, IServiceLifeStyleScope, object>)
+            return (Func<IServiceResolver, IServiceLifeScope, object>)
                 Expression
                 .Lambda(lambdaBody, ResolverParameter, ScopeParameter)
                 .Compile();
@@ -227,7 +227,7 @@ namespace Tinja.Resolving.Activation
             }
 
             //optimization
-            var preCompiledFunc = (Func<IServiceResolver, IServiceLifeStyleScope, object>)
+            var preCompiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)
                 Expression.Lambda(instance, ResolverParameter, ScopeParameter).Compile();
 
             var factory = (Func<IServiceResolver, object>)

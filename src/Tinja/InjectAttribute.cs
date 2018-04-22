@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace Tinja.Annotations
+namespace Tinja
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class InjectAttribute : Attribute
     {
-        public string Name { get; set; }
+
     }
 }

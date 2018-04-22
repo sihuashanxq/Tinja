@@ -1,6 +1,4 @@
-﻿using Tinja.Annotations;
-
-namespace Tinja.Test.Fakes
+﻿namespace Tinja.Test.Fakes
 {
     public interface IPropertyInjectionService
     {

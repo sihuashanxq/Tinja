@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving;
 
 namespace Tinja.Extensions.DependencyInjection

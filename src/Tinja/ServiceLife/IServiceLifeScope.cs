@@ -2,9 +2,9 @@
 using Tinja.Resolving;
 using Tinja.Resolving.Context;
 
-namespace Tinja.LifeStyle
+namespace Tinja.ServiceLife
 {
-    public interface IServiceLifeStyleScope : IDisposable
+    public interface IServiceLifeScope : IDisposable
     {
         object ApplyServiceLifeStyle(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory);
 

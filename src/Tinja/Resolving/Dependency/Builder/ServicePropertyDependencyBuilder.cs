@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency.Scope;
 

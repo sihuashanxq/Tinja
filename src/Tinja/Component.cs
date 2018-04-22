@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving;
 
 namespace Tinja

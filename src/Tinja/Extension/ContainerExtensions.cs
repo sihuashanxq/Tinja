@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Tinja.LifeStyle;
+using Tinja.ServiceLife;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Context;
@@ -15,13 +15,13 @@ namespace Tinja
         {
             var serviceInfoFactory = new ServiceInfoFactory();
             var builder = new ResolvingContextBuilder(serviceInfoFactory);
-            var scopeFactory = new ServiceLifeStyleScopeFactory();
+            var scopeFactory = new ServiceLifeScopeFactory();
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
-            ioc.AddScoped(typeof(IServiceLifeStyleScope), resolver => resolver.LifeScope);
+            ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.LifeScope);
 
             ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
-            ioc.AddSingleton(typeof(IServiceLifeStyleScopeFactory), _ => scopeFactory);
+            ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => scopeFactory);
             ioc.AddSingleton(typeof(IServiceInfoFactory), _ => serviceInfoFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => new ServiceActivatorProvider());
 
