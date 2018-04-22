@@ -162,7 +162,7 @@ namespace Tinja.Resolving.Context
         {
             if (component.ImplementionFactory != null)
             {
-                return null;
+                return  ServiceInfoFactory.Create(serviceType);
             }
 
             var implementionType = component.ImplementionType;

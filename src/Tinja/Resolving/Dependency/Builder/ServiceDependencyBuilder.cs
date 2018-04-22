@@ -36,7 +36,10 @@ namespace Tinja.Resolving.Dependency.Builder
             return BuildDependChainCore(target);
         }
 
-        protected virtual ServiceDependChain BuildDependChainCore(IResolvingContext target)
+        protected virtual ServiceDependChain BuildDependChainCore(
+            IResolvingContext target,
+            ServiceDependScopeType scopeType = ServiceDependScopeType.None
+        )
         {
             if (target.Component.ImplementionFactory != null)
             {
@@ -50,7 +53,7 @@ namespace Tinja.Resolving.Dependency.Builder
                 );
             }
 
-            using (ServiceDependScope.BeginScope(target, target.ServiceInfo.Type))
+            using (ServiceDependScope.BeginScope(target, target.ServiceInfo.Type, scopeType))
             {
                 var chain = BuildConstructorDependChain(target);
                 if (chain != null)
@@ -109,7 +112,7 @@ namespace Tinja.Resolving.Dependency.Builder
                         }
                     }
 
-                    var paramterChain = BuildConstructorDependChain(context);
+                    var paramterChain = BuildDependChainCore(context, ServiceDependScopeType.Parameter);
                     if (paramterChain == null)
                     {
                         parameters.Clear();
@@ -171,6 +174,12 @@ namespace Tinja.Resolving.Dependency.Builder
             public bool Break { get; set; }
 
             public ServiceDependChain Chain { get; set; }
+
+            public static CircularDependencyResolveResult BreakResult = new CircularDependencyResolveResult
+            {
+                Break = true,
+                Chain = null
+            };
         }
     }
 }

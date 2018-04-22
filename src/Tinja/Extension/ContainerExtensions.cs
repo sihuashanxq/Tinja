@@ -18,7 +18,7 @@ namespace Tinja
             var scopeFactory = new ServiceLifeStyleScopeFactory();
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
-            ioc.AddScoped(typeof(IServiceLifeStyleScope), resolver => resolver.Scope);
+            ioc.AddScoped(typeof(IServiceLifeStyleScope), resolver => resolver.LifeScope);
 
             ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeStyleScopeFactory), _ => scopeFactory);

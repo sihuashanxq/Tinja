@@ -75,7 +75,7 @@ namespace Tinja.Resolving.Dependency.Builder
                     }
                 }
 
-                var propertyChain = BuildDependChainCore(context);
+                var propertyChain = BuildDependChainCore(context, ServiceDependScopeType.Property);
                 if (propertyChain != null)
                 {
                     properties[item] = propertyChain;
@@ -113,8 +113,13 @@ namespace Tinja.Resolving.Dependency.Builder
 
         protected override CircularDependencyResolveResult ResolveParameterCircularDependency(IResolvingContext target, IResolvingContext parameter)
         {
-            if (parameter.Component.LifeStyle != ServiceLifeStyle.Transient &&
-                target.Component.LifeStyle != ServiceLifeStyle.Transient)
+            if (target.Component.LifeStyle == ServiceLifeStyle.Transient)
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            //singleton /scope
+            if (parameter.Component.LifeStyle != ServiceLifeStyle.Transient)
             {
                 return new CircularDependencyResolveResult()
                 {
@@ -123,10 +128,33 @@ namespace Tinja.Resolving.Dependency.Builder
                 };
             }
 
+            //parameter->property->parameter?
+            var startIndex = ServiceDependScope.ServiceDependStack.ToList().FindIndex(i => i.Context.ServiceType == parameter.ServiceType);
+            if (startIndex < 0)
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            var scopes = ServiceDependScope.ServiceDependStack.Skip(startIndex).ToList();
+            if (scopes.Any(i => i.ScopeType == ServiceDependScopeType.Parameter))
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            if (scopes.Any(i => i.Context.Component.LifeStyle != ServiceLifeStyle.Transient))
+            {
+                return new CircularDependencyResolveResult()
+                {
+                    Break = false,
+                    Chain = null
+                };
+            }
+
+            //twice to circle
             return new CircularDependencyResolveResult()
             {
-                Chain = null,
-                Break = true
+                Break = scopes.Where(i => i.Context.ServiceType == parameter.ServiceType).Count() > 1,
+                Chain = null
             };
         }
     }

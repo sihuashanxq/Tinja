@@ -232,7 +232,7 @@ namespace Tinja.Resolving.Activation
 
             var factory = (Func<IServiceResolver, object>)
             (
-                resolver => preCompiledFunc(resolver, resolver.Scope)
+                resolver => preCompiledFunc(resolver, resolver.LifeScope)
             );
 
             return

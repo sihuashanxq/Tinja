@@ -33,11 +33,16 @@ namespace Tinja.Resolving.Dependency.Scope
             return chain;
         }
 
-        public ScopeEntryDisposableWrapper BeginScope(IResolvingContext target, Type servieType)
+        public ScopeEntryDisposableWrapper BeginScope(
+            IResolvingContext target,
+            Type servieType,
+            ServiceDependScopeType scopeType = ServiceDependScopeType.None
+        )
         {
             return BeginScope(new ServiceDependScopeEntry()
             {
                 Context = target,
+                ScopeType = scopeType,
                 ResolveServiceType = servieType
             });
         }

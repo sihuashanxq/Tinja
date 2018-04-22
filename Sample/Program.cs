@@ -13,9 +13,6 @@ namespace Sample
 
     public class ServiceA : IServiceA
     {
-        [Inject]
-        public IService Service { get; set; }
-
         public ServiceA()
         {
             //Console.WriteLine("A" + GetHashCode());
@@ -68,23 +65,9 @@ namespace Sample
 
     public class Service : IService
     {
-        [Inject]
-        public IService ServiceB
+        public Service(IServiceA b)
         {
-            get; set;
-        }
-
-        [Inject]
-        public IServiceB ServiceB2
-        {
-            get; set;
-        }
-
-        public IServiceB B { get; }
-
-        public Service(IServiceB b, IServiceB s)
-        {
-            B = b;
+            //B = b;
             //Console.WriteLine("A" + b.GetHashCode());
             ////Console.WriteLine("A" + serviceA.GetHashCode());
             //Console.WriteLine(GetHashCode());
@@ -115,9 +98,9 @@ namespace Sample
             var container = new Container();
             var services = new ServiceCollection();
 
-            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceA), _ => new ServiceA(), ServiceLifeStyle.Transient);
             container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddService(typeof(A), typeof(A), ServiceLifeStyle.Scoped);
 

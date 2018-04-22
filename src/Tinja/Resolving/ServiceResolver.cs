@@ -3,7 +3,6 @@ using Tinja.LifeStyle;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency.Builder;
-using Tinja.Resolving.Service;
 
 namespace Tinja.Resolving
 {
@@ -12,12 +11,7 @@ namespace Tinja.Resolving
         /// <summary>
         /// <see cref="IServiceLifeStyleScope"/>
         /// </summary>
-        public IServiceLifeStyleScope Scope { get; }
-
-        /// <summary>
-        /// <see cref="Chain.ServiceDependencyBuilder"/>
-        /// </summary>
-        internal IServiceInfoFactory ServiceInfoFactory { get; }
+        public IServiceLifeStyleScope LifeScope { get; }
 
         /// <summary>
         /// <see cref="IResolvingContextBuilder"/>
@@ -27,35 +21,32 @@ namespace Tinja.Resolving
         /// <summary>
         /// <see cref="IServiceActivatorProvider"/>
         /// </summary>
-        internal IServiceActivatorProvider ServiceActivationBuilder { get; }
+        internal IServiceActivatorProvider ServiceActivatorProvider { get; }
 
         static Func<IServiceResolver, IServiceLifeStyleScope, object> DefaultFacotry = (resolver, scope) => null;
 
         public ServiceResolver(IResolvingContextBuilder builder, IServiceLifeStyleScopeFactory scopeFactory)
         {
-            Scope = scopeFactory.Create(this);
+            LifeScope = scopeFactory.Create(this);
             ResolvingContextBuilder = builder;
-
-            ServiceInfoFactory = this.Resolve<IServiceInfoFactory>();
-            ServiceActivationBuilder = this.Resolve<IServiceActivatorProvider>();
+            ServiceActivatorProvider = this.Resolve<IServiceActivatorProvider>();
         }
 
         internal ServiceResolver(IServiceResolver root)
         {
-            Scope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.Scope);
-            ServiceInfoFactory = root.Resolve<IServiceInfoFactory>();
+            LifeScope = root.Resolve<IServiceLifeStyleScopeFactory>().Create(this, root.LifeScope);
             ResolvingContextBuilder = root.Resolve<IResolvingContextBuilder>();
-            ServiceActivationBuilder = root.Resolve<IServiceActivatorProvider>();
+            ServiceActivatorProvider = root.Resolve<IServiceActivatorProvider>();
         }
 
         public object Resolve(Type serviceType)
         {
-            return GetInstanceFactory(serviceType)(this, Scope);
+            return GetFactory(serviceType)(this, LifeScope);
         }
 
-        protected virtual Func<IServiceResolver, IServiceLifeStyleScope, object> GetInstanceFactory(Type serviceType)
+        protected virtual Func<IServiceResolver, IServiceLifeStyleScope, object> GetFactory(Type serviceType)
         {
-            var factory = ServiceActivationBuilder?.Get(serviceType);
+            var factory = ServiceActivatorProvider?.Get(serviceType);
             if (factory != null)
             {
                 return factory;
@@ -67,22 +58,15 @@ namespace Tinja.Resolving
                 return DefaultFacotry;
             }
 
-            var component = context.Component;
-            if (component.ImplementionFactory != null)
+            if (context.Component.ImplementionFactory != null)
             {
-                if (component.LifeStyle != ServiceLifeStyle.Transient ||
-                    component.ImplementionFactory.Method.ReturnType.Is(typeof(IDisposable)))
+                return (resolver, scope) =>
                 {
-                    return (resolver, scope) =>
-                    {
-                        return scope.ApplyServiceLifeStyle(
-                            context,
-                            scopeResolver => component.ImplementionFactory(scopeResolver)
-                        );
-                    };
-                }
-
-                return (resolver, scope) => component.ImplementionFactory(resolver);
+                    return scope.ApplyServiceLifeStyle(
+                        context,
+                        scopeResolver => context.Component.ImplementionFactory(scopeResolver)
+                    );
+                };
             }
 
             var chain = new ServiceDependencyBuilder(ResolvingContextBuilder).BuildDependChain(context);
@@ -91,12 +75,12 @@ namespace Tinja.Resolving
                 return DefaultFacotry;
             }
 
-            return ServiceActivationBuilder.Get(chain) ?? DefaultFacotry;
+            return ServiceActivatorProvider.Get(chain) ?? DefaultFacotry;
         }
 
         public void Dispose()
         {
-            Scope.Dispose();
+            LifeScope.Dispose();
         }
     }
 }

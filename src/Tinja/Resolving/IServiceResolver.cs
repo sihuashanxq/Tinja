@@ -5,7 +5,7 @@ namespace Tinja.Resolving
 {
     public interface IServiceResolver : IDisposable
     {
-        IServiceLifeStyleScope Scope { get; }
+        IServiceLifeStyleScope LifeScope { get; }
 
         object Resolve(Type serviceType);
     }
