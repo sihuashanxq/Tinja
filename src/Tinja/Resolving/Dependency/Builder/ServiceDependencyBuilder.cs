@@ -56,10 +56,12 @@ namespace Tinja.Resolving.Dependency.Builder
             using (ServiceDependScope.BeginScope(target, target.ServiceInfo.Type, scopeType))
             {
                 var chain = BuildConstructorDependChain(target);
-                if (chain != null)
+                if (chain == null)
                 {
-                    ServiceDependScope.AddResolvedService(target, chain);
+                    return chain;
                 }
+
+                ServiceDependScope.AddResolvedService(target, chain);
 
                 return BuildPropertyDependChain(chain);
             }
