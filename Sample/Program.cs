@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Threading.Tasks;
 using Tinja;
+using Tinja.Interception;
 using Tinja.ServiceLife;
 
 namespace Sample
@@ -89,6 +91,20 @@ namespace Sample
         public A A2 { get; set; }
     }
 
+    public class InterceptorTest : IIntereceptor
+    {
+        public Task IntereceptAsync(MethodInvocationContext context, Func<MethodInvocationContext, Task> next)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    [Interceptor(typeof(InterceptorTest))]
+    public class Abc
+    {
+
+    }
+
     class Program
     {
         static void Main(string[] args)
@@ -101,7 +117,9 @@ namespace Sample
             container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(A), typeof(A), ServiceLifeStyle.Scoped);
+            container.AddTransient<InterceptorTest, InterceptorTest>();
+            container.AddTransient(typeof(Abc), ProxyUtil.GenerateProxyType(typeof(Abc), typeof(Abc)));
+
 
             services.AddScoped<IServiceA, ServiceA>();
             services.AddTransient<IServiceB, ServiceB>();
@@ -120,7 +138,7 @@ namespace Sample
 
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
-
+            var xx = resolver.Resolve<Abc>();
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));
             var service = resolver.Resolve(typeof(IService));

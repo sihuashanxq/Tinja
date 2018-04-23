@@ -38,7 +38,7 @@ namespace Tinja.Resolving.Activation
 
             SetPropertyValueFunc = (resolver, context) => SetPropertyValue(resolver, context);
 
-            ApplyLifeStyleFunc = (scope, serviceType, lifeStyle, injectionContext, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, resolver => factory(resolver.LifeScope, resolver, injectionContext));
+            ApplyLifeStyleFunc = (scope, serviceType, lifeStyle, injectionContext, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, resolver => factory(resolver.ServiceLifeScope, resolver, injectionContext));
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
@@ -285,7 +285,7 @@ namespace Tinja.Resolving.Activation
 
                 if (setter != null)
                 {
-                    setter.DynamicInvoke(item.Value, resolver, resolver.LifeScope, context);
+                    setter.DynamicInvoke(item.Value, resolver, resolver.ServiceLifeScope, context);
                 }
             }
         }

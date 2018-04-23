@@ -13,20 +13,20 @@ namespace Tinja
     {
         public static IServiceResolver BuildResolver(this IContainer ioc)
         {
-            var serviceInfoFactory = new ServiceInfoFactory();
-            var builder = new ResolvingContextBuilder(serviceInfoFactory);
-            var scopeFactory = new ServiceLifeScopeFactory();
+            var builder = new ResolvingContextBuilder(new ServiceInfoFactory());
+            var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
+            var serviceActivatorProvider = new ServiceActivatorProvider(builder);
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
-            ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.LifeScope);
+            ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
 
             ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
-            ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => scopeFactory);
-            ioc.AddSingleton(typeof(IServiceInfoFactory), _ => serviceInfoFactory);
-            ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => new ServiceActivatorProvider());
+            ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
+            ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
 
             builder.Initialize(ioc.Components);
-            return new ServiceResolver(builder, scopeFactory);
+
+            return new ServiceResolver(serviceActivatorProvider, serviceLifeScopeFactory);
         }
 
         public static IContainer AddService(this IContainer ioc, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle)

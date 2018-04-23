@@ -3,34 +3,57 @@ using System.Collections.Concurrent;
 
 using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
+using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency.Builder;
 
 namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorProvider : IServiceActivatorProvider
     {
-        protected ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> Activators { get; }
+        static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
 
-        public ServiceActivatorProvider()
+        private IResolvingContextBuilder _builder;
+
+        private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
+
+        public ServiceActivatorProvider(IResolvingContextBuilder builder)
         {
-            Activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
+            _builder = builder;
+            _activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
         }
 
-        public Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceDependChain chain)
+        public virtual Func<IServiceResolver, IServiceLifeScope, object> Get(Type serviceType)
         {
-            return Activators.GetOrAdd(chain.Context.ServiceType, (k) => GetActivator(chain));
-        }
-
-        public Func<IServiceResolver, IServiceLifeScope, object> Get(Type serviceType)
-        {
-            if (Activators.TryGetValue(serviceType, out var factory))
+            return _activators.GetOrAdd(serviceType, type =>
             {
-                return factory;
-            }
+                var context = _builder.BuildResolvingContext(type);
+                if (context == null)
+                {
+                    return EmptyFactory;
+                }
 
-            return null;
+                if (context.Component.ImplementionFactory != null)
+                {
+                    return (resolver, scope) =>
+                    {
+                        return scope.ApplyServiceLifeStyle(
+                            context,
+                            scopeResolver => context.Component.ImplementionFactory(scopeResolver)
+                        );
+                    };
+                }
+
+                var chain = CreateDependencyBuilder().BuildDependChain(context);
+                if (chain == null)
+                {
+                    return EmptyFactory;
+                }
+
+                return Get(chain);
+            });
         }
 
-        private Func<IServiceResolver, IServiceLifeScope, object> GetActivator(ServiceDependChain chain)
+        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceDependChain chain)
         {
             if (chain.ContainsPropertyCircularDependencies())
             {
@@ -38,6 +61,11 @@ namespace Tinja.Resolving.Activation
             }
 
             return new ServiceInjectionActivatorFactory().CreateActivator(chain);
+        }
+
+        protected virtual ServiceDependencyBuilder CreateDependencyBuilder()
+        {
+            return new ServiceDependencyBuilder(_builder);
         }
     }
 }
