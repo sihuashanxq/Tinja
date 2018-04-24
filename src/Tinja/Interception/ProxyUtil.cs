@@ -28,10 +28,91 @@ namespace Tinja.Interception
 
         public static Type GenerateProxyType(Type implType, Type baseType)
         {
-            var baseTypeDescriptor = GetTypeMetadata(implType, baseType);
+            var methodIntereceptors = GetMethodDefinedIntereceptors(baseType);
+
             var typeBuilder = DefineType(implType, baseType);
+            var fileds = DefineFields(typeBuilder, methodIntereceptors.Values.SelectMany(i => i).Distinct().ToArray());
+
+            DefineConstructors(typeBuilder, baseType, methodIntereceptors.SelectMany(i => i.Value).Distinct().ToArray(), fileds);
+            //DefineMethods(typeBuilder, baseType,)
 
             return typeBuilder.CreateType();
+        }
+
+        internal static void DefineConstructors(
+            TypeBuilder typeBuilder,
+            Type baseType,
+            Type[] parameterTypes,
+            Dictionary<Type, FieldBuilder> fileds
+        )
+        {
+            var constructors = baseType.GetConstructors();
+            if (constructors.Length == 0)
+            {
+                DefineConstructor(typeBuilder, null, parameterTypes, fileds);
+                return;
+            }
+
+            foreach (var item in constructors)
+            {
+                DefineConstructor(typeBuilder, item, parameterTypes, fileds);
+            }
+        }
+
+        internal static void DefineConstructor(
+            TypeBuilder typeBuilder,
+            ConstructorInfo constrcutor,
+            Type[] parameterTypes,
+            Dictionary<Type, FieldBuilder> parameterFileds
+        )
+        {
+            var methodAttributes = constrcutor?.Attributes ?? MethodAttributes.Public;
+            var callingConvention = constrcutor?.CallingConvention ?? CallingConventions.HasThis;
+            var parameters = parameterTypes
+                .Concat(
+                    (constrcutor?.GetParameters() ?? new ParameterInfo[0])
+                    .Select(i => i.ParameterType)
+                )
+                .ToArray();
+
+            var constructorBuilder = typeBuilder.DefineConstructor(
+                methodAttributes,
+                callingConvention,
+                parameters
+            );
+
+            var il = constructorBuilder.GetILGenerator();
+
+            for (var i = 0; i < parameterTypes.Length; i++)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg, i + 1);
+                il.Emit(OpCodes.Stfld, parameterFileds[parameterTypes[i]]);
+            }
+
+            if (constrcutor != null)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+
+                for (var i = parameterTypes.Length; i < parameters.Length; i++)
+                {
+                    il.Emit(OpCodes.Ldarg, i + 1);
+                }
+
+                il.Emit(OpCodes.Call, constrcutor);
+            }
+
+            il.Emit(OpCodes.Ret);
+        }
+
+        internal static void DefineMethods(
+            TypeBuilder typeBuilder,
+            Type baseType,
+            Dictionary<Type, FieldBuilder> fileds,
+            Dictionary<MethodInfo, List<Type>> methodInterecetpors
+        )
+        {
+
         }
 
         internal static TypeBuilder DefineType(Type implType, Type baseType)
@@ -50,34 +131,23 @@ namespace Tinja.Interception
                );
         }
 
-        //internal static ConstructorBuilder[] DefineConstructors(TypeBuilder typeBuilder, ProxyTypeMetadata typeMetadata)
-        //{
-        //    var ctors = new List<ConstructorBuilder>();
-        //    var fields = DefineFields(typeBuilder, baseType.Intereceptors.Concat());
-        //    var ctor = typeBuilder.DefineConstructor(
-        //        MethodAttributes.Public,
-        //        CallingConventions.HasThis,
-        //        parameterTypes
-        //    );
+        internal static Dictionary<MethodInfo, List<Type>> GetMethodDefinedIntereceptors(Type baseType)
+        {
+            var intereceptors = baseType.GetCustomAttributes<InterceptorAttribute>();
+            var map = new Dictionary<MethodInfo, List<Type>>();
 
-        //    var il = ctor.GetILGenerator();
+            foreach (var item in baseType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic))
+            {
+                map[item] = item
+                    .GetCustomAttributes<InterceptorAttribute>()
+                    .Concat(intereceptors)
+                    .Select(i => i.InterceptorType)
+                    .Distinct()
+                    .ToList();
+            }
 
-        //    for (var i = 0; i < parameterTypes.Length; i++)
-        //    {
-        //        il.Emit(OpCodes.Ldarg_0);
-        //        il.Emit(OpCodes.Ldarg, i + 1);
-        //        il.Emit(OpCodes.Stfld, fields[parameterTypes[i]]);
-        //    }
-
-        //    il.Emit(OpCodes.Ret);
-
-        //    return ctor;
-        //}
-
-        //internal static ConstructorBuilder[] DefineConstrctor(TypeBuilder typeBuilder, ConstructorInfo baseConstructor)
-        //{
-
-        //}
+            return map;
+        }
 
         internal static Dictionary<Type, FieldBuilder> DefineFields(TypeBuilder typeBuilder, Type[] fieldTypes)
         {
@@ -106,58 +176,9 @@ namespace Tinja.Interception
             return map;
         }
 
-        internal static ProxyTypeMetadata GetTypeMetadata(Type implType, Type baseType)
-        {
-            var typeIntereceptors = implType.GetCustomAttributes<InterceptorAttribute>();
-            var members = new List<MemberMetadata>();
-
-            foreach (var item in implType.GetMembers(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (item.MemberType != MemberTypes.Method &&
-                    item.MemberType != MemberTypes.Property)
-                {
-                    continue;
-                }
-
-                members.Add(new MemberMetadata(
-                    item,
-                    item
-                    .GetCustomAttributes<InterceptorAttribute>()
-                    .Concat(typeIntereceptors)
-                    .Select(i => i.InterceptorType).Distinct()
-                    .ToArray()
-                ));
-            }
-
-            return new ProxyTypeMetadata(implType, baseType, members.ToArray());
-        }
-
         static string GetTypeName(Type serviceType)
         {
             return AssemblyName + serviceType.Namespace + "." + serviceType.Name + Guid.NewGuid().ToString().Replace("-", "");
         }
     }
-
-    public class ProxyTypeMetadata
-    {
-        public Type ImplType { get; }
-
-        public Type[] Intereceptors { get; }
-
-        public MemberMetadata[] Members { get; }
-
-        public Type BaseType { get; }
-
-        public ConstructorInfo[] BaseConstructors { get; }
-
-        public ProxyTypeMetadata(Type implType, Type baseType, MemberMetadata[] members)
-        {
-            Members = members;
-            BaseType = baseType;
-            ImplType = implType;
-            Intereceptors = Members.SelectMany(i => i.Intereceptors).Distinct().ToArray();
-            BaseConstructors = baseType.IsInterface ? new ConstructorInfo[0] : baseType.GetConstructors();
-        }
-    }
-
 }

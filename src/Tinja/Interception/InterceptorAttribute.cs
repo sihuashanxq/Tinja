@@ -2,7 +2,7 @@
 
 namespace Tinja.Interception
 {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     public class InterceptorAttribute : Attribute
     {
         public Type InterceptorType { get; }

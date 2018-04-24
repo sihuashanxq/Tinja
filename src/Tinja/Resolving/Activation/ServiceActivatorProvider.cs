@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-
-using Tinja.ServiceLife;
-using Tinja.Resolving.Dependency;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency;
 using Tinja.Resolving.Dependency.Builder;
+using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Activation
 {
