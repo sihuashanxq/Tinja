@@ -93,7 +93,7 @@ namespace Sample
 
     public class InterceptorTest : IIntereceptor
     {
-        public Task IntereceptAsync(MethodInvocationContext context, Func<MethodInvocationContext, Task> next)
+        public Task IntereceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             throw new NotImplementedException();
         }
@@ -102,7 +102,10 @@ namespace Sample
     [Interceptor(typeof(InterceptorTest))]
     public class Abc
     {
-
+        public virtual object M()
+        {
+            return null;
+        }
     }
 
     class Program
@@ -118,7 +121,7 @@ namespace Sample
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddTransient<InterceptorTest, InterceptorTest>();
-            container.AddTransient(typeof(Abc), ProxyUtil.GenerateProxyType(typeof(Abc), typeof(Abc)));
+            container.AddTransient(typeof(Abc), typeof(Abc));
 
 
             services.AddScoped<IServiceA, ServiceA>();
@@ -139,6 +142,12 @@ namespace Sample
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();
+
+            var proxyType = new ClassProxyGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
+            var intercetpors = resolver.Resolve<InterceptorTest>();
+
+            var proxyService = Activator.CreateInstance(proxyType, new object[] { xx, intercetpors }) as Abc;
+
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));
             var service = resolver.Resolve(typeof(IService));
