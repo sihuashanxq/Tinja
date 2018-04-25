@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading.Tasks;
 
 namespace Tinja.Interception
 {
@@ -224,12 +225,36 @@ namespace Tinja.Interception
 
         public static object Invoke(MethodInvocation invocation)
         {
-            foreach (var item in invocation.Intereceptors)
+            var funcs = new Func<MethodInvocation, Task>[invocation.Intereceptors.Length];
+            var i = invocation.Intereceptors.Length;
+            while (--i >= 0)
             {
-                item.IntereceptAsync()
+                var item = invocation.Intereceptors[i];
+
+                if (i == invocation.Intereceptors.Length - 1)
+                {
+                    funcs[i] = (m) =>
+                    {
+                        m.ReturnValue = m.Method.Invoke(m.Target, m.ParameterValues);
+
+                        return Task.CompletedTask;
+                    };
+                }
+                else
+                {
+                    var next = invocation.Intereceptors[i + 1];
+                    var nextFunc = funcs[i + 1];
+
+                    funcs[i] = (m) =>
+                    {
+                        return next.IntereceptAsync(m, nextFunc);
+                    };
+                }
             }
 
-            return null;
+            invocation.Intereceptors[0].IntereceptAsync(invocation, funcs[0]).Wait();
+
+            return invocation.ReturnValue;
         }
     }
 

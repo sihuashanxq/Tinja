@@ -95,16 +95,33 @@ namespace Sample
     {
         public Task IntereceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("brefore InterceptorTest             ");
+            var task = next(invocation);
+            Console.WriteLine("after InterceptorTest");
+
+            return task;
+        }
+    }
+
+    public class InterceptorTest2 : IIntereceptor
+    {
+        public Task IntereceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        {
+            Console.WriteLine("brefore InterceptorTest2222222222222222");
+            var task = next(invocation);
+            Console.WriteLine("after InterceptorTest222222222222222222");
+            return task;
         }
     }
 
     [Interceptor(typeof(InterceptorTest))]
+    [Interceptor(typeof(InterceptorTest2))]
     public class Abc
     {
         public virtual object M()
         {
-            return null;
+            Console.WriteLine("方法执行 执行");
+            return 6;
         }
     }
 
@@ -121,6 +138,8 @@ namespace Sample
             container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddTransient<InterceptorTest, InterceptorTest>();
+            container.AddTransient<InterceptorTest2, InterceptorTest2>();
+
             container.AddTransient(typeof(Abc), typeof(Abc));
 
 
@@ -145,8 +164,10 @@ namespace Sample
 
             var proxyType = new ClassProxyGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
             var intercetpors = resolver.Resolve<InterceptorTest>();
+            var interceptors2 = resolver.Resolve<InterceptorTest2>();
+            var proxyService = Activator.CreateInstance(proxyType, new object[] { xx, intercetpors, interceptors2 }) as Abc;
 
-            var proxyService = Activator.CreateInstance(proxyType, new object[] { xx, intercetpors }) as Abc;
+            var value = proxyService.M();
 
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));
