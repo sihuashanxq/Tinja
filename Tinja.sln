@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Extensions.Dependency
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspnetCore", "samples\AspnetCore\AspnetCore.csproj", "{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Extensions.DynamicProxy", "src\Tinja.Extensions.DynamicProxy\Tinja.Extensions.DynamicProxy.csproj", "{585318EF-13D5-434D-B2B8-DE42F5784302}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{585318EF-13D5-434D-B2B8-DE42F5784302}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{585318EF-13D5-434D-B2B8-DE42F5784302}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{585318EF-13D5-434D-B2B8-DE42F5784302}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{585318EF-13D5-434D-B2B8-DE42F5784302}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -55,6 +61,7 @@ Global
 		{0E948AC0-E992-4174-A02D-C78683E8E603} = {488D2C35-7FD6-4E31-8B9F-CA60A8B24CE7}
 		{A0A40588-629E-4280-872E-C927C5BC16DF} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
 		{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC} = {488D2C35-7FD6-4E31-8B9F-CA60A8B24CE7}
+		{585318EF-13D5-434D-B2B8-DE42F5784302} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {35E9D448-2743-4065-ABF5-A70451F5FE50}

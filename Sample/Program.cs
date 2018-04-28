@@ -162,7 +162,7 @@ namespace Sample
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();
 
-            var proxyType = new ClassProxyGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
+            var proxyType = new ProxyTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
             var intercetpors = resolver.Resolve<InterceptorTest>();
             var interceptors2 = resolver.Resolve<InterceptorTest2>();
             var proxyService = Activator.CreateInstance(proxyType, new object[] { xx, intercetpors, interceptors2 }) as Abc;

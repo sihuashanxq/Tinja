@@ -2,7 +2,7 @@
 
 namespace Tinja.Interception
 {
-    public interface IProxyGenerator
+    public interface IProxyTypeGenerator
     {
         Type CreateProxyType();
     }

@@ -4,10 +4,11 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
+using Tinja.Extension;
 
 namespace Tinja.Interception
 {
-    public abstract class ProxyGeneratorBase : IProxyGenerator
+    public class ProxyTypeGenerator : IProxyTypeGenerator
     {
         protected Type BaseType { get; }
 
@@ -27,7 +28,17 @@ namespace Tinja.Interception
 
         protected Dictionary<MethodInfo, List<Type>> MethodInterecptors { get; }
 
-        public ProxyGeneratorBase(Type baseType, Type implemetionType)
+        static MethodInfo MethodInvocationExecute { get; }
+
+        static MethodInfo MethodInvocationExecuteAsync { get; }
+
+        static ProxyTypeGenerator()
+        {
+            MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
+            MethodInvocationExecuteAsync = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsync");
+        }
+
+        public ProxyTypeGenerator(Type baseType, Type implemetionType)
         {
             BaseType = baseType;
             ImplementionType = implemetionType;
@@ -43,15 +54,13 @@ namespace Tinja.Interception
         {
             InitializeMethodIntereceptors();
 
-            CreateType();
+            CreateTypeBuilder();
 
-            CreateFields();
+            CreateTypeFields();
 
-            CreateStaticConstrcutor();
-            CreateConstrcutors();
+            CreateTypeConstrcutors();
 
-            CreateMethods();
-            CreateProperties();
+            CreateTypeMethods();
 
             return TypeBuilder.CreateType();
         }
@@ -71,7 +80,7 @@ namespace Tinja.Interception
             }
         }
 
-        protected virtual void CreateType()
+        protected virtual void CreateTypeBuilder()
         {
             TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
         }
@@ -81,7 +90,7 @@ namespace Tinja.Interception
             return TypeBuilder.DefineField(GetMemberPostfix(), fieldType, fieldAttributes);
         }
 
-        protected virtual void CreateFields()
+        protected virtual void CreateTypeFields()
         {
             ImplenmetionField = CreateField(ImplementionType);
 
@@ -91,7 +100,7 @@ namespace Tinja.Interception
             }
         }
 
-        protected virtual void CreateMethods()
+        protected virtual void CreateTypeMethods()
         {
             foreach (var overrideMethodInfo in OverrideMethodInfos)
             {
@@ -114,19 +123,12 @@ namespace Tinja.Interception
                 il.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
                 il.Emit(OpCodes.Newarr, typeof(object));
 
-                for (var i = 0; i < paramterInfos.Length; i++)
+                for (var i = 0; i < paramterTypes.Length; i++)
                 {
-                    var item = paramterInfos[i];
-
                     il.Emit(OpCodes.Dup);
                     il.Emit(OpCodes.Ldc_I4, i);
                     il.Emit(OpCodes.Ldarg, i + 1);
-
-                    if (item.ParameterType.IsValueType)
-                    {
-                        il.Emit(OpCodes.Box, item.ParameterType);
-                    }
-
+                    il.Box(paramterTypes[i]);
                     il.Emit(OpCodes.Stelem_Ref);
                 }
 
@@ -144,17 +146,30 @@ namespace Tinja.Interception
                     il.Emit(OpCodes.Stelem_Ref);
                 }
 
-                il.Emit(OpCodes.Newobj, MethodInvocation.MethodInvocationConstrcutor);
-                il.Emit(OpCodes.Call, typeof(ProxyGeneratorBase).GetMethod(nameof(Invoke)));
+                il.Emit(OpCodes.Newobj, MethodInvocation.Constrcutor);
+                il.Emit(OpCodes.Call, typeof(ProxyTypeGenerator).GetMethod(nameof(Invoke)));
                 il.Emit(OpCodes.Ret);
             }
         }
 
-        protected abstract void CreateProperties();
+        protected virtual void CreateTypeConstrcutors()
+        {
+            CreateTypeStaticConstrcutor();
 
-        protected abstract void CreateConstrcutors();
+            var constructorInfos = BaseType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (constructorInfos == null || constructorInfos.Length == 0)
+            {
+                CreateConstructor(null);
+                return;
+            }
 
-        protected virtual void CreateStaticConstrcutor()
+            foreach (var item in constructorInfos)
+            {
+                CreateConstructor(item);
+            }
+        }
+
+        protected virtual void CreateTypeStaticConstrcutor()
         {
             if (OverrideMethodInfos.Any())
             {
@@ -222,46 +237,22 @@ namespace Tinja.Interception
         {
             return new[] { ImplementionType }.Concat(InterecetorFields.Keys).ToArray();
         }
-
-        public static object Invoke(MethodInvocation invocation)
-        {
-            var funcs = new Func<MethodInvocation, Task>[invocation.Intereceptors.Length];
-            var i = invocation.Intereceptors.Length;
-            while (--i >= 0)
-            {
-                var item = invocation.Intereceptors[i];
-
-                if (i == invocation.Intereceptors.Length - 1)
-                {
-                    funcs[i] = (m) =>
-                    {
-                        m.ReturnValue = m.Method.Invoke(m.Target, m.ParameterValues);
-
-                        return Task.CompletedTask;
-                    };
-                }
-                else
-                {
-                    var next = invocation.Intereceptors[i + 1];
-                    var nextFunc = funcs[i + 1];
-
-                    funcs[i] = (m) =>
-                    {
-                        return next.IntereceptAsync(m, nextFunc);
-                    };
-                }
-            }
-
-            invocation.Intereceptors[0].IntereceptAsync(invocation, funcs[0]).Wait();
-
-            return invocation.ReturnValue;
-        }
     }
 
     public class MethodInvocation
     {
-        public static readonly ConstructorInfo MethodInvocationConstrcutor = typeof(MethodInvocation)
-            .GetConstructor(new[] { typeof(object), typeof(MethodInfo), typeof(object[]), typeof(IIntereceptor[]) });
+        public static ConstructorInfo Constrcutor { get; }
+
+        static MethodInvocation()
+        {
+            Constrcutor = typeof(MethodInvocation)
+            .GetConstructor(new[]
+            {
+                typeof(object),
+                typeof(MethodInfo),
+                typeof(object[]), typeof(IIntereceptor[])
+            });
+        }
 
         public object Target { get; }
 
@@ -284,6 +275,39 @@ namespace Tinja.Interception
             Method = method;
             ParameterValues = parameterValues;
             Intereceptors = intereceptors;
+        }
+    }
+
+    public interface IMethodInvokerFactory
+    {
+        Func<object[], object> Create(MethodInvocation invocation);
+    }
+
+    public class MethodInvokerFactory
+    {
+        public Func<object[], object> Create(MethodInvocation context)
+        {
+            return null;
+        }
+    }
+
+    public interface IMethodInvocationExecutor
+    {
+        object Execute(MethodInvocation invocation);
+
+        object ExecuteAsync(MethodInvocation invocation);
+    }
+
+    public class MethodInvocationExecutor : IMethodInvocationExecutor
+    {
+        public object Execute(MethodInvocation invocation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object ExecuteAsync(MethodInvocation invocation)
+        {
+            throw new NotImplementedException();
         }
     }
 }
