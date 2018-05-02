@@ -139,9 +139,12 @@ namespace Sample
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddTransient<InterceptorTest, InterceptorTest>();
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
-
+            container.AddTransient<IMethodInvocationExecutor, MethodInvocationExecutor>();
+            container.AddTransient<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddTransient(typeof(Abc), typeof(Abc));
+            var proxyType = new ProxyTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
 
+            container.AddTransient(proxyType, proxyType);
 
             services.AddScoped<IServiceA, ServiceA>();
             services.AddTransient<IServiceB, ServiceB>();
@@ -162,10 +165,7 @@ namespace Sample
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();
 
-            var proxyType = new ProxyTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
-            var intercetpors = resolver.Resolve<InterceptorTest>();
-            var interceptors2 = resolver.Resolve<InterceptorTest2>();
-            var proxyService = Activator.CreateInstance(proxyType, new object[] { xx, intercetpors, interceptors2 }) as Abc;
+            var proxyService = resolver.Resolve(proxyType) as Abc;
 
             var value = proxyService.M();
 

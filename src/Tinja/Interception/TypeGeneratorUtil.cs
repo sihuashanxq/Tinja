@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -71,30 +70,6 @@ namespace Tinja.Interception
             il.Emit(OpCodes.Ldnull);
             il.EmitCall(OpCodes.Call, getMethod, null);
             il.Emit(OpCodes.Stsfld, field);
-        }
-
-        public static IEnumerable<MethodInfo> GetOverrideableMethods(Type type)
-        {
-            var properties = type.GetProperties();
-            var typeOfObject = typeof(object);
-
-            foreach (var item in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-            {
-                if (properties.Any(i => i.GetMethod == item || i.SetMethod == item))
-                {
-                    continue;
-                }
-
-                if (item.DeclaringType == typeOfObject)
-                {
-                    continue;
-                }
-
-                if (type.IsInterface || item.IsVirtual)
-                {
-                    yield return item;
-                }
-            }
         }
 
         static string GetTypeName(Type serviceType)
