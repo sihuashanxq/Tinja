@@ -15,6 +15,8 @@ namespace Tinja.Interception
 
         public object Target { get; }
 
+        public IDynamicProxy Proxy { get; }
+
         public MethodInfo TargetMethod { get; }
 
         public object ReturnValue { get; set; }

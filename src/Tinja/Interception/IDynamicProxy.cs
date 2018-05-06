@@ -3,5 +3,7 @@
     public interface IDynamicProxy
     {
         object Target { get; }
+
+        IInterceptor[] GetInterceptors();
     }
 }

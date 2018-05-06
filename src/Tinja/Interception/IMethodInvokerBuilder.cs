@@ -4,6 +4,6 @@ namespace Tinja.Interception
 {
     public interface IMethodInvokerBuilder
     {
-        Func<object, object[], object> Build(MethodInvocation invocation);
+        Func<IDynamicProxy, object> Build(MethodInvocation invocation);
     }
 }
