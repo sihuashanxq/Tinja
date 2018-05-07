@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Tinja.Interception
 {
     public interface IMethodInvokerBuilder
     {
-        Func<IDynamicProxy, object> Build(MethodInvocation invocation);
+        Func<MethodInvocation, Task> Build(MethodInfo methodInfo);
     }
 }

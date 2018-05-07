@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Tinja.Interception
 {
@@ -12,41 +13,54 @@ namespace Tinja.Interception
 
         private IObjectMethodExecutorProvider _objectMethodExecutorProvider;
 
-        private ConcurrentDictionary<MethodInfo, Func<MethodInvocation, object>> _invokers;
+        private ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>> _invokers;
 
         public MethodInvokerBuilder(IObjectMethodExecutorProvider objectMethodExecutorProvider)
         {
-            _invokers = new ConcurrentDictionary<MethodInfo, Func<MethodInvocation, object>>();
+            _invokers = new ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>>();
             _objectMethodExecutorProvider = objectMethodExecutorProvider;
         }
 
-        public Func<MethodInvocation, object> Build(MethodInvocation methodInvocation)
+        public Func<MethodInvocation, Task> Build(MethodInfo methodInfo)
         {
-            return null;
+            return _invokers.GetOrAdd(methodInfo, (m) => Build(_objectMethodExecutorProvider.GetExecutor(m)));
         }
 
-        protected virtual Func<MethodInvocation, object> Build(MethodInfo methodInfo)
+        protected virtual Func<MethodInvocation, Task> Build(IObjectMethodExecutor executor)
         {
-            var executor = _objectMethodExecutorProvider.GetExecutor(methodInfo);
-
             return (invocation) =>
-           {
-               var interceptors = invocation.Proxy.GetInterceptors();
-               if (interceptors == null)
-               {
-                   return executor.ExecuteAsync(invocation.Target, invocation.ParameterValues);
-               }
+            {
+                var interceptors = invocation.Proxy.GetInterceptors().Select(n => n.Interceptor).ToArray();
+                var stack = new Stack<Func<MethodInvocation, Task>>();
 
-               foreach (var item in _interceptorSelectors)
-               {
-                   interceptors = item.Select(invocation.Target, methodInfo, interceptors);
-               }
+                stack.Push(async (inv) =>
+                {
+                    inv.ReturnValue = await executor.ExecuteAsync(inv.Target, inv.ParameterValues);
+                });
 
-               for (var i = interceptors.Length - 1; i >= 0; i--)
-               {
+                foreach (var item in _interceptorSelectors)
+                {
+                    interceptors = item.Select(invocation.Target, invocation.TargetMethod, interceptors);
+                }
 
-               }
-           };
+                if (interceptors == null || interceptors.Length == 0)
+                {
+                    return stack.Pop()(invocation);
+                }
+
+                for (var i = interceptors.Length - 1; i >= 0; i--)
+                {
+                    var next = stack.Pop();
+                    var interceptor = interceptors[i];
+
+                    stack.Push(async (inv) =>
+                    {
+                        await interceptor.InterceptAsync(inv, next);
+                    });
+                }
+
+                return stack.Pop()(invocation);
+            };
         }
     }
 }

@@ -4,6 +4,6 @@
     {
         object Target { get; }
 
-        IInterceptor[] GetInterceptors();
+        InterceptorMetadataCollection GetInterceptors();
     }
 }

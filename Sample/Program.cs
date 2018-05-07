@@ -91,9 +91,9 @@ namespace Sample
         public A A2 { get; set; }
     }
 
-    public class InterceptorTest : IIntereceptor
+    public class InterceptorTest : IInterceptor
     {
-        public Task IntereceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             Console.WriteLine("brefore InterceptorTest             ");
             var task = next(invocation);
@@ -103,9 +103,9 @@ namespace Sample
         }
     }
 
-    public class InterceptorTest2 : IIntereceptor
+    public class InterceptorTest2 : IInterceptor
     {
-        public Task IntereceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
@@ -115,8 +115,7 @@ namespace Sample
     }
 
     [Interceptor(typeof(InterceptorTest))]
-    [Interceptor(typeof(InterceptorTest2))]
-    public class Abc
+    public class Abc:IAbc
     {
         public virtual object M()
         {
@@ -125,10 +124,18 @@ namespace Sample
         }
     }
 
+    [Interceptor(typeof(InterceptorTest2))]
+    public interface IAbc
+    {
+        object M();
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
+            var x = new Tinja.Interception.TypeMembers.InterfaceTypeMemberCollector(typeof(IAbc), typeof(Abc)).Collect();
+
             var watch = new System.Diagnostics.Stopwatch();
             var container = new Container();
             var services = new ServiceCollection();
