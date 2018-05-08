@@ -7,22 +7,17 @@ namespace Tinja.Interception.TypeMembers
 {
     public class InterfaceTypeMemberCollector : TypeMemberCollector
     {
-        protected Type[] Interfaces { get; }
-
-        protected IEnumerable<PropertyInfo> ImplementionDeclaredProperties { get; }
-
         public InterfaceTypeMemberCollector(
             Type declareType,
             Type implementionType
         ) : base(declareType, implementionType)
         {
-            Interfaces = implementionType.GetInterfaces();
-            ImplementionDeclaredProperties = GetProperties(implementionType);
+
         }
 
         protected override void CollectMethods()
         {
-            foreach (var item in Interfaces)
+            foreach (var item in ImplementedInterfaces)
             {
                 var mapping = ImplementionType.GetInterfaceMap(item);
                 if (mapping.InterfaceMethods.Length == 0)
@@ -33,7 +28,7 @@ namespace Tinja.Interception.TypeMembers
                 for (var i = 0; i < mapping.InterfaceMethods.Length; i++)
                 {
                     var targetMethod = mapping.TargetMethods[i];
-                    if (ImplementionDeclaredProperties.Any(p =>
+                    if (ImplementedProperties.Any(p =>
                             p.GetMethod == targetMethod ||
                             p.SetMethod == targetMethod)
                         )
@@ -41,11 +36,11 @@ namespace Tinja.Interception.TypeMembers
                         continue;
                     }
 
-                    Methods.Add(new TypeMemberMetadata()
+                    AddCollectedMethodInfo(new TypeMemberMetadata()
                     {
-                        DeclareMemberInfo = mapping.InterfaceMethods[i],
+                        DeclareTypes = new[] { mapping.InterfaceType },
+                        DeclareMemberInfos = new[] { mapping.InterfaceMethods[i] },
                         ImplementionMemberInfo = mapping.TargetMethods[i],
-                        DeclareType = mapping.InterfaceType,
                         ImplementionType = ImplementionType
                     });
                 }
@@ -54,22 +49,22 @@ namespace Tinja.Interception.TypeMembers
 
         protected override void CollectProperties()
         {
-            foreach (var item in Interfaces)
+            foreach (var item in ImplementedInterfaces)
             {
                 foreach (var property in item.GetProperties())
                 {
-                    var classProperty = ImplementionDeclaredProperties.FirstOrDefault(i => i.Name == property.Name);
+                    var classProperty = ImplementedProperties.FirstOrDefault(i => i.Name == property.Name);
                     if (classProperty == null)
                     {
                         continue;
                     }
 
-                    Properties.Add(new TypeMemberMetadata()
+                    AddCollectedPropertyInfo(new TypeMemberMetadata()
                     {
                         ImplementionMemberInfo = classProperty,
                         ImplementionType = ImplementionType,
-                        DeclareType = item,
-                        DeclareMemberInfo = property
+                        DeclareTypes = new[] { item },
+                        DeclareMemberInfos = new[] { property }
                     });
                 }
             }

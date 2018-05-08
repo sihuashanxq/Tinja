@@ -114,8 +114,19 @@ namespace Sample
         }
     }
 
+    public class InterceptorTest3 : IInterceptor
+    {
+        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        {
+            Console.WriteLine("brefore InterceptorTest2222222222222222");
+            var task = next(invocation);
+            Console.WriteLine("after InterceptorTest222222222222222222");
+            return task;
+        }
+    }
+
     [Interceptor(typeof(InterceptorTest))]
-    public class Abc:IAbc
+    public class Abc : IAbc
     {
         public virtual object M()
         {
@@ -124,6 +135,17 @@ namespace Sample
         }
     }
 
+    [Interceptor(typeof(InterceptorTest3))]
+    public class Abc2 : Abc
+    {
+        public override object M()
+        {
+            Console.WriteLine("方法执行 执行");
+            return 6;
+        }
+    }
+
+    [Interceptor(typeof(InterceptorTest2))]
     [Interceptor(typeof(InterceptorTest2))]
     public interface IAbc
     {
@@ -134,7 +156,7 @@ namespace Sample
     {
         static void Main(string[] args)
         {
-            var x = new Tinja.Interception.TypeMembers.InterfaceTypeMemberCollector(typeof(IAbc), typeof(Abc)).Collect();
+            var x = new Tinja.Interception.TypeMembers.ClassTypeMemberCollector(typeof(Abc), typeof(Abc2)).Collect();
 
             var watch = new System.Diagnostics.Stopwatch();
             var container = new Container();

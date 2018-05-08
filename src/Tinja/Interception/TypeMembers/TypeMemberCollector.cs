@@ -7,24 +7,31 @@ namespace Tinja.Interception.TypeMembers
 {
     public abstract class TypeMemberCollector : ITypeMemberCollector
     {
-        protected List<TypeMemberMetadata> Methods { get; }
-
-        protected List<TypeMemberMetadata> Properties { get; }
-
-        protected Dictionary<Type, InterceptorDeclare> InterceptorDeclarations { get; }
-
         protected Type DeclareType { get; }
 
         protected Type ImplementionType { get; }
+
+        protected List<TypeMemberMetadata> CollectedMethods { get; }
+
+        protected List<TypeMemberMetadata> CollectedProperties { get; }
+
+        protected Type[] ImplementedInterfaces { get; }
+
+        protected IEnumerable<PropertyInfo> ImplementedProperties { get; }
+
+        protected Dictionary<Type, InterceptorDeclare> InterceptorMapping { get; }
 
         public TypeMemberCollector(Type declareType, Type implementionType)
         {
             DeclareType = declareType;
             ImplementionType = implementionType;
 
-            Methods = new List<TypeMemberMetadata>();
-            Properties = new List<TypeMemberMetadata>();
-            InterceptorDeclarations = new Dictionary<Type, InterceptorDeclare>();
+            CollectedMethods = new List<TypeMemberMetadata>();
+            CollectedProperties = new List<TypeMemberMetadata>();
+            InterceptorMapping = new Dictionary<Type, InterceptorDeclare>();
+
+            ImplementedInterfaces = ImplementionType.GetInterfaces();
+            ImplementedProperties = ImplementionType.GetProperties(new[] { typeof(object) });
         }
 
         public IEnumerable<TypeMemberMetadata> Collect()
@@ -32,69 +39,81 @@ namespace Tinja.Interception.TypeMembers
             CollectProperties();
             CollectMethods();
 
-            var typeMmembers = Properties.Concat(Methods);
+            HandleTypeMemberInterceptors();
 
-            foreach (var item in typeMmembers)
+            return CollectedProperties.Concat(CollectedMethods);
+        }
+
+        protected virtual void CollectEvents()
+        {
+
+        }
+
+        protected abstract void CollectMethods();
+
+        protected abstract void CollectProperties();
+
+        protected void AddCollectedMethodInfo(TypeMemberMetadata typeMethodInfo)
+        {
+            CollectedMethods.Add(typeMethodInfo);
+        }
+
+        protected void AddCollectedPropertyInfo(TypeMemberMetadata typePropertyInfo)
+        {
+            CollectedProperties.Add(typePropertyInfo);
+        }
+
+        protected IEnumerable<MethodInfo> GetBaseDefinition(MethodInfo memberInfo)
+        {
+            var baseDefinition = memberInfo.GetBaseDefinition();
+            var baseDeclareType = baseDefinition.DeclaringType;
+            var list = new List<MethodInfo>();
+
+            foreach (var item in ImplementedInterfaces)
             {
-                SetInterceptorDeclares(item, item.ImplementionMemberInfo, item.ImplementionType);
-                SetInterceptorDeclares(item, item.DeclareMemberInfo, item.DeclareType);
+                var mapping = baseDeclareType.GetInterfaceMap(item);
+
+                for (var i = 0; i < mapping.TargetMethods.Length; i++)
+                {
+                    if (mapping.TargetMethods[i] == baseDefinition)
+                    {
+                        list.Add(mapping.InterfaceMethods[i]);
+                        break;
+                    }
+                }
             }
 
-            return typeMmembers;
-        }
-
-        protected virtual void CollectMethods()
-        {
-
-        }
-
-        protected virtual void CollectProperties()
-        {
-
-        }
-
-        protected void SetInterceptorDeclares(TypeMemberMetadata typeMember, MemberInfo memberInfo, Type typeInfo)
-        {
-            var interceptors = GetInterceptorTypes(memberInfo);
-            var typeInterceptors = GetInterceptorTypes(typeInfo);
-
-            var declares = GetInterceptorDeclares(interceptors, memberInfo);
-            var typeDeclares = GetInterceptorDeclares(typeInterceptors, typeInfo);
-
-            if (typeMember.InterceptorDeclares != null)
+            if (!list.Any())
             {
-                typeMember.InterceptorDeclares = typeMember.InterceptorDeclares.Concat(declares).Concat(typeDeclares).Distinct();
+                list.Add(baseDefinition);
             }
-            else
-            {
-                typeMember.InterceptorDeclares = declares.Concat(typeDeclares).Distinct();
-            }
+
+            return list;
         }
 
-        protected InterceptorDeclare[] GetInterceptorDeclares(Type[] interceptors, MemberInfo memberInfo)
+        protected virtual InterceptorDeclare[] GetInterceptorDeclares(MemberInfo memberInfo)
         {
-            if (interceptors == null || interceptors.Length == 0)
+            if (memberInfo == null)
             {
                 return new InterceptorDeclare[0];
             }
 
-            var declares = new InterceptorDeclare[interceptors.Length];
+            var attrs = memberInfo.GetInterceptorAttributes();
+            var declares = new InterceptorDeclare[attrs.Length];
 
-            for (var i = 0; i < interceptors.Length; i++)
+            for (var i = 0; i < attrs.Length; i++)
             {
-                var interceptor = interceptors[i];
-                if (!InterceptorDeclarations.ContainsKey(interceptor))
+                var attr = attrs[i];
+                var declare = InterceptorMapping.GetValueOrDefault(attr.InterceptorType);
+                if (declare == null)
                 {
-                    InterceptorDeclarations[interceptor] = new InterceptorDeclare(interceptor);
+                    declare = InterceptorMapping[attr.InterceptorType] = new InterceptorDeclare(attr);
                 }
-
-                var declare = InterceptorDeclarations[interceptor];
 
                 if (memberInfo is Type typeInfo)
                 {
                     declare.DeclaredTypes.Add(typeInfo);
                 }
-
                 else if (memberInfo is MethodInfo methodInfo)
                 {
                     declare.DeclaredMembers.Add(methodInfo);
@@ -106,31 +125,48 @@ namespace Tinja.Interception.TypeMembers
             return declares;
         }
 
-        internal static Type[] GetInterceptorTypes(MemberInfo memberInfo)
+        protected virtual void HandleTypeMemberInterceptors()
         {
-            var attrs = memberInfo.GetCustomAttributes<InterceptorAttribute>();
-            if (attrs == null || !attrs.Any())
+            foreach (var item in CollectedProperties)
             {
-                return Type.EmptyTypes;
+                HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
+
+                foreach (var declareMember in item.DeclareMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                {
+                    HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
+                }
             }
 
-            return attrs.Select(i => i.InterceptorType).ToArray();
+            foreach (var item in CollectedMethods)
+            {
+                HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
+
+                foreach (var declareMember in item.DeclareMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                {
+                    HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
+                }
+            }
         }
 
-        internal static IEnumerable<PropertyInfo> GetProperties(Type type)
+        protected void HandleTypeMemberInterceptors(TypeMemberMetadata typeMember, MemberInfo memberInfo, Type typeInfo)
         {
-            if (type == null || type == typeof(object))
-            {
-                return new PropertyInfo[0];
-            }
+            var typeDeclares = GetInterceptorDeclares(typeInfo);
+            var memberDeclares = GetInterceptorDeclares(memberInfo);
 
-            var typeInfo = type.GetTypeInfo();
-            if (typeInfo.BaseType != null)
+            if (typeMember.InterceptorDeclares != null)
             {
-                return typeInfo.DeclaredProperties.Concat(GetProperties(typeInfo.BaseType));
+                typeMember.InterceptorDeclares = typeMember
+                    .InterceptorDeclares
+                    .Concat(memberDeclares)
+                    .Concat(typeDeclares)
+                    .Distinct(declare => declare.Interceptor);
             }
-
-            return typeInfo.DeclaredProperties;
+            else
+            {
+                typeMember.InterceptorDeclares = memberDeclares
+                    .Concat(typeDeclares)
+                    .Distinct(declare => declare.Interceptor);
+            }
         }
-    }
+  }
 }

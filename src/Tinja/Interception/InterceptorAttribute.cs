@@ -2,10 +2,12 @@
 
 namespace Tinja.Interception
 {
-    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class InterceptorAttribute : Attribute
     {
-        public int Order { get; set; } = -1;
+        public int Priority { get; set; } = -1;
+
+        public bool Inherited { get; set; }
 
         public Type InterceptorType { get; }
 
@@ -16,6 +18,7 @@ namespace Tinja.Interception
                 throw new NotSupportedException($"type:{interceptorType.FullName} must implement the interface{typeof(IInterceptor).FullName}");
             }
 
+            Inherited = true;
             InterceptorType = interceptorType;
         }
     }

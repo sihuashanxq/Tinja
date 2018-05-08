@@ -7,15 +7,15 @@ namespace Tinja.Interception
 {
     public class InterceptorDeclare
     {
-        public Type InterceptorType { get; }
+        public InterceptorAttribute Interceptor { get; }
 
         public HashSet<Type> DeclaredTypes { get; }
 
         public HashSet<MemberInfo> DeclaredMembers { get; }
 
-        public InterceptorDeclare(Type interceptorType)
+        public InterceptorDeclare(InterceptorAttribute interceptor)
         {
-            InterceptorType = interceptorType;
+            Interceptor = interceptor;
             DeclaredTypes = new HashSet<Type>();
             DeclaredMembers = new HashSet<MemberInfo>();
         }
