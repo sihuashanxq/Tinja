@@ -2,57 +2,57 @@
 using System.Linq;
 using System.Reflection;
 using Tinja.ServiceLife;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 using Tinja.Resolving.Dependency.Scope;
 
 namespace Tinja.Resolving.Dependency.Builder
 {
-    public class ServicePropertyDependencyBuilder : ServiceDependencyBuilder
+    public class ServicePropertyDependencyChainBuilder : ServiceConstructorDependencyChainBuilder
     {
-        public ServicePropertyDependencyBuilder(ServiceDependScope scope, IResolvingContextBuilder resolvingContextBuilder)
+        public ServicePropertyDependencyChainBuilder(ServiceDependencyScope scope, IServiceResolvingContextBuilder resolvingContextBuilder)
             : base(scope, resolvingContextBuilder)
         {
 
         }
 
-        protected override ServiceDependChain BuildPropertyDependChain(ServiceDependChain chain)
+        protected override ServiceDependencyChain BuildProperties(ServiceDependencyChain chain)
         {
             if (chain == null || chain.Constructor == null)
             {
                 return chain;
             }
 
-            if (chain is ServiceEnumerableDependChain eNode)
+            if (chain is ServiceDependencyEnumerableChain eNode)
             {
                 foreach (var item in eNode.Elements.Where(i => i.Constructor != null))
                 {
-                    BuildPropertyDependChainCore(item);
+                    BuildPropertiesCore(item);
                 }
             }
             else
             {
-                BuildPropertyDependChainCore(chain);
+                BuildPropertiesCore(chain);
 
                 foreach (var item in chain.Parameters.Where(i => i.Value.Constructor != null))
                 {
-                    BuildPropertyDependChain(item.Value);
+                    BuildProperties(item.Value);
                 }
             }
 
             return chain;
         }
 
-        protected virtual void BuildPropertyDependChainCore(ServiceDependChain chain)
+        protected virtual void BuildPropertiesCore(ServiceDependencyChain chain)
         {
-            var serviceInfo = chain.Context.ServiceInfo;
-            if (serviceInfo.Properties == null || serviceInfo.Properties.Length == 0)
+            var meta = chain.Context.ImplementationTypeMeta;
+            if (meta.Properties == null || meta.Properties.Length == 0)
             {
                 return;
             }
 
-            var properties = new Dictionary<PropertyInfo, ServiceDependChain>();
+            var properties = new Dictionary<PropertyInfo, ServiceDependencyChain>();
 
-            foreach (var item in serviceInfo.Properties)
+            foreach (var item in meta.Properties)
             {
                 var context = ResolvingContextBuilder.BuildResolvingContext(item.PropertyType);
                 if (context == null)
@@ -75,7 +75,7 @@ namespace Tinja.Resolving.Dependency.Builder
                     }
                 }
 
-                var propertyChain = BuildDependChainCore(context, ServiceDependScopeType.Property);
+                var propertyChain = BuildCore(context, ServiceDependScopeType.Property);
                 if (propertyChain != null)
                 {
                     properties[item] = propertyChain;
@@ -85,7 +85,7 @@ namespace Tinja.Resolving.Dependency.Builder
             chain.Properties = properties;
         }
 
-        protected CircularDependencyResolveResult ResolvePropertyCircularDependency(IResolvingContext context)
+        protected CircularDependencyResolveResult ResolvePropertyCircularDependency(IServiceResolvingContext context)
         {
             if (!ServiceDependScope
                 .ServiceDependStack
@@ -100,7 +100,7 @@ namespace Tinja.Resolving.Dependency.Builder
             var result = new CircularDependencyResolveResult()
             {
                 Break = false,
-                Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(context.ServiceInfo.Type)
+                Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(context.ImplementationTypeMeta.Type)
             };
 
             if (result.Chain != null)
@@ -111,7 +111,7 @@ namespace Tinja.Resolving.Dependency.Builder
             return result;
         }
 
-        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(IResolvingContext target, IResolvingContext parameter)
+        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(IServiceResolvingContext target, IServiceResolvingContext parameter)
         {
             if (target.Component.LifeStyle == ServiceLifeStyle.Transient)
             {
@@ -124,7 +124,7 @@ namespace Tinja.Resolving.Dependency.Builder
                 return new CircularDependencyResolveResult()
                 {
                     Break = false,
-                    Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(parameter.ServiceInfo.Type)
+                    Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(parameter.ImplementationTypeMeta.Type)
                 };
             }
 

@@ -1,15 +1,15 @@
 ﻿using System;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 
 namespace Tinja.Resolving.Dependency.Scope
 {
-    public class ServiceDependScopeEntry
+    public class ServiceDependencyScopeEntry
     {
-        public Type ResolveServiceType { get; set; }
+        public Type ServiceType { get; set; }
 
-        public ServiceDependChain Chain { get; set; }
+        public ServiceDependencyChain Chain { get; set; }
 
-        public IResolvingContext Context { get; set; }
+        public IServiceResolvingContext Context { get; set; }
 
         public ServiceDependScopeType ScopeType { get; set; }
     }

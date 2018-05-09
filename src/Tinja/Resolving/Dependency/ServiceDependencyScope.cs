@@ -2,52 +2,52 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.ServiceLife;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 
 namespace Tinja.Resolving.Dependency.Scope
 {
-    public class ServiceDependScope
+    public class ServiceDependencyScope
     {
-        public Stack<ServiceDependScopeEntry> ServiceDependStack { get; }
+        public Stack<ServiceDependencyScopeEntry> ServiceDependStack { get; }
 
-        public Dictionary<Type, ServiceDependChain> ResolvedServices { get; }
+        public Dictionary<Type, ServiceDependencyChain> ResolvedServices { get; }
 
-        public ServiceDependScope()
+        public ServiceDependencyScope()
         {
-            ServiceDependStack = new Stack<ServiceDependScopeEntry>();
-            ResolvedServices = new Dictionary<Type, ServiceDependChain>();
+            ServiceDependStack = new Stack<ServiceDependencyScopeEntry>();
+            ResolvedServices = new Dictionary<Type, ServiceDependencyChain>();
         }
 
         public bool Constains(Type serviceType)
         {
-            return ServiceDependStack.Any(i => i.ResolveServiceType == serviceType);
+            return ServiceDependStack.Any(i => i.ServiceType == serviceType);
         }
 
-        public ServiceDependChain AddResolvedService(IResolvingContext target, ServiceDependChain chain)
+        public ServiceDependencyChain AddResolvedService(IServiceResolvingContext target, ServiceDependencyChain chain)
         {
             if (target.Component.LifeStyle != ServiceLifeStyle.Transient)
             {
-                ResolvedServices[target.ServiceInfo.Type] = chain;
+                ResolvedServices[target.ImplementationTypeMeta.Type] = chain;
             }
 
             return chain;
         }
 
         public ScopeEntryDisposableWrapper BeginScope(
-            IResolvingContext target,
+            IServiceResolvingContext target,
             Type servieType,
             ServiceDependScopeType scopeType = ServiceDependScopeType.None
         )
         {
-            return BeginScope(new ServiceDependScopeEntry()
+            return BeginScope(new ServiceDependencyScopeEntry()
             {
                 Context = target,
                 ScopeType = scopeType,
-                ResolveServiceType = servieType
+                ServiceType = servieType
             });
         }
 
-        public ScopeEntryDisposableWrapper BeginScope(ServiceDependScopeEntry entry)
+        public ScopeEntryDisposableWrapper BeginScope(ServiceDependencyScopeEntry entry)
         {
             ServiceDependStack.Push(entry);
 
@@ -59,11 +59,11 @@ namespace Tinja.Resolving.Dependency.Scope
 
         public class ScopeEntryDisposableWrapper : IDisposable
         {
-            public ServiceDependScopeEntry ScopeEntry { get; }
+            public ServiceDependencyScopeEntry ScopeEntry { get; }
 
             private Action _dispose;
 
-            public ScopeEntryDisposableWrapper(ServiceDependScopeEntry scopeEntry, Action dispose)
+            public ScopeEntryDisposableWrapper(ServiceDependencyScopeEntry scopeEntry, Action dispose)
             {
                 _dispose = dispose;
                 ScopeEntry = scopeEntry;

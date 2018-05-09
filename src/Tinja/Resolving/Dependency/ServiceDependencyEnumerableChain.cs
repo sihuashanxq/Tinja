@@ -1,13 +1,13 @@
 ﻿namespace Tinja.Resolving.Dependency
 {
-    public class ServiceEnumerableDependChain : ServiceDependChain
+    public class ServiceDependencyEnumerableChain : ServiceDependencyChain
     {
-        public ServiceDependChain[] Elements { get; set; }
+        public ServiceDependencyChain[] Elements { get; set; }
 
-        public ServiceEnumerableDependChain()
+        public ServiceDependencyEnumerableChain()
             : base()
         {
-            Elements = new ServiceDependChain[0];
+            Elements = new ServiceDependencyChain[0];
         }
 
         public override bool ContainsPropertyCircularDependencies()

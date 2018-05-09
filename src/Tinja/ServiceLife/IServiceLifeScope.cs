@@ -1,6 +1,6 @@
 ﻿using System;
 using Tinja.Resolving;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 
 namespace Tinja.ServiceLife
 {
@@ -8,6 +8,6 @@ namespace Tinja.ServiceLife
     {
         object ApplyServiceLifeStyle(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory);
 
-        object ApplyServiceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory);
+        object ApplyServiceLifeStyle(IServiceResolvingContext context, Func<IServiceResolver, object> factory);
     }
 }

@@ -4,8 +4,4 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Resolving\Dependency\Builder\ConstructorDependencyBuilder.cs" />
-  </ItemGroup>
-
 </Project>

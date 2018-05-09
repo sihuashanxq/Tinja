@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 
 using Tinja.ServiceLife;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
-    public class ServiceInjectionActivatorFactory : IServiceInjectionActivatorFactory
+    public class ServiceActivatorFactory : IServiceActivatorFactory
     {
         delegate object ApplyLifeStyleDelegate(
-            IServiceLifeScope scope,
+            IServiceLifeScope lifeScope,
             Type serviceType,
             ServiceLifeStyle lifeStyle,
             Func<IServiceResolver, object> factory
@@ -25,7 +25,7 @@ namespace Tinja.Resolving.Activation
 
         static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
 
-        static ServiceInjectionActivatorFactory()
+        static ServiceActivatorFactory()
         {
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
@@ -34,12 +34,12 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        public ServiceInjectionActivatorFactory()
+        public ServiceActivatorFactory()
         {
-            _resolvedProperties = new Dictionary<IResolvingContext, HashSet<IResolvingContext>>();
+            _resolvedProperties = new Dictionary<IServiceResolvingContext, HashSet<IServiceResolvingContext>>();
         }
 
-        public Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(ServiceDependChain chain)
+        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceDependencyChain chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -50,7 +50,7 @@ namespace Tinja.Resolving.Activation
             return factory;
         }
 
-        public Expression BuildPropertyInfo(Expression instance, ServiceDependChain node)
+        public Expression BuildPropertyInfo(Expression instance, ServiceDependencyChain node)
         {
             if (instance.Type != node.Constructor.ConstructorInfo.DeclaringType)
             {
@@ -103,7 +103,7 @@ namespace Tinja.Resolving.Activation
 
         protected virtual
             Func<IServiceResolver, IServiceLifeScope, object>
-            CreateActivatorCore(ServiceDependChain chain)
+            CreateActivatorCore(ServiceDependencyChain chain)
         {
             var lambdaBody = BuildExpression(chain);
             if (lambdaBody == null)
@@ -122,7 +122,7 @@ namespace Tinja.Resolving.Activation
                 .Compile();
         }
 
-        protected Expression BuildExpression(ServiceDependChain chain)
+        protected Expression BuildExpression(ServiceDependencyChain chain)
         {
             if (chain.Constructor == null)
             {
@@ -130,13 +130,13 @@ namespace Tinja.Resolving.Activation
             }
 
             var instance = null as Expression;
-            if (chain is ServiceEnumerableDependChain enumerable)
+            if (chain is ServiceDependencyEnumerableChain enumerable)
             {
                 instance = BuildWithEnumerable(enumerable);
             }
             else
             {
-                instance = BuildWithConstructor(chain as ServiceDependChain);
+                instance = BuildWithConstructor(chain as ServiceDependencyChain);
             }
 
             if (instance == null)
@@ -156,18 +156,9 @@ namespace Tinja.Resolving.Activation
             }
 
             return WrapperWithLifeStyle(wInstance, chain);
-
-            //var wInstance = WrapperWithLifeStyle(instance, chain);
-
-            //if (chain.Properties != null && chain.Properties.Count != 0)
-            //{
-            //    return BuildPropertyInfo(wInstance, chain);
-            //}
-
-            //return wInstance;
         }
 
-        protected virtual Expression BuildWithImplFactory(ServiceDependChain chain)
+        protected virtual Expression BuildWithImplFactory(ServiceDependencyChain chain)
         {
             return
                 Expression.Invoke(
@@ -179,7 +170,7 @@ namespace Tinja.Resolving.Activation
                 );
         }
 
-        protected virtual Expression BuildWithConstructor(ServiceDependChain node)
+        protected virtual Expression BuildWithConstructor(ServiceDependencyChain node)
         {
             var parameterValues = new Expression[node.Parameters?.Count ?? 0];
             var varible = Expression.Variable(node.Constructor.ConstructorInfo.DeclaringType);
@@ -200,7 +191,7 @@ namespace Tinja.Resolving.Activation
             return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
         }
 
-        protected virtual Expression BuildWithEnumerable(ServiceEnumerableDependChain node)
+        protected virtual Expression BuildWithEnumerable(ServiceDependencyEnumerableChain node)
         {
             var elementInits = new ElementInit[node.Elements.Length];
             var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
@@ -219,9 +210,9 @@ namespace Tinja.Resolving.Activation
             return Expression.ListInit(Expression.New(node.Constructor.ConstructorInfo), elementInits);
         }
 
-        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceDependChain chain)
+        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceDependencyChain chain)
         {
-            if (!chain.IsNeedWrappedLifeStyle())
+            if (!chain.ShouldHoldServiceLife())
             {
                 return instance;
             }
@@ -245,6 +236,6 @@ namespace Tinja.Resolving.Activation
                 );
         }
 
-        private Dictionary<IResolvingContext, HashSet<IResolvingContext>> _resolvedProperties;
+        private Dictionary<IServiceResolvingContext, HashSet<IServiceResolvingContext>> _resolvedProperties;
     }
 }

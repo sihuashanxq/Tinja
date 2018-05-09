@@ -1,43 +1,42 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency.Scope;
 
 namespace Tinja.Resolving.Dependency.Builder
 {
-    public class ServiceDependencyBuilder
+    public class ServiceConstructorDependencyChainBuilder
     {
-        protected ServiceDependScope ServiceDependScope { get; set; }
+        protected ServiceDependencyScope ServiceDependScope { get; set; }
 
-        protected IResolvingContextBuilder ResolvingContextBuilder { get; set; }
+        protected IServiceResolvingContextBuilder ResolvingContextBuilder { get; set; }
 
-        private IResolvingContext _startContext;
+        private IServiceResolvingContext _startContext;
 
-        public ServiceDependencyBuilder(IResolvingContextBuilder resolvingContextBuilder)
-            : this(new ServiceDependScope(), resolvingContextBuilder)
+        public ServiceConstructorDependencyChainBuilder(IServiceResolvingContextBuilder resolvingContextBuilder)
+            : this(new ServiceDependencyScope(), resolvingContextBuilder)
         {
 
         }
 
-        public ServiceDependencyBuilder(ServiceDependScope scope, IResolvingContextBuilder resolvingContextBuilder)
+        public ServiceConstructorDependencyChainBuilder(ServiceDependencyScope scope, IServiceResolvingContextBuilder resolvingContextBuilder)
         {
             ServiceDependScope = scope;
             ResolvingContextBuilder = resolvingContextBuilder;
         }
 
-        public virtual ServiceDependChain BuildDependChain(IResolvingContext target)
+        public virtual ServiceDependencyChain Build(IServiceResolvingContext target)
         {
             if (_startContext == null)
             {
                 _startContext = target;
             }
 
-            return BuildDependChainCore(target);
+            return BuildCore(target);
         }
 
-        protected virtual ServiceDependChain BuildDependChainCore(
-            IResolvingContext target,
+        protected virtual ServiceDependencyChain BuildCore(
+            IServiceResolvingContext target,
             ServiceDependScopeType scopeType = ServiceDependScopeType.None
         )
         {
@@ -45,7 +44,7 @@ namespace Tinja.Resolving.Dependency.Builder
             {
                 return ServiceDependScope.AddResolvedService(
                     target,
-                    new ServiceDependChain()
+                    new ServiceDependencyChain()
                     {
                         Constructor = null,
                         Context = target
@@ -53,9 +52,9 @@ namespace Tinja.Resolving.Dependency.Builder
                 );
             }
 
-            using (ServiceDependScope.BeginScope(target, target.ServiceInfo.Type, scopeType))
+            using (ServiceDependScope.BeginScope(target, target.ImplementationTypeMeta.Type, scopeType))
             {
-                var chain = BuildConstructorDependChain(target);
+                var chain = BuildConstructor(target);
                 if (chain == null)
                 {
                     return chain;
@@ -63,31 +62,31 @@ namespace Tinja.Resolving.Dependency.Builder
 
                 ServiceDependScope.AddResolvedService(target, chain);
 
-                return BuildPropertyDependChain(chain);
+                return BuildProperties(chain);
             }
         }
 
-        protected virtual ServiceDependChain BuildPropertyDependChain(ServiceDependChain chain)
+        protected virtual ServiceDependencyChain BuildProperties(ServiceDependencyChain chain)
         {
             if (chain.Context == _startContext)
             {
-                return new ServicePropertyDependencyBuilder(ServiceDependScope, ResolvingContextBuilder).BuildPropertyDependChain(chain);
+                return new ServicePropertyDependencyChainBuilder(ServiceDependScope, ResolvingContextBuilder).BuildProperties(chain);
             }
 
             return chain;
         }
 
-        protected virtual ServiceDependChain BuildConstructorDependChain(IResolvingContext target)
+        protected virtual ServiceDependencyChain BuildConstructor(IServiceResolvingContext target)
         {
-            return target is ResolvingEnumerableContext eContext
-                 ? BuildEnumerableCommonConstructorDependChain(eContext)
-                 : BuildCommonConstructorDependChain(target);
+            return target is ServiceResolvingEnumerableContext eContext
+                 ? BuildEnumerableConstructor(eContext)
+                 : BuildCommonConstructor(target);
         }
 
-        protected virtual ServiceDependChain BuildCommonConstructorDependChain(IResolvingContext target)
+        protected virtual ServiceDependencyChain BuildCommonConstructor(IServiceResolvingContext target)
         {
-            var constructors = target.ServiceInfo.Constructors;
-            var parameters = new Dictionary<ParameterInfo, ServiceDependChain>();
+            var constructors = target.ImplementationTypeMeta.Constructors;
+            var parameters = new Dictionary<ParameterInfo, ServiceDependencyChain>();
 
             foreach (var item in constructors.OrderByDescending(i => i.Paramters.Length))
             {
@@ -114,7 +113,7 @@ namespace Tinja.Resolving.Dependency.Builder
                         }
                     }
 
-                    var paramterChain = BuildDependChainCore(context, ServiceDependScopeType.Parameter);
+                    var paramterChain = BuildCore(context, ServiceDependScopeType.Parameter);
                     if (paramterChain == null)
                     {
                         parameters.Clear();
@@ -126,7 +125,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
                 if (parameters.Count == item.Paramters.Length)
                 {
-                    return new ServiceDependChain()
+                    return new ServiceDependencyChain()
                     {
                         Constructor = item,
                         Context = target,
@@ -138,13 +137,13 @@ namespace Tinja.Resolving.Dependency.Builder
             return null;
         }
 
-        protected virtual ServiceDependChain BuildEnumerableCommonConstructorDependChain(ResolvingEnumerableContext target)
+        protected virtual ServiceDependencyChain BuildEnumerableConstructor(ServiceResolvingEnumerableContext target)
         {
-            var elements = new List<ServiceDependChain>();
+            var elements = new List<ServiceDependencyChain>();
 
             for (var i = 0; i < target.ElementContexts.Count; i++)
             {
-                var ele = BuildConstructorDependChain(target.ElementContexts[i]);
+                var ele = BuildConstructor(target.ElementContexts[i]);
                 if (ele == null)
                 {
                     continue;
@@ -153,29 +152,29 @@ namespace Tinja.Resolving.Dependency.Builder
                 elements.Add(ele);
             }
 
-            return new ServiceEnumerableDependChain()
+            return new ServiceDependencyEnumerableChain()
             {
                 Context = target,
-                Constructor = target.ServiceInfo.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
+                Constructor = target.ImplementationTypeMeta.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
                 Elements = elements.ToArray()
             };
         }
 
-        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(IResolvingContext target, IResolvingContext parameter)
+        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(IServiceResolvingContext target, IServiceResolvingContext parameter)
         {
-            throw new ServiceConstructorCircularExpcetion(parameter.ServiceInfo.Type, $"Circulard ependencies at type:{parameter.ServiceInfo.Type.FullName}");
+            throw new ServiceCircularExpcetion(parameter.ImplementationTypeMeta.Type, $"Circulard ependencies at type:{parameter.ImplementationTypeMeta.Type.FullName}");
         }
 
-        protected virtual bool IsCircularDependency(IResolvingContext target)
+        protected virtual bool IsCircularDependency(IServiceResolvingContext target)
         {
-            return ServiceDependScope.Constains(target.ServiceInfo.Type);
+            return ServiceDependScope.Constains(target.ImplementationTypeMeta.Type);
         }
 
         protected class CircularDependencyResolveResult
         {
             public bool Break { get; set; }
 
-            public ServiceDependChain Chain { get; set; }
+            public ServiceDependencyChain Chain { get; set; }
 
             public static CircularDependencyResolveResult BreakResult = new CircularDependencyResolveResult
             {

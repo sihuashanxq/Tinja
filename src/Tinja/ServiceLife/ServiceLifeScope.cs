@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Resolving;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 
 namespace Tinja.ServiceLife
 {
@@ -36,7 +36,7 @@ namespace Tinja.ServiceLife
             _scopedObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyServiceLifeStyle(IResolvingContext context, Func<IServiceResolver, object> factory)
+        public object ApplyServiceLifeStyle(IServiceResolvingContext context, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {

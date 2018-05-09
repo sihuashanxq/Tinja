@@ -1,6 +1,5 @@
 ﻿using System;
 using Tinja.ServiceLife;
-using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {

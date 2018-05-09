@@ -2,29 +2,28 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Tinja.ServiceLife;
-using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceDependChain
+    public class ServiceDependencyChain
     {
-        public IResolvingContext Context { get; set; }
+        public IServiceResolvingContext Context { get; set; }
 
-        public ServiceConstructorInfo Constructor { get; set; }
+        public TypeConstructorMetadata Constructor { get; set; }
 
-        public Dictionary<PropertyInfo, ServiceDependChain> Properties { get; set; }
+        public Dictionary<PropertyInfo, ServiceDependencyChain> Properties { get; set; }
 
-        public Dictionary<ParameterInfo, ServiceDependChain> Parameters { get; set; }
+        public Dictionary<ParameterInfo, ServiceDependencyChain> Parameters { get; set; }
 
         /// <summary>
         /// Property Circular Dependencies,just Singleton/Scoped
         /// </summary>
         public bool IsPropertyCircularDependencies { get; internal set; }
 
-        public ServiceDependChain()
+        public ServiceDependencyChain()
         {
-            Properties = new Dictionary<PropertyInfo, ServiceDependChain>();
-            Parameters = new Dictionary<ParameterInfo, ServiceDependChain>();
+            Properties = new Dictionary<PropertyInfo, ServiceDependencyChain>();
+            Parameters = new Dictionary<ParameterInfo, ServiceDependencyChain>();
         }
 
         public virtual bool ContainsPropertyCircularDependencies()
@@ -56,7 +55,7 @@ namespace Tinja.Resolving.Dependency
             return false;
         }
 
-        public virtual bool IsNeedWrappedLifeStyle()
+        public virtual bool ShouldHoldServiceLife()
         {
             if (Context.Component.LifeStyle != ServiceLifeStyle.Transient)
             {

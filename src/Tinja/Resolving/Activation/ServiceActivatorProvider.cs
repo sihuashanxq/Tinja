@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 using Tinja.Resolving.Dependency;
 using Tinja.Resolving.Dependency.Builder;
 using Tinja.ServiceLife;
@@ -11,11 +11,11 @@ namespace Tinja.Resolving.Activation
     {
         static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
 
-        private IResolvingContextBuilder _builder;
+        private IServiceResolvingContextBuilder _builder;
 
         private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
 
-        public ServiceActivatorProvider(IResolvingContextBuilder builder)
+        public ServiceActivatorProvider(IServiceResolvingContextBuilder builder)
         {
             _builder = builder;
             _activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
@@ -34,15 +34,13 @@ namespace Tinja.Resolving.Activation
                 if (context.Component.ImplementionFactory != null)
                 {
                     return (resolver, scope) =>
-                    {
-                        return scope.ApplyServiceLifeStyle(
+                         scope.ApplyServiceLifeStyle(
                             context,
                             scopeResolver => context.Component.ImplementionFactory(scopeResolver)
-                        );
-                    };
+                         );
                 }
 
-                var chain = CreateDependencyBuilder().BuildDependChain(context);
+                var chain = GetDependencyChain(context);
                 if (chain == null)
                 {
                     return EmptyFactory;
@@ -52,19 +50,19 @@ namespace Tinja.Resolving.Activation
             });
         }
 
-        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceDependChain chain)
+        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceDependencyChain chain)
         {
             if (chain.ContainsPropertyCircularDependencies())
             {
-                return new ServicePropertyCircularInjectionActivatorFactory().CreateActivator(chain);
+                return new ServicePropertyCircularActivatorFactory().Create(chain);
             }
 
-            return new ServiceInjectionActivatorFactory().CreateActivator(chain);
+            return new ServiceActivatorFactory().Create(chain);
         }
 
-        protected virtual ServiceDependencyBuilder CreateDependencyBuilder()
+        protected virtual ServiceDependencyChain GetDependencyChain(IServiceResolvingContext context)
         {
-            return new ServiceDependencyBuilder(_builder);
+            return new ServiceConstructorDependencyChainBuilder(_builder).Build(context);
         }
     }
 }

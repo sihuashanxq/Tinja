@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Tinja.ServiceLife;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
-using Tinja.Resolving.Context;
+using Tinja.Resolving;
 using Tinja.Resolving.Dependency.Builder;
-using Tinja.Resolving.Service;
+using Tinja.Resolving.Metadata;
 
 namespace Tinja
 {
@@ -13,14 +13,14 @@ namespace Tinja
     {
         public static IServiceResolver BuildResolver(this IContainer ioc)
         {
-            var builder = new ResolvingContextBuilder(new ServiceInfoFactory());
+            var builder = new ServiceResolvingContextBuilder(new TypeMetadataFactory());
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
             var serviceActivatorProvider = new ServiceActivatorProvider(builder);
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
             ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
 
-            ioc.AddSingleton(typeof(IResolvingContextBuilder), _ => builder);
+            ioc.AddSingleton(typeof(IServiceResolvingContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
 
