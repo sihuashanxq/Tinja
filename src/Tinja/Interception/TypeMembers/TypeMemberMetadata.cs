@@ -10,10 +10,10 @@ namespace Tinja.Interception.TypeMembers
 
         public MemberInfo ImplementionMemberInfo { get; set; }
 
-        public IEnumerable<Type> DeclareTypes { get; set; }
+        public IEnumerable<Type> BaseTypes { get; set; }
 
-        public IEnumerable<MemberInfo> DeclareMemberInfos { get; set; }
+        public IEnumerable<MemberInfo> BaseMemberInfos { get; set; }
 
-        public IEnumerable<InterceptorDeclare> InterceptorDeclares { get; set; }
+        public IEnumerable<InterceptorBinding> InterceptorBindings { get; set; }
     }
 }

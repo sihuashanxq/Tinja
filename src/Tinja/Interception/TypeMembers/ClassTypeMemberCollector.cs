@@ -22,8 +22,8 @@ namespace Tinja.Interception.TypeMembers
                 {
                     ImplementionType = ImplementionType,
                     ImplementionMemberInfo = item,
-                    DeclareTypes = baseDefinitions.Select(i => i.DeclaringType),
-                    DeclareMemberInfos = baseDefinitions
+                    BaseTypes = baseDefinitions.Select(i => i.DeclaringType),
+                    BaseMemberInfos = baseDefinitions
                 };
 
                 AddCollectedMethodInfo(typeMember);
@@ -62,8 +62,8 @@ namespace Tinja.Interception.TypeMembers
                 {
                     ImplementionType = ImplementionType,
                     ImplementionMemberInfo = item,
-                    DeclareTypes = baseTypes,
-                    DeclareMemberInfos = list
+                    BaseTypes = baseTypes,
+                    BaseMemberInfos = list
                 };
 
                 AddCollectedPropertyInfo(typeMember);

@@ -4,9 +4,9 @@
     {
         public IInterceptor Interceptor { get; }
 
-        public InterceptorDeclare Declaration { get; }
+        public InterceptorBinding Declaration { get; }
 
-        public InterceptorMetadata(IInterceptor interceptor, InterceptorDeclare declaration)
+        public InterceptorMetadata(IInterceptor interceptor, InterceptorBinding declaration)
         {
             Interceptor = interceptor;
             Declaration = declaration;

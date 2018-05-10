@@ -7,7 +7,7 @@ namespace Tinja.Interception.TypeMembers
 {
     public abstract class TypeMemberCollector : ITypeMemberCollector
     {
-        protected Type DeclareType { get; }
+        protected Type BaseType { get; }
 
         protected Type ImplementionType { get; }
 
@@ -17,21 +17,18 @@ namespace Tinja.Interception.TypeMembers
 
         protected Type[] ImplementedInterfaces { get; }
 
-        protected IEnumerable<PropertyInfo> ImplementedProperties { get; }
-
-        protected Dictionary<Type, InterceptorDeclare> InterceptorMapping { get; }
+        protected Dictionary<Type, InterceptorBinding> BindingMap { get; }
 
         public TypeMemberCollector(Type declareType, Type implementionType)
         {
-            DeclareType = declareType;
+            BaseType = declareType;
             ImplementionType = implementionType;
 
             CollectedMethods = new List<TypeMemberMetadata>();
             CollectedProperties = new List<TypeMemberMetadata>();
-            InterceptorMapping = new Dictionary<Type, InterceptorDeclare>();
+            BindingMap = new Dictionary<Type, InterceptorBinding>();
 
             ImplementedInterfaces = ImplementionType.GetInterfaces();
-            ImplementedProperties = ImplementionType.GetProperties(new[] { typeof(object) });
         }
 
         public IEnumerable<TypeMemberMetadata> Collect()
@@ -91,38 +88,30 @@ namespace Tinja.Interception.TypeMembers
             return list;
         }
 
-        protected virtual InterceptorDeclare[] GetInterceptorDeclares(MemberInfo memberInfo)
+        protected virtual InterceptorBinding[] GetInterceptorBindings(MemberInfo impl, MemberInfo definition)
         {
-            if (memberInfo == null)
+            if (definition == null || impl == null)
             {
-                return new InterceptorDeclare[0];
+                return new InterceptorBinding[0];
             }
 
-            var attrs = memberInfo.GetInterceptorAttributes();
-            var declares = new InterceptorDeclare[attrs.Length];
+            var attrs = definition.GetInterceptorAttributes();
+            var bindings = new InterceptorBinding[attrs.Length];
 
             for (var i = 0; i < attrs.Length; i++)
             {
                 var attr = attrs[i];
-                var declare = InterceptorMapping.GetValueOrDefault(attr.InterceptorType);
-                if (declare == null)
+                var binding = BindingMap.GetValueOrDefault(attr.InterceptorType);
+                if (binding == null)
                 {
-                    declare = InterceptorMapping[attr.InterceptorType] = new InterceptorDeclare(attr);
+                    binding = BindingMap[attr.InterceptorType] = new InterceptorBinding(attr);
                 }
 
-                if (memberInfo is Type typeInfo)
-                {
-                    declare.DeclaredTypes.Add(typeInfo);
-                }
-                else if (memberInfo is MethodInfo methodInfo)
-                {
-                    declare.DeclaredMembers.Add(methodInfo);
-                }
-
-                declares[i] = declare;
+                binding.AddTarget(impl);
+                bindings[i] = binding;
             }
 
-            return declares;
+            return bindings;
         }
 
         protected virtual void HandleTypeMemberInterceptors()
@@ -131,7 +120,7 @@ namespace Tinja.Interception.TypeMembers
             {
                 HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
 
-                foreach (var declareMember in item.DeclareMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                foreach (var declareMember in item.BaseMemberInfos.Where(i => i.DeclaringType.IsInterface))
                 {
                     HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
                 }
@@ -141,7 +130,7 @@ namespace Tinja.Interception.TypeMembers
             {
                 HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
 
-                foreach (var declareMember in item.DeclareMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                foreach (var declareMember in item.BaseMemberInfos.Where(i => i.DeclaringType.IsInterface))
                 {
                     HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
                 }
@@ -150,23 +139,23 @@ namespace Tinja.Interception.TypeMembers
 
         protected void HandleTypeMemberInterceptors(TypeMemberMetadata typeMember, MemberInfo memberInfo, Type typeInfo)
         {
-            var typeDeclares = GetInterceptorDeclares(typeInfo);
-            var memberDeclares = GetInterceptorDeclares(memberInfo);
+            var typeBindings = GetInterceptorBindings(typeMember.ImplementionType, typeInfo);
+            var memberBindings = GetInterceptorBindings(typeMember.ImplementionMemberInfo, memberInfo);
 
-            if (typeMember.InterceptorDeclares != null)
+            if (typeMember.InterceptorBindings != null)
             {
-                typeMember.InterceptorDeclares = typeMember
-                    .InterceptorDeclares
-                    .Concat(memberDeclares)
-                    .Concat(typeDeclares)
+                typeMember.InterceptorBindings = typeMember
+                    .InterceptorBindings
+                    .Concat(memberBindings)
+                    .Concat(typeBindings)
                     .Distinct(declare => declare.Interceptor);
             }
             else
             {
-                typeMember.InterceptorDeclares = memberDeclares
-                    .Concat(typeDeclares)
+                typeMember.InterceptorBindings = memberBindings
+                    .Concat(typeBindings)
                     .Distinct(declare => declare.Interceptor);
             }
         }
-  }
+    }
 }
