@@ -19,9 +19,9 @@ namespace Tinja.Interception.TypeMembers
 
         protected Dictionary<Type, InterceptorBinding> BindingMap { get; }
 
-        public TypeMemberCollector(Type declareType, Type implementionType)
+        public TypeMemberCollector(Type baseType, Type implementionType)
         {
-            BaseType = declareType;
+            BaseType = baseType;
             ImplementionType = implementionType;
 
             CollectedMethods = new List<TypeMemberMetadata>();
@@ -118,9 +118,9 @@ namespace Tinja.Interception.TypeMembers
         {
             foreach (var item in CollectedProperties)
             {
-                HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
+                HandleTypeMemberInterceptors(item, item.ImplementionMember, item.ImplementionType);
 
-                foreach (var declareMember in item.BaseMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                foreach (var declareMember in item.BaseMembers.Where(i => i.DeclaringType.IsInterface))
                 {
                     HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
                 }
@@ -128,9 +128,9 @@ namespace Tinja.Interception.TypeMembers
 
             foreach (var item in CollectedMethods)
             {
-                HandleTypeMemberInterceptors(item, item.ImplementionMemberInfo, item.ImplementionType);
+                HandleTypeMemberInterceptors(item, item.ImplementionMember, item.ImplementionType);
 
-                foreach (var declareMember in item.BaseMemberInfos.Where(i => i.DeclaringType.IsInterface))
+                foreach (var declareMember in item.BaseMembers.Where(i => i.DeclaringType.IsInterface))
                 {
                     HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
                 }
@@ -140,7 +140,7 @@ namespace Tinja.Interception.TypeMembers
         protected void HandleTypeMemberInterceptors(TypeMemberMetadata typeMember, MemberInfo memberInfo, Type typeInfo)
         {
             var typeBindings = GetInterceptorBindings(typeMember.ImplementionType, typeInfo);
-            var memberBindings = GetInterceptorBindings(typeMember.ImplementionMemberInfo, memberInfo);
+            var memberBindings = GetInterceptorBindings(typeMember.ImplementionMember, memberInfo);
 
             if (typeMember.InterceptorBindings != null)
             {

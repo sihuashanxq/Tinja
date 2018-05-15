@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Tinja\Tinja.csproj" />
+    <ProjectReference Include="..\..\src\Tinja\Tinja.csproj" />
   </ItemGroup>
 
 </Project>

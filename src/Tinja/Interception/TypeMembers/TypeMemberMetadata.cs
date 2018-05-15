@@ -8,12 +8,21 @@ namespace Tinja.Interception.TypeMembers
     {
         public Type ImplementionType { get; set; }
 
-        public MemberInfo ImplementionMemberInfo { get; set; }
+        public MemberInfo ImplementionMember { get; set; }
 
         public IEnumerable<Type> BaseTypes { get; set; }
 
-        public IEnumerable<MemberInfo> BaseMemberInfos { get; set; }
+        public IEnumerable<MemberInfo> BaseMembers { get; set; }
 
         public IEnumerable<InterceptorBinding> InterceptorBindings { get; set; }
+
+        public bool IsProperty =>
+             ImplementionMember.MemberType == MemberTypes.Property;
+
+        public bool IsEvent =>
+            ImplementionMember.MemberType == MemberTypes.Event;
+
+        public bool IsMethod => 
+            ImplementionMember.MemberType == MemberTypes.Method;
     }
 }

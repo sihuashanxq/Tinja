@@ -10,9 +10,9 @@ namespace Tinja.Interception.TypeMembers
         protected IEnumerable<PropertyInfo> ImplementedProperties { get; }
 
         public InterfaceTypeMemberCollector(
-            Type declareType,
+            Type baseType,
             Type implementionType
-        ) : base(declareType, implementionType)
+        ) : base(baseType, implementionType)
         {
             ImplementedProperties = implementionType.GetProperties(new[] { typeof(object) });
         }
@@ -41,8 +41,8 @@ namespace Tinja.Interception.TypeMembers
                     AddCollectedMethodInfo(new TypeMemberMetadata()
                     {
                         BaseTypes = new[] { mapping.InterfaceType },
-                        BaseMemberInfos = new[] { mapping.InterfaceMethods[i] },
-                        ImplementionMemberInfo = mapping.TargetMethods[i],
+                        BaseMembers = new[] { mapping.InterfaceMethods[i] },
+                        ImplementionMember = mapping.TargetMethods[i],
                         ImplementionType = ImplementionType
                     });
                 }
@@ -63,10 +63,10 @@ namespace Tinja.Interception.TypeMembers
 
                     AddCollectedPropertyInfo(new TypeMemberMetadata()
                     {
-                        ImplementionMemberInfo = classProperty,
+                        ImplementionMember = classProperty,
                         ImplementionType = ImplementionType,
                         BaseTypes = new[] { item },
-                        BaseMemberInfos = new[] { property }
+                        BaseMembers = new[] { property }
                     });
                 }
             }

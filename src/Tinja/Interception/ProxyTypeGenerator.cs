@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extension;
+using Tinja.Interception.TypeMembers;
 using Tinja.Resolving;
 
 namespace Tinja.Interception
@@ -18,13 +19,15 @@ namespace Tinja.Interception
 
         protected TypeBuilder TypeBuilder { get; set; }
 
+        protected TypeFieldEmitter TypeFieldEmitter { get; set; }
+
         protected FieldBuilder ImplenmetionField { get; set; }
 
         protected FieldBuilder ResolverField { get; set; }
 
-        protected ServiceImplementionMapping Mapping { get; }
+        protected IEnumerable<TypeMemberMetadata> ProxyMembers { get; }
 
-        protected Dictionary<MethodInfo, FieldBuilder> MethodFields { get; }
+        protected Dictionary<MemberInfo, FieldBuilder> MethodFields { get; }
 
         static MethodInfo MethodInvocationExecute { get; }
 
@@ -41,29 +44,23 @@ namespace Tinja.Interception
             BaseType = baseType;
             ImplementionType = implemetionType;
 
-            MethodFields = new Dictionary<MethodInfo, FieldBuilder>();
-            Mapping = new ServiceImplementionMapping()
-            {
-                ServiceType = BaseType,
-                ServiceProperties = BaseType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic),
-                ImplementionType = ImplementionType,
-                ImplementionProperties = ImplementionType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic),
-                ServiceMethods = BaseType
-                    .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                    .Where(i => i.DeclaringType != typeof(object))
-                    .ToArray(),
-                ImplementionMethods = ImplementionType
-                    .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                    .Where(i => i.DeclaringType != typeof(object))
-                    .ToArray()
-            };
+            //if (BaseType.IsInterface)
+            //{
+            //    ProxyMembers = new InterfaceTypeMemberCollector(BaseType, implemetionType).Collect();
+            //}
+            //else
+            //{
+            //    ProxyMembers = new ClassTypeMemberCollector(BaseType, implemetionType).Collect();
+            //}
+
+            TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
+            TypeFieldEmitter = new TypeFieldEmitter(TypeBuilder);
         }
 
         public virtual Type CreateProxyType()
         {
-            CreateTypeBuilder();
-
-            CreateTypeFields();
+            TypeFieldEmitter.CreateField("__target", ImplementionType, FieldAttributes.Private);
+            TypeFieldEmitter.CreateField("__resolver", typeof(IServiceResolver), FieldAttributes.Private);
 
             CreateTypeConstrcutors();
 
@@ -72,34 +69,22 @@ namespace Tinja.Interception
             return TypeBuilder.CreateType();
         }
 
-        protected virtual void CreateTypeBuilder()
-        {
-            TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
-        }
-
         protected FieldBuilder CreateField(Type fieldType, FieldAttributes fieldAttributes = FieldAttributes.Private)
         {
             return TypeBuilder.DefineField(GetMemberPostfix(), fieldType, fieldAttributes);
         }
 
-        protected virtual void CreateTypeFields()
-        {
-            ResolverField = CreateField(typeof(IServiceResolver));
-
-            ImplenmetionField = CreateField(ImplementionType);
-        }
-
         protected virtual void CreateTypeMethods()
         {
-            foreach (var overrideMethodInfo in Mapping.ImplementionMethods)
+            foreach (var meta in ProxyMembers)
             {
-                var paramterInfos = overrideMethodInfo.GetParameters();
+                var paramterInfos = meta.GetParameters();
                 var paramterTypes = paramterInfos.Select(i => i.ParameterType).ToArray();
                 var methodBudiler = TypeBuilder.DefineMethod(
-                    overrideMethodInfo.Name,
+                    meta.Name,
                     MethodAttributes.Public | MethodAttributes.Virtual,
                     CallingConventions.HasThis,
-                    overrideMethodInfo.ReturnType,
+                    meta.ReturnType,
                     paramterTypes
                 );
 
@@ -114,7 +99,7 @@ namespace Tinja.Interception
                 //executor.Execute(new MethodInvocation)
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, ImplenmetionField);
-                il.Emit(OpCodes.Ldsfld, MethodFields[overrideMethodInfo]);
+                il.Emit(OpCodes.Ldsfld, MethodFields[meta]);
 
                 //new Parameters[]
                 il.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
@@ -131,14 +116,14 @@ namespace Tinja.Interception
 
                 il.Emit(OpCodes.Newobj, MethodInvocation.Constrcutor);
                 il.Emit(OpCodes.Callvirt, MethodInvocationExecute);
-                il.Emit(overrideMethodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+                il.Emit(meta.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
                 il.Emit(OpCodes.Ret);
             }
         }
 
         protected virtual void CreateTypeConstrcutors()
         {
-            CreateTypeStaticConstrcutor();
+            CreateStaticConstrcutor();
 
             var constructorInfos = BaseType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             if (constructorInfos == null || constructorInfos.Length == 0)
@@ -153,20 +138,14 @@ namespace Tinja.Interception
             }
         }
 
-        protected virtual void CreateTypeStaticConstrcutor()
+        protected virtual void CreateStaticConstrcutor()
         {
             var ctor = TypeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes);
             var il = ctor.GetILGenerator();
 
-            foreach (var item in Mapping.ServiceMethods)
+            foreach (var item in ProxyMembers.Where(u => u.IsMethod))
             {
-                MethodFields[item] = CreateField(typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
-                TypeGeneratorUtil.AssignFieldWithMethodInfo(il, MethodFields[item], item);
-            }
-
-            foreach (var item in Mapping.ImplementionMethods)
-            {
-                MethodFields[item] = CreateField(typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                MethodFields[item.ImplementionMember] = CreateField(typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
                 TypeGeneratorUtil.AssignFieldWithMethodInfo(il, MethodFields[item], item);
             }
 
@@ -230,6 +209,34 @@ namespace Tinja.Interception
         protected virtual Type[] GetExtraConstrcutorParameters()
         {
             return new[] { ImplementionType, typeof(IServiceResolver) };
+        }
+    }
+
+    public class TypeFieldEmitter
+    {
+        private TypeBuilder _typeBuilder;
+
+        private Dictionary<string, FieldBuilder> _fields;
+
+        public TypeFieldEmitter(TypeBuilder typeBuilder)
+        {
+            _typeBuilder = typeBuilder;
+            _fields = new Dictionary<string, FieldBuilder>();
+        }
+
+        public FieldBuilder GetField(string name)
+        {
+            return _fields.GetValueOrDefault(name);
+        }
+
+        public void CreateField(string name, Type fieldType, FieldAttributes attributes)
+        {
+            if (_fields.ContainsKey(name))
+            {
+                throw new NotSupportedException();
+            }
+
+            _fields[name] = _typeBuilder.DefineField(name, fieldType, attributes);
         }
     }
 }

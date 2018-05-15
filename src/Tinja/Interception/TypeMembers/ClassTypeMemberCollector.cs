@@ -7,8 +7,8 @@ namespace Tinja.Interception.TypeMembers
 {
     public class ClassTypeMemberCollector : TypeMemberCollector
     {
-        public ClassTypeMemberCollector(Type declareType, Type implementionType)
-            : base(declareType, implementionType)
+        public ClassTypeMemberCollector(Type baseType, Type implementionType)
+            : base(baseType, implementionType)
         {
 
         }
@@ -17,13 +17,13 @@ namespace Tinja.Interception.TypeMembers
         {
             foreach (var item in ImplementionType.GetMethods(new[] { typeof(object) }).Where(i => i.IsVirtual && !i.IsPrivate))
             {
-                var baseDefinitions = GetBaseDefinition(item);
+                var definitions = GetBaseDefinition(item);
                 var typeMember = new TypeMemberMetadata()
                 {
                     ImplementionType = ImplementionType,
-                    ImplementionMemberInfo = item,
-                    BaseTypes = baseDefinitions.Select(i => i.DeclaringType),
-                    BaseMemberInfos = baseDefinitions
+                    ImplementionMember = item,
+                    BaseTypes = definitions.Select(i => i.DeclaringType),
+                    BaseMembers = definitions
                 };
 
                 AddCollectedMethodInfo(typeMember);
@@ -49,8 +49,8 @@ namespace Tinja.Interception.TypeMembers
                     continue;
                 }
 
-                var baseDefinitions = GetBaseDefinition(methodInfo);
-                var baseTypes = baseDefinitions.Select(i => i.DeclaringType);
+                var definitions = GetBaseDefinition(methodInfo);
+                var baseTypes = definitions.Select(i => i.DeclaringType);
                 var list = new List<MemberInfo>();
 
                 foreach (var property in baseTypes.Select(baseType => baseType.GetProperty(item.Name)))
@@ -61,9 +61,9 @@ namespace Tinja.Interception.TypeMembers
                 var typeMember = new TypeMemberMetadata()
                 {
                     ImplementionType = ImplementionType,
-                    ImplementionMemberInfo = item,
+                    ImplementionMember = item,
                     BaseTypes = baseTypes,
-                    BaseMemberInfos = list
+                    BaseMembers = list
                 };
 
                 AddCollectedPropertyInfo(typeMember);
