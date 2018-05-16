@@ -11,27 +11,21 @@ namespace Tinja.Interception
 {
     public class ProxyTypeGenerator : IProxyTypeGenerator
     {
+        static MethodInfo MethodServiceResolve { get; }
+
+        static MethodInfo MethodInvocationExecute { get; }
+
         protected Type BaseType { get; }
 
         protected Type ImplementionType { get; }
 
-        protected int PostfixCounter { get; set; }
-
         protected TypeBuilder TypeBuilder { get; set; }
 
-        protected TypeFieldEmitter TypeFieldEmitter { get; set; }
+        protected IEnumerable<TypeMemberMetadata> MemberMetas { get; }
 
-        protected FieldBuilder ImplenmetionField { get; set; }
+        private Dictionary<string, FieldBuilder> _nameFields;
 
-        protected FieldBuilder ResolverField { get; set; }
-
-        protected IEnumerable<TypeMemberMetadata> ProxyMembers { get; }
-
-        protected Dictionary<MemberInfo, FieldBuilder> MethodFields { get; }
-
-        static MethodInfo MethodInvocationExecute { get; }
-
-        static MethodInfo MethodServiceResolve { get; }
+        private Dictionary<MethodInfo, FieldBuilder> _methodFields;
 
         static ProxyTypeGenerator()
         {
@@ -41,6 +35,9 @@ namespace Tinja.Interception
 
         public ProxyTypeGenerator(Type baseType, Type implemetionType)
         {
+            _nameFields = new Dictionary<string, FieldBuilder>();
+            _methodFields = new Dictionary<MethodInfo, FieldBuilder>();
+
             BaseType = baseType;
             ImplementionType = implemetionType;
 
@@ -54,13 +51,12 @@ namespace Tinja.Interception
             //}
 
             TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
-            TypeFieldEmitter = new TypeFieldEmitter(TypeBuilder);
         }
 
         public virtual Type CreateProxyType()
         {
-            TypeFieldEmitter.CreateField("__target", ImplementionType, FieldAttributes.Private);
-            TypeFieldEmitter.CreateField("__resolver", typeof(IServiceResolver), FieldAttributes.Private);
+            CreateField("__target", ImplementionType, FieldAttributes.Private);
+            CreateField("__resolver", typeof(IServiceResolver), FieldAttributes.Private);
 
             CreateTypeConstrcutors();
 
@@ -69,14 +65,42 @@ namespace Tinja.Interception
             return TypeBuilder.CreateType();
         }
 
-        protected FieldBuilder CreateField(Type fieldType, FieldAttributes fieldAttributes = FieldAttributes.Private)
+        #region field
+
+        public FieldBuilder GetField(string name)
         {
-            return TypeBuilder.DefineField(GetMemberPostfix(), fieldType, fieldAttributes);
+            return _nameFields.GetValueOrDefault(name);
         }
+
+        public FieldBuilder GetField(MethodInfo methodInfo)
+        {
+            return _methodFields.GetValueOrDefault(methodInfo);
+        }
+
+        public FieldBuilder CreateField(string name, Type fieldType, FieldAttributes attributes)
+        {
+            if (!_nameFields.ContainsKey(name))
+            {
+                return _nameFields[name] = TypeBuilder.DefineField(name, fieldType, attributes);
+            }
+
+            return _nameFields[name];
+        }
+
+        public FieldBuilder CreateField(MethodInfo method, FieldAttributes attributes)
+        {
+            if (!_methodFields.ContainsKey(method))
+            {
+                return _methodFields[method] = TypeBuilder.DefineField("__method__" + method.Name + _methodFields.Count, typeof(MethodInfo), attributes);
+            }
+
+            return _methodFields[method];
+        }
+        #endregion
 
         protected virtual void CreateTypeMethods()
         {
-            foreach (var meta in ProxyMembers)
+            foreach (var meta in MemberMetas)
             {
                 var paramterInfos = meta.GetParameters();
                 var paramterTypes = paramterInfos.Select(i => i.ParameterType).ToArray();
@@ -140,13 +164,16 @@ namespace Tinja.Interception
 
         protected virtual void CreateStaticConstrcutor()
         {
-            var ctor = TypeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes);
-            var il = ctor.GetILGenerator();
+            var il = TypeBuilder
+                .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
+                .GetILGenerator();
 
-            foreach (var item in ProxyMembers.Where(u => u.IsMethod))
+            foreach (var item in MemberMetas.Where(u => u.IsMethod))
             {
-                MethodFields[item.ImplementionMember] = CreateField(typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
-                TypeGeneratorUtil.AssignFieldWithMethodInfo(il, MethodFields[item], item);
+                var methodInfo = item.ImplementionMember.AsMethod();
+                var field = CreateField(methodInfo, FieldAttributes.Private | FieldAttributes.Static);
+
+                StoreMethodToField(il, methodInfo, field);
             }
 
             il.Emit(OpCodes.Ret);
@@ -175,10 +202,10 @@ namespace Tinja.Interception
                 switch (i)
                 {
                     case 0:
-                        il.Emit(OpCodes.Stfld, ImplenmetionField);
+                        il.Emit(OpCodes.Stfld, GetField("__target"));
                         break;
                     case 1:
-                        il.Emit(OpCodes.Stfld, ResolverField);
+                        il.Emit(OpCodes.Stfld, GetField("__resolver"));
                         break;
                 }
             }
@@ -201,42 +228,35 @@ namespace Tinja.Interception
             il.Emit(OpCodes.Ret);
         }
 
-        protected string GetMemberPostfix()
-        {
-            return "_Member_" + PostfixCounter++;
-        }
-
         protected virtual Type[] GetExtraConstrcutorParameters()
         {
             return new[] { ImplementionType, typeof(IServiceResolver) };
         }
-    }
 
-    public class TypeFieldEmitter
-    {
-        private TypeBuilder _typeBuilder;
-
-        private Dictionary<string, FieldBuilder> _fields;
-
-        public TypeFieldEmitter(TypeBuilder typeBuilder)
+        private static void StoreMethodToField(ILGenerator il, MethodInfo methodInfo, FieldBuilder field)
         {
-            _typeBuilder = typeBuilder;
-            _fields = new Dictionary<string, FieldBuilder>();
-        }
+            var getMethod = typeof(Type).GetMethod("GetMethod", new[] { typeof(string), typeof(BindingFlags), typeof(Binder), typeof(Type[]), typeof(ParameterModifier[]) });
+            var parameterTypes = methodInfo.GetParameters().Select(info => info.ParameterType).ToArray();
+            var GetTypeFromRuntimeHandleMethod = typeof(Type).GetMethod("GetTypeFromHandle");
 
-        public FieldBuilder GetField(string name)
-        {
-            return _fields.GetValueOrDefault(name);
-        }
+            il.Emit(OpCodes.Ldtoken, methodInfo.DeclaringType);
 
-        public void CreateField(string name, Type fieldType, FieldAttributes attributes)
-        {
-            if (_fields.ContainsKey(name))
+            il.Emit(OpCodes.Ldstr, methodInfo.Name);
+            il.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            il.Emit(OpCodes.Ldnull);
+            il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
+            il.Emit(OpCodes.Newarr, typeof(Type));
+
+            for (var i = 0; i < parameterTypes.Length; i++)
             {
-                throw new NotSupportedException();
+                il.Emit(OpCodes.Ldc_I4, i);
+                il.Emit(OpCodes.Ldtoken, parameterTypes[i]);
+                il.Emit(OpCodes.Stelem, typeof(Type));
             }
 
-            _fields[name] = _typeBuilder.DefineField(name, fieldType, attributes);
+            il.Emit(OpCodes.Ldnull);
+            il.EmitCall(OpCodes.Call, getMethod, null);
+            il.Emit(OpCodes.Stsfld, field);
         }
     }
 }

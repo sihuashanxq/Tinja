@@ -14,7 +14,7 @@ namespace Tinja.Interception.TypeMembers
 
         public IEnumerable<MemberInfo> BaseMembers { get; set; }
 
-        public IEnumerable<InterceptorBinding> InterceptorBindings { get; set; }
+        public IEnumerable<InterceptorMetadata> InterceptorBindings { get; set; }
 
         public bool IsProperty =>
              ImplementionMember.MemberType == MemberTypes.Property;

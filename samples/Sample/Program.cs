@@ -93,7 +93,7 @@ namespace Sample
 
     public class InterceptorTest : IInterceptor
     {
-        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             Console.WriteLine("brefore InterceptorTest             ");
             var task = next(invocation);
@@ -105,7 +105,7 @@ namespace Sample
 
     public class InterceptorTest2 : IInterceptor
     {
-        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
@@ -116,7 +116,7 @@ namespace Sample
 
     public class InterceptorTest3 : IInterceptor
     {
-        public Task InterceptAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);

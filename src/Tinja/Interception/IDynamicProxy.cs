@@ -1,9 +1,11 @@
-﻿namespace Tinja.Interception
+﻿using System.Collections.Generic;
+
+namespace Tinja.Interception
 {
     public interface IDynamicProxy
     {
         object Target { get; }
 
-        InterceptorMetadataCollection GetInterceptors();
+        List<InterceptorBinding> GetInterceptors();
     }
 }

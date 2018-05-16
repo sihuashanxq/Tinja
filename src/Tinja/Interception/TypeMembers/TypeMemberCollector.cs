@@ -17,7 +17,7 @@ namespace Tinja.Interception.TypeMembers
 
         protected Type[] ImplementedInterfaces { get; }
 
-        protected Dictionary<Type, InterceptorBinding> BindingMap { get; }
+        protected Dictionary<Type, InterceptorMetadata> BindingMap { get; }
 
         public TypeMemberCollector(Type baseType, Type implementionType)
         {
@@ -26,7 +26,7 @@ namespace Tinja.Interception.TypeMembers
 
             CollectedMethods = new List<TypeMemberMetadata>();
             CollectedProperties = new List<TypeMemberMetadata>();
-            BindingMap = new Dictionary<Type, InterceptorBinding>();
+            BindingMap = new Dictionary<Type, InterceptorMetadata>();
 
             ImplementedInterfaces = ImplementionType.GetInterfaces();
         }
@@ -88,15 +88,15 @@ namespace Tinja.Interception.TypeMembers
             return list;
         }
 
-        protected virtual InterceptorBinding[] GetInterceptorBindings(MemberInfo impl, MemberInfo definition)
+        protected virtual InterceptorMetadata[] GetInterceptorBindings(MemberInfo impl, MemberInfo definition)
         {
             if (definition == null || impl == null)
             {
-                return new InterceptorBinding[0];
+                return new InterceptorMetadata[0];
             }
 
             var attrs = definition.GetInterceptorAttributes();
-            var bindings = new InterceptorBinding[attrs.Length];
+            var bindings = new InterceptorMetadata[attrs.Length];
 
             for (var i = 0; i < attrs.Length; i++)
             {
@@ -104,7 +104,7 @@ namespace Tinja.Interception.TypeMembers
                 var binding = BindingMap.GetValueOrDefault(attr.InterceptorType);
                 if (binding == null)
                 {
-                    binding = BindingMap[attr.InterceptorType] = new InterceptorBinding(attr);
+                    binding = BindingMap[attr.InterceptorType] = new InterceptorMetadata(attr);
                 }
 
                 binding.AddTarget(impl);
@@ -148,13 +148,13 @@ namespace Tinja.Interception.TypeMembers
                     .InterceptorBindings
                     .Concat(memberBindings)
                     .Concat(typeBindings)
-                    .Distinct(declare => declare.Interceptor);
+                    .Distinct(declare => declare.Attribute);
             }
             else
             {
                 typeMember.InterceptorBindings = memberBindings
                     .Concat(typeBindings)
-                    .Distinct(declare => declare.Interceptor);
+                    .Distinct(declare => declare.Attribute);
             }
         }
     }

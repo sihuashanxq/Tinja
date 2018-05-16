@@ -55,7 +55,7 @@ namespace Tinja.Interception
 
                     stack.Push(async (inv) =>
                     {
-                        await interceptor.InterceptAsync(inv, next);
+                        await interceptor.InvokeAsync(inv, next);
                     });
                 }
 
