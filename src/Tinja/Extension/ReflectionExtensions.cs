@@ -129,5 +129,77 @@ namespace Tinja
                 .Distinct(i => i.InterceptorType)
                 .ToArray();
         }
+
+        public static IEnumerable<MemberInfo> GetInterfaceMembers(this MethodInfo methodInfo, Type[] interfaces)
+        {
+            foreach (var @interface in interfaces)
+            {
+                var mapping = methodInfo
+                    .DeclaringType
+                    .GetInterfaceMap(@interface);
+
+                for (var i = 0; i < mapping.TargetMethods.Length; i++)
+                {
+                    if (mapping.TargetMethods[i] == methodInfo)
+                    {
+                        yield return mapping.InterfaceMethods[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        public static IEnumerable<MemberInfo> GetInterfaceMembers(this PropertyInfo property, Type[] interfaces)
+        {
+            foreach (var @interface in interfaces)
+            {
+                var interfaceProperty = @interface.GetProperty(property.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (interfaceProperty != null)
+                {
+                    yield return interfaceProperty;
+                }
+            }
+        }
+
+        public static IEnumerable<MemberInfo> GetInterfaceMembers(this EventInfo eventInfo, Type[] interfaces)
+        {
+            foreach (var @interface in interfaces)
+            {
+                var @event = @interface.GetEvent(eventInfo.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (@event != null)
+                {
+                    yield return @event;
+                }
+            }
+        }
+
+        public static bool IsOverrideable(this MemberInfo memberInfo)
+        {
+            if (memberInfo == null)
+            {
+                return false;
+            }
+
+            if (memberInfo.MemberType != MemberTypes.Method &&
+                memberInfo.MemberType != MemberTypes.Property)
+            {
+                return false;
+            }
+
+            if (memberInfo is MethodInfo methodInfo)
+            {
+                return !methodInfo.IsPrivate && methodInfo.IsVirtual;
+            }
+
+            if (memberInfo is PropertyInfo property)
+            {
+                return
+                    property?.GetMethod.IsOverrideable() ??
+                    property?.SetMethod.IsOverrideable() ??
+                    false;
+            }
+
+            return false;
+        }
     }
 }

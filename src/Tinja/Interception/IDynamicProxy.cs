@@ -6,6 +6,6 @@ namespace Tinja.Interception
     {
         object Target { get; }
 
-        List<InterceptorBinding> GetInterceptors();
+        List<InterceptionBinding> GetInterceptors();
     }
 }

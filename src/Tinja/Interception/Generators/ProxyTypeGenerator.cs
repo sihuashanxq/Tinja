@@ -21,7 +21,7 @@ namespace Tinja.Interception
 
         protected TypeBuilder TypeBuilder { get; set; }
 
-        protected IEnumerable<TypeMemberMetadata> MemberMetas { get; }
+        protected IEnumerable<TypeMember> MemberMetas { get; }
 
         private Dictionary<string, FieldBuilder> _nameFields;
 
@@ -170,7 +170,7 @@ namespace Tinja.Interception
 
             foreach (var item in MemberMetas.Where(u => u.IsMethod))
             {
-                var methodInfo = item.ImplementionMember.AsMethod();
+                var methodInfo = item.Member.AsMethod();
                 var field = CreateField(methodInfo, FieldAttributes.Private | FieldAttributes.Static);
 
                 StoreMethodToField(il, methodInfo, field);

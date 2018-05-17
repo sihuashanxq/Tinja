@@ -4,6 +4,6 @@ namespace Tinja.Interception
 {
     public interface IInterceptorCollector
     {
-        InterceptorBinding[] Collect(Type serviceType, Type implementionType);
+        InterceptionBinding[] Collect(Type serviceType, Type implementionType);
     }
 }

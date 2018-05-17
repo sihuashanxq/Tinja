@@ -1,74 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 
 namespace Tinja.Interception.TypeMembers
 {
     public class InterfaceTypeMemberCollector : TypeMemberCollector
     {
-        protected IEnumerable<PropertyInfo> ImplementedProperties { get; }
-
         public InterfaceTypeMemberCollector(
             Type baseType,
-            Type implementionType
-        ) : base(baseType, implementionType)
+            Type targetType
+        ) : base(baseType, targetType)
         {
-            ImplementedProperties = implementionType.GetProperties(new[] { typeof(object) });
+
+        }
+
+        public override IEnumerable<TypeMember> Collect()
+        {
+            CollectEvents();
+
+            return base.Collect();
         }
 
         protected override void CollectMethods()
         {
-            foreach (var item in ImplementedInterfaces)
+            foreach (var methodInfo in TargetMethods)
             {
-                var mapping = ImplementionType.GetInterfaceMap(item);
-                if (mapping.InterfaceMethods.Length == 0)
-                {
-                    continue;
-                }
-
-                for (var i = 0; i < mapping.InterfaceMethods.Length; i++)
-                {
-                    var targetMethod = mapping.TargetMethods[i];
-                    if (ImplementedProperties.Any(p =>
-                            p.GetMethod == targetMethod ||
-                            p.SetMethod == targetMethod)
-                        )
-                    {
-                        continue;
-                    }
-
-                    AddCollectedMethodInfo(new TypeMemberMetadata()
-                    {
-                        BaseTypes = new[] { mapping.InterfaceType },
-                        BaseMembers = new[] { mapping.InterfaceMethods[i] },
-                        ImplementionMember = mapping.TargetMethods[i],
-                        ImplementionType = ImplementionType
-                    });
-                }
+                HandleCollectedTypeMember(methodInfo);
             }
         }
 
         protected override void CollectProperties()
         {
-            foreach (var item in ImplementedInterfaces)
+            foreach (var property in TargetProperties)
             {
-                foreach (var property in item.GetProperties())
-                {
-                    var classProperty = ImplementedProperties.FirstOrDefault(i => i.Name == property.Name);
-                    if (classProperty == null)
-                    {
-                        continue;
-                    }
+                HandleCollectedTypeMember(property);
+            }
+        }
 
-                    AddCollectedPropertyInfo(new TypeMemberMetadata()
-                    {
-                        ImplementionMember = classProperty,
-                        ImplementionType = ImplementionType,
-                        BaseTypes = new[] { item },
-                        BaseMembers = new[] { property }
-                    });
-                }
+        protected virtual void CollectEvents()
+        {
+            foreach (var @event in TargetType.GetEvents(BindingFlag))
+            {
+                HandleCollectedTypeMember(@event);
             }
         }
     }

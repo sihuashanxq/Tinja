@@ -7,155 +7,82 @@ namespace Tinja.Interception.TypeMembers
 {
     public abstract class TypeMemberCollector : ITypeMemberCollector
     {
+        protected const BindingFlags BindingFlag = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
         protected Type BaseType { get; }
 
-        protected Type ImplementionType { get; }
+        protected Type TargetType { get; }
 
-        protected List<TypeMemberMetadata> CollectedMethods { get; }
+        protected List<TypeMember> CollectedMembers { get; }
 
-        protected List<TypeMemberMetadata> CollectedProperties { get; }
+        protected Type[] TargetInterfaces { get; }
 
-        protected Type[] ImplementedInterfaces { get; }
+        protected MethodInfo[] TargetMethods { get; }
 
-        protected Dictionary<Type, InterceptorMetadata> BindingMap { get; }
+        protected PropertyInfo[] TargetProperties { get; }
 
-        public TypeMemberCollector(Type baseType, Type implementionType)
+        public TypeMemberCollector(Type baseType, Type targetType)
         {
             BaseType = baseType;
-            ImplementionType = implementionType;
+            TargetType = targetType;
 
-            CollectedMethods = new List<TypeMemberMetadata>();
-            CollectedProperties = new List<TypeMemberMetadata>();
-            BindingMap = new Dictionary<Type, InterceptorMetadata>();
+            CollectedMembers = new List<TypeMember>();
 
-            ImplementedInterfaces = ImplementionType.GetInterfaces();
+            TargetMethods = TargetType.GetMethods(BindingFlag);
+            TargetProperties = TargetType.GetProperties(BindingFlag);
+            TargetInterfaces = TargetType.GetInterfaces();
         }
 
-        public IEnumerable<TypeMemberMetadata> Collect()
+        public virtual IEnumerable<TypeMember> Collect()
         {
-            CollectProperties();
             CollectMethods();
+            CollectProperties();
 
-            HandleTypeMemberInterceptors();
-
-            return CollectedProperties.Concat(CollectedMethods);
-        }
-
-        protected virtual void CollectEvents()
-        {
-
+            return CollectedMembers;
         }
 
         protected abstract void CollectMethods();
 
         protected abstract void CollectProperties();
 
-        protected void AddCollectedMethodInfo(TypeMemberMetadata typeMethodInfo)
+        protected virtual void HandleCollectedTypeMember(MemberInfo memberInfo)
         {
-            CollectedMethods.Add(typeMethodInfo);
-        }
+            var interfaceMembers = null as IEnumerable<MemberInfo>;
 
-        protected void AddCollectedPropertyInfo(TypeMemberMetadata typePropertyInfo)
-        {
-            CollectedProperties.Add(typePropertyInfo);
-        }
-
-        protected IEnumerable<MethodInfo> GetBaseDefinition(MethodInfo memberInfo)
-        {
-            var baseDefinition = memberInfo.GetBaseDefinition();
-            var baseDeclareType = baseDefinition.DeclaringType;
-            var list = new List<MethodInfo>();
-
-            foreach (var item in ImplementedInterfaces)
+            switch (memberInfo)
             {
-                var mapping = baseDeclareType.GetInterfaceMap(item);
-
-                for (var i = 0; i < mapping.TargetMethods.Length; i++)
-                {
-                    if (mapping.TargetMethods[i] == baseDefinition)
-                    {
-                        list.Add(mapping.InterfaceMethods[i]);
-                        break;
-                    }
-                }
+                case MethodInfo methodInfo:
+                    interfaceMembers = methodInfo.GetInterfaceMembers(TargetInterfaces);
+                    break;
+                case PropertyInfo propertyInfo:
+                    interfaceMembers = propertyInfo.GetInterfaceMembers(TargetInterfaces);
+                    break;
+                case EventInfo eventInfo:
+                    interfaceMembers = eventInfo.GetInterfaceMembers(TargetInterfaces);
+                    break;
+                default:
+                    break;
             }
 
-            if (!list.Any())
+            if (interfaceMembers == null)
             {
-                list.Add(baseDefinition);
+                interfaceMembers = new MemberInfo[0];
             }
 
-            return list;
-        }
-
-        protected virtual InterceptorMetadata[] GetInterceptorBindings(MemberInfo impl, MemberInfo definition)
-        {
-            if (definition == null || impl == null)
+            //must be declared in interface 
+            if (BaseType.IsInterface && !interfaceMembers.Any())
             {
-                return new InterceptorMetadata[0];
+                return;
             }
 
-            var attrs = definition.GetInterceptorAttributes();
-            var bindings = new InterceptorMetadata[attrs.Length];
-
-            for (var i = 0; i < attrs.Length; i++)
+            var typeMemberInfo = new TypeMember
             {
-                var attr = attrs[i];
-                var binding = BindingMap.GetValueOrDefault(attr.InterceptorType);
-                if (binding == null)
-                {
-                    binding = BindingMap[attr.InterceptorType] = new InterceptorMetadata(attr);
-                }
+                Member = memberInfo,
+                InterfaceMembers = interfaceMembers,
+                Interfaces = interfaceMembers.Select(i => i.DeclaringType)
+            };
 
-                binding.AddTarget(impl);
-                bindings[i] = binding;
-            }
-
-            return bindings;
-        }
-
-        protected virtual void HandleTypeMemberInterceptors()
-        {
-            foreach (var item in CollectedProperties)
-            {
-                HandleTypeMemberInterceptors(item, item.ImplementionMember, item.ImplementionType);
-
-                foreach (var declareMember in item.BaseMembers.Where(i => i.DeclaringType.IsInterface))
-                {
-                    HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
-                }
-            }
-
-            foreach (var item in CollectedMethods)
-            {
-                HandleTypeMemberInterceptors(item, item.ImplementionMember, item.ImplementionType);
-
-                foreach (var declareMember in item.BaseMembers.Where(i => i.DeclaringType.IsInterface))
-                {
-                    HandleTypeMemberInterceptors(item, declareMember, declareMember.DeclaringType);
-                }
-            }
-        }
-
-        protected void HandleTypeMemberInterceptors(TypeMemberMetadata typeMember, MemberInfo memberInfo, Type typeInfo)
-        {
-            var typeBindings = GetInterceptorBindings(typeMember.ImplementionType, typeInfo);
-            var memberBindings = GetInterceptorBindings(typeMember.ImplementionMember, memberInfo);
-
-            if (typeMember.InterceptorBindings != null)
-            {
-                typeMember.InterceptorBindings = typeMember
-                    .InterceptorBindings
-                    .Concat(memberBindings)
-                    .Concat(typeBindings)
-                    .Distinct(declare => declare.Attribute);
-            }
-            else
-            {
-                typeMember.InterceptorBindings = memberBindings
-                    .Concat(typeBindings)
-                    .Distinct(declare => declare.Attribute);
-            }
+            CollectedMembers.Add(typeMemberInfo);
         }
     }
 }
