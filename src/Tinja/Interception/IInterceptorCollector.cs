@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Tinja.Interception
 {
     public interface IInterceptorCollector
     {
-        InterceptionBinding[] Collect(Type serviceType, Type implementionType);
+        IEnumerable<InterceptionTargetBinding> Collect(Type baseType, Type inheriteType);
     }
 }
