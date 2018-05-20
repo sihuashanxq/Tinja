@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Tinja.Interception.TypeMembers
@@ -83,6 +83,16 @@ namespace Tinja.Interception.TypeMembers
             };
 
             CollectedMembers.Add(typeMemberInfo);
+        }
+
+        public static IEnumerable<TypeMember> Collect(Type baseType, Type implementionType)
+        {
+            if (baseType.IsInterface)
+            {
+                return new InterfaceTypeMemberCollector(baseType, implementionType).Collect();
+            }
+
+            return new ClassTypeMemberCollector(baseType, implementionType).Collect();
         }
     }
 }

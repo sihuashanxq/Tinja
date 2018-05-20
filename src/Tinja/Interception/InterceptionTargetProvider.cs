@@ -17,27 +17,18 @@ namespace Tinja.Interception
             _targetCaches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptionTarget>>();
         }
 
-        public IEnumerable<InterceptionTarget> GetTargets(Type baseType, Type inheriteType)
+        public IEnumerable<InterceptionTarget> GetTargets(Type baseType, Type implementionType)
         {
-            return _targetCaches.GetOrAdd(Tuple.Create(baseType, inheriteType), key =>
+            return _targetCaches.GetOrAdd(Tuple.Create(baseType, implementionType), key =>
             {
-                return CollectTargets(baseType, inheriteType);
+                return CollectTargets(baseType, implementionType);
             });
         }
 
-        protected IEnumerable<InterceptionTarget> CollectTargets(Type baseType, Type inheriteType)
+        protected IEnumerable<InterceptionTarget> CollectTargets(Type baseType, Type implementionType)
         {
-            var typeMembers = null as IEnumerable<TypeMember>;
             var targets = new Dictionary<Type, InterceptionTarget>();
-
-            if (baseType.IsInterface)
-            {
-                typeMembers = new InterfaceTypeMemberCollector(baseType, inheriteType).Collect();
-            }
-            else
-            {
-                typeMembers = new ClassTypeMemberCollector(baseType.BaseType, inheriteType).Collect();
-            }
+            var typeMembers = TypeMemberCollector.Collect(baseType, implementionType);
 
             foreach (var typeMember in typeMembers.Where(i => !i.IsEvent))
             {

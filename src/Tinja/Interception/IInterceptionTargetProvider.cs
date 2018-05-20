@@ -5,6 +5,6 @@ namespace Tinja.Interception
 {
     public interface IInterceptionTargetProvider
     {
-        IEnumerable<InterceptionTarget> GetTargets(Type baseType, Type inheriteType);
+        IEnumerable<InterceptionTarget> GetTargets(Type baseType, Type implementionType);
     }
 }

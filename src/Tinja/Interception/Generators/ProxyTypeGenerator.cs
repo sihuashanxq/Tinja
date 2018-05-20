@@ -21,7 +21,7 @@ namespace Tinja.Interception
 
         protected TypeBuilder TypeBuilder { get; set; }
 
-        protected IEnumerable<TypeMember> MemberMetas { get; }
+        protected IEnumerable<TypeMember> TypeMembers { get; }
 
         private Dictionary<string, FieldBuilder> _nameFields;
 
@@ -35,28 +35,21 @@ namespace Tinja.Interception
 
         public ProxyTypeGenerator(Type baseType, Type implemetionType)
         {
-            _nameFields = new Dictionary<string, FieldBuilder>();
-            _methodFields = new Dictionary<MethodInfo, FieldBuilder>();
-
             BaseType = baseType;
             ImplementionType = implemetionType;
 
-            //if (BaseType.IsInterface)
-            //{
-            //    ProxyMembers = new InterfaceTypeMemberCollector(BaseType, implemetionType).Collect();
-            //}
-            //else
-            //{
-            //    ProxyMembers = new ClassTypeMemberCollector(BaseType, implemetionType).Collect();
-            //}
-
+            TypeMembers = TypeMemberCollector.Collect(BaseType, implemetionType);
             TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
+
+            _nameFields = new Dictionary<string, FieldBuilder>();
+            _methodFields = new Dictionary<MethodInfo, FieldBuilder>();
         }
 
         public virtual Type CreateProxyType()
         {
             CreateField("__target", ImplementionType, FieldAttributes.Private);
             CreateField("__resolver", typeof(IServiceResolver), FieldAttributes.Private);
+            CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
 
             CreateTypeConstrcutors();
 
@@ -100,15 +93,17 @@ namespace Tinja.Interception
 
         protected virtual void CreateTypeMethods()
         {
-            foreach (var meta in MemberMetas)
+            foreach (var typeMember in TypeMembers.Where(m => m.IsMethod))
             {
-                var paramterInfos = meta.GetParameters();
+                var methodInfo = typeMember.Member.AsMethod();
+
+                var paramterInfos = methodInfo.GetParameters();
                 var paramterTypes = paramterInfos.Select(i => i.ParameterType).ToArray();
                 var methodBudiler = TypeBuilder.DefineMethod(
-                    meta.Name,
+                    methodInfo.Name,
                     MethodAttributes.Public | MethodAttributes.Virtual,
                     CallingConventions.HasThis,
-                    meta.ReturnType,
+                    methodInfo.ReturnType,
                     paramterTypes
                 );
 
@@ -140,7 +135,7 @@ namespace Tinja.Interception
 
                 il.Emit(OpCodes.Newobj, MethodInvocation.Constrcutor);
                 il.Emit(OpCodes.Callvirt, MethodInvocationExecute);
-                il.Emit(meta.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+                il.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
                 il.Emit(OpCodes.Ret);
             }
         }
@@ -149,14 +144,7 @@ namespace Tinja.Interception
         {
             CreateStaticConstrcutor();
 
-            var constructorInfos = BaseType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (constructorInfos == null || constructorInfos.Length == 0)
-            {
-                CreateConstructor(null);
-                return;
-            }
-
-            foreach (var item in constructorInfos)
+            foreach (var item in ImplementionType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 CreateConstructor(item);
             }
@@ -168,7 +156,7 @@ namespace Tinja.Interception
                 .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
                 .GetILGenerator();
 
-            foreach (var item in MemberMetas.Where(u => u.IsMethod))
+            foreach (var item in TypeMembers.Where(u => u.IsMethod))
             {
                 var methodInfo = item.Member.AsMethod();
                 var field = CreateField(methodInfo, FieldAttributes.Private | FieldAttributes.Static);

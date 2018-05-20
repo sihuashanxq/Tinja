@@ -5,8 +5,7 @@ namespace Tinja.Interception.TypeMembers
 {
     public class ClassTypeMemberCollector : TypeMemberCollector
     {
-        public ClassTypeMemberCollector(Type baseType, Type targetType)
-            : base(baseType, targetType)
+        public ClassTypeMemberCollector(Type baseType, Type targetType) : base(baseType, targetType)
         {
 
         }

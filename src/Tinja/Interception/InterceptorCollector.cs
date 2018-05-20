@@ -17,10 +17,13 @@ namespace Tinja.Interception
             _targetProvider = targetProvider;
         }
 
-        public IEnumerable<InterceptionTargetBinding> Collect(Type baseType, Type inheriteType)
+        public IEnumerable<InterceptionTargetBinding> Collect(Type baseType, Type implementionType)
         {
-            var targets = _targetProvider.GetTargets(baseType, inheriteType);
-            var interceptors = new List<InterceptionTargetBinding>();
+            var targets = _targetProvider.GetTargets(baseType, implementionType);
+            if (targets == null)
+            {
+                targets = new InterceptionTarget[0];
+            }
 
             foreach (var target in targets)
             {
@@ -30,10 +33,8 @@ namespace Tinja.Interception
                     throw new NotSupportedException($"can not resolve the interceptor with type:{target.InterceptorType.FullName}");
                 }
 
-                interceptors.Add(new InterceptionTargetBinding(interceptor, target));
+                yield return new InterceptionTargetBinding(interceptor, target);
             }
-
-            return interceptors;
         }
     }
 }
