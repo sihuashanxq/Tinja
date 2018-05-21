@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+
 using Tinja.Extension;
 using Tinja.Interception.TypeMembers;
 using Tinja.Resolving;
 
 namespace Tinja.Interception
 {
-    public class ProxyTypeGenerator : IProxyTypeGenerator
+    public abstract class ProxyTypeGenerator : IProxyTypeGenerator
     {
         static MethodInfo MethodServiceResolve { get; }
 
@@ -23,9 +24,7 @@ namespace Tinja.Interception
 
         protected IEnumerable<TypeMember> TypeMembers { get; }
 
-        private Dictionary<string, FieldBuilder> _nameFields;
-
-        private Dictionary<MethodInfo, FieldBuilder> _methodFields;
+        protected Dictionary<string, FieldBuilder> Fields { get; }
 
         static ProxyTypeGenerator()
         {
@@ -41,55 +40,53 @@ namespace Tinja.Interception
             TypeMembers = TypeMemberCollector.Collect(BaseType, implemetionType);
             TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
 
-            _nameFields = new Dictionary<string, FieldBuilder>();
-            _methodFields = new Dictionary<MethodInfo, FieldBuilder>();
+            Fields = new Dictionary<string, FieldBuilder>();
         }
 
         public virtual Type CreateProxyType()
         {
-            CreateField("__target", ImplementionType, FieldAttributes.Private);
-            CreateField("__resolver", typeof(IServiceResolver), FieldAttributes.Private);
-            CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
+            CreateTypeFields();
 
-            CreateTypeConstrcutors();
+            CreateTypeEvents();
 
             CreateTypeMethods();
+
+            CreateTypeProperties();
+
+            CreateTypeConstrcutors();
 
             return TypeBuilder.CreateType();
         }
 
         #region field
 
-        public FieldBuilder GetField(string name)
+        protected virtual void CreateTypeFields()
         {
-            return _nameFields.GetValueOrDefault(name);
+            CreateField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
+            CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
         }
 
-        public FieldBuilder GetField(MethodInfo methodInfo)
+        public FieldBuilder GetField(string field)
         {
-            return _methodFields.GetValueOrDefault(methodInfo);
+            return Fields.GetValueOrDefault(field);
         }
 
-        public FieldBuilder CreateField(string name, Type fieldType, FieldAttributes attributes)
+        public FieldBuilder CreateField(string field, Type fieldType, FieldAttributes attributes)
         {
-            if (!_nameFields.ContainsKey(name))
+            if (!Fields.ContainsKey(field))
             {
-                return _nameFields[name] = TypeBuilder.DefineField(name, fieldType, attributes);
+                return Fields[field] = TypeBuilder.DefineField(field, fieldType, attributes);
             }
 
-            return _nameFields[name];
+            return Fields[field];
         }
 
-        public FieldBuilder CreateField(MethodInfo method, FieldAttributes attributes)
-        {
-            if (!_methodFields.ContainsKey(method))
-            {
-                return _methodFields[method] = TypeBuilder.DefineField("__method__" + method.Name + _methodFields.Count, typeof(MethodInfo), attributes);
-            }
-
-            return _methodFields[method];
-        }
         #endregion
+
+        protected virtual void CreateTypeEvents()
+        {
+
+        }
 
         protected virtual void CreateTypeMethods()
         {
@@ -140,111 +137,38 @@ namespace Tinja.Interception
             }
         }
 
+        protected virtual void CreateTypeProperties()
+        {
+
+        }
+
+        #region Constructors
+
         protected virtual void CreateTypeConstrcutors()
         {
-            CreateStaticConstrcutor();
-
-            foreach (var item in ImplementionType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            var ctors = GetBaseConstructorInfos();
+            if (!ctors.Any())
             {
-                CreateConstructor(item);
+                CreateTypeDefaultConstructor();
             }
-        }
-
-        protected virtual void CreateStaticConstrcutor()
-        {
-            var il = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
-                .GetILGenerator();
-
-            foreach (var item in TypeMembers.Where(u => u.IsMethod))
+            else
             {
-                var methodInfo = item.Member.AsMethod();
-                var field = CreateField(methodInfo, FieldAttributes.Private | FieldAttributes.Static);
-
-                StoreMethodToField(il, methodInfo, field);
-            }
-
-            il.Emit(OpCodes.Ret);
-        }
-
-        protected virtual void CreateConstructor(ConstructorInfo baseConstrcutor)
-        {
-            var extraConstructorParameters = GetExtraConstrcutorParameters();
-            var constructorParameters = extraConstructorParameters
-                .Concat(baseConstrcutor?.GetParameters().Select(i => i.ParameterType) ?? Type.EmptyTypes)
-                .ToArray();
-
-            var constructorBuilder = TypeBuilder.DefineConstructor(
-                baseConstrcutor?.Attributes ?? MethodAttributes.Public,
-                baseConstrcutor?.CallingConvention ?? CallingConventions.HasThis,
-                constructorParameters
-            );
-
-            var il = constructorBuilder.GetILGenerator();
-
-            for (var i = 0; i < extraConstructorParameters.Length; i++)
-            {
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldarg, i + 1);
-
-                switch (i)
+                foreach (var item in ctors)
                 {
-                    case 0:
-                        il.Emit(OpCodes.Stfld, GetField("__target"));
-                        break;
-                    case 1:
-                        il.Emit(OpCodes.Stfld, GetField("__resolver"));
-                        break;
+                    CreateTypeConstructor(item);
                 }
             }
-
-            if (baseConstrcutor == null)
-            {
-                il.Emit(OpCodes.Ret);
-                return;
-            }
-
-            //call base
-            il.Emit(OpCodes.Ldarg_0);
-
-            for (var i = extraConstructorParameters.Length; i < constructorParameters.Length; i++)
-            {
-                il.Emit(OpCodes.Ldarg, i + 1);
-            }
-
-            il.Emit(OpCodes.Call, baseConstrcutor);
-            il.Emit(OpCodes.Ret);
         }
 
-        protected virtual Type[] GetExtraConstrcutorParameters()
+        protected abstract void CreateTypeDefaultConstructor();
+
+        protected abstract void CreateTypeConstructor(ConstructorInfo constrcutor);
+
+        protected virtual ConstructorInfo[] GetBaseConstructorInfos()
         {
-            return new[] { ImplementionType, typeof(IServiceResolver) };
+            return new ConstructorInfo[0];
         }
 
-        private static void StoreMethodToField(ILGenerator il, MethodInfo methodInfo, FieldBuilder field)
-        {
-            var getMethod = typeof(Type).GetMethod("GetMethod", new[] { typeof(string), typeof(BindingFlags), typeof(Binder), typeof(Type[]), typeof(ParameterModifier[]) });
-            var parameterTypes = methodInfo.GetParameters().Select(info => info.ParameterType).ToArray();
-            var GetTypeFromRuntimeHandleMethod = typeof(Type).GetMethod("GetTypeFromHandle");
-
-            il.Emit(OpCodes.Ldtoken, methodInfo.DeclaringType);
-
-            il.Emit(OpCodes.Ldstr, methodInfo.Name);
-            il.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
-            il.Emit(OpCodes.Ldnull);
-            il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
-            il.Emit(OpCodes.Newarr, typeof(Type));
-
-            for (var i = 0; i < parameterTypes.Length; i++)
-            {
-                il.Emit(OpCodes.Ldc_I4, i);
-                il.Emit(OpCodes.Ldtoken, parameterTypes[i]);
-                il.Emit(OpCodes.Stelem, typeof(Type));
-            }
-
-            il.Emit(OpCodes.Ldnull);
-            il.EmitCall(OpCodes.Call, getMethod, null);
-            il.Emit(OpCodes.Stsfld, field);
-        }
+        #endregion
     }
 }
