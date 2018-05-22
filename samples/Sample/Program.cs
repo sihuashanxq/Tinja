@@ -3,6 +3,8 @@ using System;
 using System.Threading.Tasks;
 using Tinja;
 using Tinja.Interception;
+using Tinja.Interception.Generators;
+using Tinja.Interception.Internal;
 using Tinja.ServiceLife;
 
 namespace Sample
@@ -107,6 +109,7 @@ namespace Sample
     {
         public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
+            invocation.ReturnValue = 10000;
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
             Console.WriteLine("after InterceptorTest222222222222222222");
@@ -125,7 +128,7 @@ namespace Sample
         }
     }
 
-    [Interceptor(typeof(InterceptorTest))]
+
     public class Abc : IAbc
     {
         public virtual object M()
@@ -133,6 +136,16 @@ namespace Sample
             Console.WriteLine("方法执行 执行");
             return 6;
         }
+
+        [Interceptor(typeof(InterceptorTest))]
+        [Interceptor(typeof(InterceptorTest2))]
+        public virtual void M2()
+        {
+
+        }
+
+        [Interceptor(typeof(InterceptorTest))]
+        public virtual object Id { get; set; }
     }
 
     [Interceptor(typeof(InterceptorTest3))]
@@ -145,8 +158,6 @@ namespace Sample
         }
     }
 
-    [Interceptor(typeof(InterceptorTest2))]
-    [Interceptor(typeof(InterceptorTest2))]
     public interface IAbc
     {
         object M();
@@ -171,7 +182,11 @@ namespace Sample
             container.AddTransient<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddTransient<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddTransient(typeof(Abc), typeof(Abc));
-            var proxyType = new ProxyTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
+            container.AddTransient(typeof(IInterceptorCollector), typeof(InterceptorCollector));
+            container.AddTransient(typeof(IInterceptionTargetProvider), typeof(InterceptionTargetProvider));
+            container.AddTransient(typeof(IObjectMethodExecutorProvider), typeof(ObjectMethodExecutorProvider));
+            container.AddTransient(typeof(IMemberInterceptorFilter), typeof(MemberInterceptorFilter));
+            var proxyType = new ProxyClassTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
 
             container.AddTransient(proxyType, proxyType);
 
@@ -196,7 +211,7 @@ namespace Sample
 
             var proxyService = resolver.Resolve(proxyType) as Abc;
 
-            var value = proxyService.M();
+            proxyService.M();
 
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));

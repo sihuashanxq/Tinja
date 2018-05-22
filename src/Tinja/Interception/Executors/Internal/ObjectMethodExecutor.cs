@@ -18,7 +18,7 @@ namespace Tinja.Interception.Internal
 
         public ObjectMethodExecutor(MethodInfo methodInfo)
         {
-            MethodInfo = MethodInfo;
+            MethodInfo = methodInfo;
 
             MethodExecutor = typeof(Task).IsAssignableFrom(methodInfo.ReturnType)
                 ? CreateAsyncExecutor(MethodInfo)

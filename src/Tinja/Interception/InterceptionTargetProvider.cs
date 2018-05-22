@@ -60,11 +60,11 @@ namespace Tinja.Interception
                     target = targets[attribute.InterceptorType] = new InterceptionTarget()
                     {
                         InterceptorType = attribute.InterceptorType,
-                        Targets = new HashSet<InterceptionMemberPriority>()
+                        Members = new HashSet<InterceptionMemberPriority>()
                     };
                 }
 
-                target.Targets.Add(new InterceptionMemberPriority() { Priority = attribute.Priority, MemberInfo = memberInfo });
+                target.Members.Add(new InterceptionMemberPriority() { Priority = attribute.Priority, MemberInfo = memberInfo });
             }
         }
     }

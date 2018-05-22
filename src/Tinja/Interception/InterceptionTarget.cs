@@ -8,7 +8,7 @@ namespace Tinja.Interception
     {
         public Type InterceptorType { get; set; }
 
-        public HashSet<InterceptionMemberPriority> Targets { get; set; }
+        public HashSet<InterceptionMemberPriority> Members { get; set; }
     }
 
     public class InterceptionMemberPriority

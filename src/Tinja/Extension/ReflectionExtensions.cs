@@ -134,9 +134,12 @@ namespace Tinja
         {
             foreach (var @interface in interfaces)
             {
-                var mapping = methodInfo
-                    .DeclaringType
-                    .GetInterfaceMap(@interface);
+                if (!@interface.IsAssignableFrom(methodInfo.DeclaringType))
+                {
+                    continue;
+                }
+
+                var mapping = methodInfo.DeclaringType.GetInterfaceMap(@interface);
 
                 for (var i = 0; i < mapping.TargetMethods.Length; i++)
                 {

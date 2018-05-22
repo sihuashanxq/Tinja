@@ -3,16 +3,127 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
+using Tinja.Extension;
+
 namespace Tinja.Interception.Generators
 {
     public class ProxyClassTypeGenerator : ProxyTypeGenerator
     {
-        private Type[] _additionalConstrcutorParameterTypes;
+        protected Type[] ExtraConstrcutorParameters { get; }
 
         public ProxyClassTypeGenerator(Type baseType, Type implemetionType)
             : base(baseType, implemetionType)
         {
-            _additionalConstrcutorParameterTypes = new[] { typeof(IInterceptorCollector), typeof(IMethodInvocationExecutor) };
+            ExtraConstrcutorParameters = new[] { typeof(IInterceptorCollector), typeof(IMethodInvocationExecutor), typeof(IMemberInterceptorFilter) };
+        }
+
+        /// <summary>
+        /// Create Method
+        /// </summary>
+        /// <param name="methodInfo"></param>
+        protected override MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
+        {
+            return CreateTypeMethod(methodInfo, null);
+        }
+
+        protected virtual MethodBuilder CreateTypeMethod(MethodInfo methodInfo, PropertyInfo property)
+        {
+            var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
+            var methodAttributes = GetMethodAttributes(methodInfo);
+            var methodBudiler = TypeBuilder.DefineMethod(
+                methodInfo.Name,
+                methodAttributes,
+                CallingConventions.HasThis,
+                methodInfo.ReturnType,
+                paramterTypes
+            );
+
+            var ilGen = methodBudiler.GetILGenerator();
+
+            //this.__executor
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.Emit(OpCodes.Ldfld, GetField("__executor"));
+
+            //this.executor.Execute(new MethodInvocation)
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.LoadMethodInfo(methodInfo);
+
+            //new Parameters[]
+            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
+            ilGen.Emit(OpCodes.Newarr, typeof(object));
+
+            for (var i = 0; i < paramterTypes.Length; i++)
+            {
+                ilGen.Emit(OpCodes.Dup);
+                ilGen.Emit(OpCodes.Ldc_I4, i);
+                ilGen.Emit(OpCodes.Ldarg, i + 1);
+                ilGen.Box(paramterTypes[i]);
+                ilGen.Emit(OpCodes.Stelem_Ref);
+            }
+
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.Emit(OpCodes.Ldfld, GetField("__filter"));
+
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.Emit(OpCodes.Ldfld, GetField("__interceptors"));
+
+            if (property == null)
+            {
+                ilGen.LoadMethodInfo(methodInfo);
+                ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
+
+                ilGen.Emit(OpCodes.Newobj, NewMethodInvocation);
+            }
+            else
+            {
+                ilGen.Emit(OpCodes.Ldarg_0);
+                ilGen.Emit(OpCodes.Ldfld, GetField("__property__proxy_" + property.Name));
+
+                ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
+
+                ilGen.Emit(OpCodes.Ldsfld, GetField("__property__proxy_" + property.Name));
+                ilGen.Emit(OpCodes.Newobj, NewPropertyMethodInvocation);
+            }
+
+            ilGen.Emit(OpCodes.Callvirt, MethodInvocationExecute);
+            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+            ilGen.Emit(OpCodes.Ret);
+
+            return methodBudiler;
+        }
+
+        protected override PropertyBuilder CreateTypeProperty(PropertyInfo propertyInfo)
+        {
+            var propertyBuilder = TypeBuilder.DefineProperty(
+                propertyInfo.Name,
+                propertyInfo.Attributes,
+                propertyInfo.PropertyType,
+                propertyInfo.GetIndexParameters().Select(i => i.ParameterType).ToArray()
+            );
+
+            if (propertyInfo.CanWrite)
+            {
+                var setter = CreateTypeMethod(propertyInfo.SetMethod, propertyInfo);
+                if (setter == null)
+                {
+                    throw new NullReferenceException(nameof(setter));
+                }
+
+                propertyBuilder.SetSetMethod(setter);
+            }
+
+            if (propertyInfo.CanRead)
+            {
+                var getter = CreateTypeMethod(propertyInfo.GetMethod, propertyInfo);
+                if (getter == null)
+                {
+                    throw new NullReferenceException(nameof(getter));
+                }
+
+                propertyBuilder.SetGetMethod(getter);
+            }
+
+            return propertyBuilder;
         }
 
         #region Constructor
@@ -21,7 +132,7 @@ namespace Tinja.Interception.Generators
         {
             var parameters = consturctor.GetParameters().Select(i => i.ParameterType).ToArray();
             var ilGen = TypeBuilder
-                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, _additionalConstrcutorParameterTypes.Concat(parameters).ToArray())
+                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameters.Concat(parameters).ToArray())
                 .GetILGenerator();
 
             ilGen.Emit(OpCodes.Ldarg_0);
@@ -29,15 +140,19 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Ldtoken, BaseType);
             ilGen.Emit(OpCodes.Ldtoken, ImplementionType);
             ilGen.Emit(OpCodes.Call, typeof(IInterceptorCollector).GetMethod("Collect"));
-            ilGen.Emit(OpCodes.Stsfld, GetField("__interceptors"));
+            ilGen.Emit(OpCodes.Stfld, GetField("__interceptors"));
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldarg_2);
-            ilGen.Emit(OpCodes.Stsfld, GetField("__executor"));
+            ilGen.Emit(OpCodes.Stfld, GetField("__executor"));
+
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.Emit(OpCodes.Ldarg_3);
+            ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
 
             ilGen.Emit(OpCodes.Ldarg_0);
 
-            for (var i = 2; i < parameters.Length; i++)
+            for (var i = ExtraConstrcutorParameters.Length; i < parameters.Length; i++)
             {
                 ilGen.Emit(OpCodes.Ldarg, i + 1);
             }
@@ -49,7 +164,7 @@ namespace Tinja.Interception.Generators
         protected override void CreateTypeDefaultConstructor()
         {
             var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, _additionalConstrcutorParameterTypes)
+                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, ExtraConstrcutorParameters)
                 .GetILGenerator();
 
             ilGen.Emit(OpCodes.Ldarg_0);
@@ -63,6 +178,10 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Ldarg_2);
             ilGen.Emit(OpCodes.Stsfld, GetField("__executor"));
 
+            ilGen.Emit(OpCodes.Ldarg_0);
+            ilGen.Emit(OpCodes.Ldarg_3);
+            ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
+
             ilGen.Emit(OpCodes.Ret);
         }
 
@@ -71,6 +190,6 @@ namespace Tinja.Interception.Generators
             return ImplementionType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        #endregion  
+        #endregion
     }
 }

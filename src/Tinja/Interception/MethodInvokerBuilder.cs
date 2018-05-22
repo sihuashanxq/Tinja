@@ -15,10 +15,14 @@ namespace Tinja.Interception
 
         private ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>> _invokers;
 
-        public MethodInvokerBuilder(IObjectMethodExecutorProvider objectMethodExecutorProvider)
+        public MethodInvokerBuilder(
+            IEnumerable<IInterceptorSelector> interceptorSelectors,
+            IObjectMethodExecutorProvider objectMethodExecutorProvider
+        )
         {
-            _invokers = new ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>>();
+            _interceptorSelectors = interceptorSelectors;
             _objectMethodExecutorProvider = objectMethodExecutorProvider;
+            _invokers = new ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>>();
         }
 
         public Func<MethodInvocation, Task> Build(MethodInfo methodInfo)
@@ -30,7 +34,7 @@ namespace Tinja.Interception
         {
             return (invocation) =>
             {
-                var interceptors = invocation.Proxy.GetInterceptors().Select(n => n.Interceptor).ToArray();
+                var interceptors = invocation.Interceptors;
                 var stack = new Stack<Func<MethodInvocation, Task>>();
 
                 stack.Push(async (inv) =>

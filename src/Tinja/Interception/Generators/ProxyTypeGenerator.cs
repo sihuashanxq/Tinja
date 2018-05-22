@@ -4,17 +4,17 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
-using Tinja.Extension;
 using Tinja.Interception.TypeMembers;
-using Tinja.Resolving;
 
 namespace Tinja.Interception
 {
     public abstract class ProxyTypeGenerator : IProxyTypeGenerator
     {
-        static MethodInfo MethodServiceResolve { get; }
+        protected static MethodInfo MethodInvocationExecute { get; }
 
-        static MethodInfo MethodInvocationExecute { get; }
+        protected static ConstructorInfo NewMethodInvocation { get; }
+
+        protected static ConstructorInfo NewPropertyMethodInvocation { get; }
 
         protected Type BaseType { get; }
 
@@ -28,8 +28,24 @@ namespace Tinja.Interception
 
         static ProxyTypeGenerator()
         {
-            MethodServiceResolve = typeof(IServiceResolver).GetMethod("Resolve");
             MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
+
+            NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
+            {
+                typeof(object),
+                typeof(MethodInfo),
+                typeof(object[]),
+                typeof(IInterceptor[])
+            });
+
+            NewPropertyMethodInvocation = typeof(PropertyMethodInvocation).GetConstructor(new[]
+            {
+                typeof(object),
+                typeof(MethodInfo),
+                typeof(object[]),
+                typeof(IInterceptor[]),
+                typeof(PropertyInfo)
+            });
         }
 
         public ProxyTypeGenerator(Type baseType, Type implemetionType)
@@ -58,12 +74,18 @@ namespace Tinja.Interception
             return TypeBuilder.CreateType();
         }
 
-        #region field
+        #region Field
 
         protected virtual void CreateTypeFields()
         {
             CreateField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
             CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
+            CreateField("__filter", typeof(IMemberInterceptorFilter), FieldAttributes.Private);
+
+            foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            {
+                CreateField("__property__proxy_" + item.Name, typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+            }
         }
 
         public FieldBuilder GetField(string field)
@@ -83,86 +105,93 @@ namespace Tinja.Interception
 
         #endregion
 
+        #region Event
+
         protected virtual void CreateTypeEvents()
         {
-
-        }
-
-        protected virtual void CreateTypeMethods()
-        {
-            foreach (var typeMember in TypeMembers.Where(m => m.IsMethod))
+            foreach (var item in TypeMembers.Where(i => i.IsEvent))
             {
-                var methodInfo = typeMember.Member.AsMethod();
-
-                var paramterInfos = methodInfo.GetParameters();
-                var paramterTypes = paramterInfos.Select(i => i.ParameterType).ToArray();
-                var methodBudiler = TypeBuilder.DefineMethod(
-                    methodInfo.Name,
-                    MethodAttributes.Public | MethodAttributes.Virtual,
-                    CallingConventions.HasThis,
-                    methodInfo.ReturnType,
-                    paramterTypes
-                );
-
-                var il = methodBudiler.GetILGenerator();
-
-                //this.Resolver.Resolve(IMethodInvocationExecutor);
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, ResolverField);
-                il.Emit(OpCodes.Ldtoken, typeof(IMethodInvocationExecutor));
-                il.Emit(OpCodes.Callvirt, MethodServiceResolve);
-
-                //executor.Execute(new MethodInvocation)
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, ImplenmetionField);
-                il.Emit(OpCodes.Ldsfld, MethodFields[meta]);
-
-                //new Parameters[]
-                il.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
-                il.Emit(OpCodes.Newarr, typeof(object));
-
-                for (var i = 0; i < paramterTypes.Length; i++)
-                {
-                    il.Emit(OpCodes.Dup);
-                    il.Emit(OpCodes.Ldc_I4, i);
-                    il.Emit(OpCodes.Ldarg, i + 1);
-                    il.Box(paramterTypes[i]);
-                    il.Emit(OpCodes.Stelem_Ref);
-                }
-
-                il.Emit(OpCodes.Newobj, MethodInvocation.Constrcutor);
-                il.Emit(OpCodes.Callvirt, MethodInvocationExecute);
-                il.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-                il.Emit(OpCodes.Ret);
+                CreateTypeEvent(item.Member as EventInfo);
             }
         }
 
+        protected virtual EventBuilder CreateTypeEvent(EventInfo @event)
+        {
+            return null;
+        }
+
+        #endregion Event
+
+        #region Method
+
+        protected virtual void CreateTypeMethods()
+        {
+            foreach (var item in TypeMembers.Where(i => i.IsMethod))
+            {
+                CreateTypeMethod(item.Member.AsMethod());
+            }
+        }
+
+        protected abstract MethodBuilder CreateTypeMethod(MethodInfo methodInfo);
+
+        #endregion
+
+        #region Property
+
         protected virtual void CreateTypeProperties()
         {
-
+            foreach (var item in TypeMembers.Where(i => i.IsProperty))
+            {
+                CreateTypeProperty(item.Member.AsProperty());
+            }
         }
+
+        protected abstract PropertyBuilder CreateTypeProperty(PropertyInfo propertyInfo);
+
+        #endregion  
 
         #region Constructors
 
         protected virtual void CreateTypeConstrcutors()
         {
-            var ctors = GetBaseConstructorInfos();
-            if (!ctors.Any())
+            var bases = GetBaseConstructorInfos();
+            if (bases.Any())
             {
-                CreateTypeDefaultConstructor();
-            }
-            else
-            {
-                foreach (var item in ctors)
+                foreach (var item in bases)
                 {
                     CreateTypeConstructor(item);
                 }
             }
+            else
+            {
+                CreateTypeDefaultConstructor();
+            }
+
+            CreateTypeDefaultStaticConstrcutor();
         }
+
+        protected abstract void CreateTypeConstructor(ConstructorInfo constrcutor);
 
         protected abstract void CreateTypeDefaultConstructor();
 
-        protected abstract void CreateTypeConstructor(ConstructorInfo constrcutor);
+        protected virtual void CreateTypeDefaultStaticConstrcutor()
+        {
+            var getProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
+            var ilGen = TypeBuilder
+                .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
+                .GetILGenerator();
+
+            foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            {
+                ilGen.Emit(OpCodes.Ldtoken, ImplementionType);
+                ilGen.Emit(OpCodes.Ldstr, item.Name);
+                ilGen.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic));
+                ilGen.Emit(OpCodes.Call, getProperty);
+                ilGen.Emit(OpCodes.Stsfld, GetField("__property__proxy_" + item.Name));
+            }
+
+            ilGen.Emit(OpCodes.Ret);
+        }
 
         protected virtual ConstructorInfo[] GetBaseConstructorInfos()
         {
@@ -170,5 +199,41 @@ namespace Tinja.Interception
         }
 
         #endregion
+
+        protected virtual MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
+        {
+            if (BaseType.IsInterface)
+            {
+                return MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+            }
+
+            var attributes = MethodAttributes.HideBySig | MethodAttributes.Virtual;
+            if (methodInfo.IsPublic)
+            {
+                return MethodAttributes.Public | attributes;
+            }
+
+            if (methodInfo.IsFamily)
+            {
+                return MethodAttributes.Family | attributes;
+            }
+
+            if (methodInfo.IsFamilyAndAssembly)
+            {
+                return MethodAttributes.FamANDAssem | attributes;
+            }
+
+            if (methodInfo.IsFamilyOrAssembly)
+            {
+                return MethodAttributes.FamORAssem | attributes;
+            }
+
+            if (methodInfo.IsPrivate)
+            {
+                return MethodAttributes.Private | attributes;
+            }
+
+            return attributes;
+        }
     }
 }
