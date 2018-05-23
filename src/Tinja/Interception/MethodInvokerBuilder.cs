@@ -55,11 +55,11 @@ namespace Tinja.Interception
                 for (var i = interceptors.Length - 1; i >= 0; i--)
                 {
                     var next = stack.Pop();
-                    var interceptor = interceptors[i];
+                    var item = interceptors[i];
 
                     stack.Push(async (inv) =>
                     {
-                        await interceptor.InvokeAsync(inv, next);
+                        await item.InvokeAsync(inv, next);
                     });
                 }
 

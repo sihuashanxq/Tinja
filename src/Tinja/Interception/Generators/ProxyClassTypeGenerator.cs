@@ -1,20 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-
 using Tinja.Extension;
 
 namespace Tinja.Interception.Generators
 {
     public class ProxyClassTypeGenerator : ProxyTypeGenerator
     {
-        protected Type[] ExtraConstrcutorParameters { get; }
+        protected override Type[] ExtraConstrcutorParameters => new[]
+        {
+            typeof(IInterceptorCollector),
+            typeof(IMethodInvocationExecutor),
+            typeof(IMemberInterceptorFilter)
+        };
 
         public ProxyClassTypeGenerator(Type baseType, Type implemetionType)
             : base(baseType, implemetionType)
         {
-            ExtraConstrcutorParameters = new[] { typeof(IInterceptorCollector), typeof(IMethodInvocationExecutor), typeof(IMemberInterceptorFilter) };
+
         }
 
         /// <summary>
@@ -46,7 +51,7 @@ namespace Tinja.Interception.Generators
 
             //this.executor.Execute(new MethodInvocation)
             ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.LoadMethodInfo(methodInfo);
+            ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
 
             //new Parameters[]
             ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
@@ -69,19 +74,16 @@ namespace Tinja.Interception.Generators
 
             if (property == null)
             {
-                ilGen.LoadMethodInfo(methodInfo);
+                ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
                 ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
-
                 ilGen.Emit(OpCodes.Newobj, NewMethodInvocation);
             }
             else
             {
-                ilGen.Emit(OpCodes.Ldarg_0);
-                ilGen.Emit(OpCodes.Ldfld, GetField("__property__proxy_" + property.Name));
-
+                ilGen.Emit(OpCodes.Ldsfld, GetField(property));
                 ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
 
-                ilGen.Emit(OpCodes.Ldsfld, GetField("__property__proxy_" + property.Name));
+                ilGen.Emit(OpCodes.Ldsfld, GetField(property));
                 ilGen.Emit(OpCodes.Newobj, NewPropertyMethodInvocation);
             }
 

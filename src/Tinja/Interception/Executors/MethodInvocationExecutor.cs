@@ -12,32 +12,33 @@ namespace Tinja.Interception
             Builder = builder;
         }
 
-        public object Execute(MethodInvocation invocation)
+        public object Execute(MethodInvocation methodInvocation)
         {
-            var invoker = Builder.Build(invocation.TargetMethod);
+            var invoker = Builder.Build(methodInvocation.TargetMethod);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));
             }
 
-            var task = invoker(invocation);
+            var task = invoker(methodInvocation);
             if (task == null)
             {
                 throw new NullReferenceException(nameof(task));
             }
 
-            if (invocation.TargetMethod.ReturnType.IsTask())
+            if (methodInvocation.TargetMethod.ReturnType.IsTask())
             {
                 var tcs = new TaskCompletionSource<object>();
                 var awaiter = task.GetAwaiter();
 
-                awaiter.OnCompleted(() => tcs.SetResult(invocation.ReturnValue));
+                awaiter.OnCompleted(() => tcs.SetResult(methodInvocation.ReturnValue));
 
                 return tcs.Task;
             }
 
             task.Wait();
-            return invocation.ReturnValue;
+
+            return methodInvocation.ReturnValue;
         }
     }
 }

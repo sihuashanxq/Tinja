@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-
+using Tinja.Extension;
 using Tinja.Interception.TypeMembers;
 
 namespace Tinja.Interception
@@ -25,6 +25,8 @@ namespace Tinja.Interception
         protected IEnumerable<TypeMember> TypeMembers { get; }
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
+
+        protected virtual Type[] ExtraConstrcutorParameters { get; }
 
         static ProxyTypeGenerator()
         {
@@ -84,13 +86,23 @@ namespace Tinja.Interception
 
             foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
-                CreateField("__property__proxy_" + item.Name, typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+                CreateField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+            }
+
+            foreach (var item in TypeMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
+            {
+                CreateField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
         }
 
         public FieldBuilder GetField(string field)
         {
             return Fields.GetValueOrDefault(field);
+        }
+
+        public FieldBuilder GetField(MemberInfo memberInfo)
+        {
+            return GetField(GetMemberIdentifier(memberInfo));
         }
 
         public FieldBuilder CreateField(string field, Type fieldType, FieldAttributes attributes)
@@ -176,18 +188,20 @@ namespace Tinja.Interception
 
         protected virtual void CreateTypeDefaultStaticConstrcutor()
         {
-            var getProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
             var ilGen = TypeBuilder
                 .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
                 .GetILGenerator();
 
             foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
-                ilGen.Emit(OpCodes.Ldtoken, ImplementionType);
-                ilGen.Emit(OpCodes.Ldstr, item.Name);
-                ilGen.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic));
-                ilGen.Emit(OpCodes.Call, getProperty);
-                ilGen.Emit(OpCodes.Stsfld, GetField("__property__proxy_" + item.Name));
+                ilGen.LoadPropertyInfo(item);
+                ilGen.Emit(OpCodes.Stsfld, GetField(item));
+            }
+
+            foreach (var item in TypeMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
+            {
+                ilGen.LoadMethodInfo(item);
+                ilGen.Emit(OpCodes.Stsfld, GetField(item));
             }
 
             ilGen.Emit(OpCodes.Ret);
@@ -234,6 +248,16 @@ namespace Tinja.Interception
             }
 
             return attributes;
+        }
+
+        /// <summary>
+        /// 获取MemberInfo 标识符
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <returns></returns>
+        protected static string GetMemberIdentifier(MemberInfo memberInfo)
+        {
+            return "__proxy__member__" + memberInfo.Name + "_" + memberInfo.GetHashCode();
         }
     }
 }

@@ -12,14 +12,11 @@ namespace Tinja.Interception.Internal
     {
         protected Func<object, object[], Task<object>> MethodExecutor { get; }
 
-        public Type DeclareType => MethodInfo.DeclaringType;
-
         public MethodInfo MethodInfo { get; }
 
         public ObjectMethodExecutor(MethodInfo methodInfo)
         {
             MethodInfo = methodInfo;
-
             MethodExecutor = typeof(Task).IsAssignableFrom(methodInfo.ReturnType)
                 ? CreateAsyncExecutor(MethodInfo)
                 : CreateAsyncExecutorWrapper(MethodInfo);
@@ -32,7 +29,7 @@ namespace Tinja.Interception.Internal
 
         private static Func<object, object[], Task<object>> CreateAsyncExecutorWrapper(MethodInfo methodInfo)
         {
-            var instanceParamter = Expression.Parameter(methodInfo.DeclaringType, "instance");
+            var instanceParamter = Expression.Parameter(typeof(object), "instance");
             var parametersParameter = Expression.Parameter(typeof(object[]), "parameters");
 
             var parameters = new List<Expression>();
@@ -50,7 +47,7 @@ namespace Tinja.Interception.Internal
 
             var methodCall = Expression.Convert(
                 Expression.Call(
-                    instanceParamter,
+                    Expression.Convert(instanceParamter, methodInfo.DeclaringType),
                     methodInfo,
                     parameters
                 ),
@@ -87,7 +84,7 @@ namespace Tinja.Interception.Internal
             var returnType = methodInfo.ReturnType;
 
             var tcsParamter = Expression.Parameter(tcsType, "tcs");
-            var instanceParamter = Expression.Parameter(methodInfo.DeclaringType, "service");
+            var instanceParamter = Expression.Parameter(typeof(object), "instance");
             var paramsParameter = Expression.Parameter(typeof(object[]), "parameters");
 
             var parameters = new List<Expression>();
@@ -103,7 +100,7 @@ namespace Tinja.Interception.Internal
             }
 
             var methodCall = Expression.Call(
-                  instanceParamter,
+                  Expression.Convert(instanceParamter, methodInfo.DeclaringType),
                   methodInfo,
                   parameters
             );

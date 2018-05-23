@@ -128,7 +128,7 @@ namespace Sample
         }
     }
 
-
+    [Interceptor(typeof(InterceptorTest))]
     public class Abc : IAbc
     {
         public virtual object M()
@@ -137,8 +137,6 @@ namespace Sample
             return 6;
         }
 
-        [Interceptor(typeof(InterceptorTest))]
-        [Interceptor(typeof(InterceptorTest2))]
         public virtual void M2()
         {
 
@@ -211,7 +209,7 @@ namespace Sample
 
             var proxyService = resolver.Resolve(proxyType) as Abc;
 
-            proxyService.M();
+            var id = proxyService.Id;
 
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));
@@ -230,6 +228,11 @@ namespace Sample
 
             Console.WriteLine("Hello World!");
             Console.ReadKey();
+        }
+
+        private static void ProxyService_OnOk()
+        {
+        
         }
     }
 }
