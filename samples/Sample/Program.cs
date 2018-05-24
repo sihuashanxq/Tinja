@@ -97,10 +97,10 @@ namespace Sample
     {
         public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
         {
+            return next(invocation);
             Console.WriteLine("brefore InterceptorTest             ");
             var task = next(invocation);
             Console.WriteLine("after InterceptorTest");
-
             return task;
         }
     }
@@ -131,6 +131,8 @@ namespace Sample
     [Interceptor(typeof(InterceptorTest))]
     public class Abc : IAbc
     {
+        public event Action OnOk;
+
         public virtual object M()
         {
             Console.WriteLine("方法执行 执行");
@@ -158,6 +160,8 @@ namespace Sample
 
     public interface IAbc
     {
+        event Action OnOk;
+
         object M();
     }
 
@@ -209,6 +213,26 @@ namespace Sample
 
             var proxyService = resolver.Resolve(proxyType) as Abc;
 
+            watch.Reset();
+            watch.Start();
+            for (var i = 0; i < 1000000; i++)
+            {
+                proxyService.M();
+            }
+
+            watch.Start();
+            Console.WriteLine("Inter:" + watch.ElapsedMilliseconds);
+            watch.Reset();
+            var xxxxxx = new Abc();
+            watch.Start();
+            for (var i = 0; i < 1000000; i++)
+            {
+                xxxxxx.Id = 2;
+            }
+
+            watch.Start();
+            Console.WriteLine("Inter2:" + watch.ElapsedMilliseconds);
+
             var id = proxyService.Id;
 
             var y = resolver.Resolve(typeof(IServiceA));
@@ -232,7 +256,7 @@ namespace Sample
 
         private static void ProxyService_OnOk()
         {
-        
+
         }
     }
 }

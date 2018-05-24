@@ -2,7 +2,7 @@
 
 namespace Tinja.Interception
 {
-    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method | AttributeTargets.Event, AllowMultiple = true, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class InterceptorAttribute : Attribute
     {
         public int Priority { get; set; } = -1;

@@ -191,7 +191,7 @@ namespace Tinja
 
             if (memberInfo is MethodInfo methodInfo)
             {
-                return !methodInfo.IsPrivate && methodInfo.IsVirtual;
+                return !methodInfo.IsPrivate && methodInfo.IsVirtual && !methodInfo.IsFinal;
             }
 
             if (memberInfo is PropertyInfo property)
