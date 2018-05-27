@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using Tinja.ServiceLife;
+using System.Linq;
+using System.Reflection;
+using Tinja.Interception;
+using Tinja.Interception.Internal;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
-using Tinja.Resolving;
-using Tinja.Resolving.Dependency.Builder;
 using Tinja.Resolving.Metadata;
+using Tinja.ServiceLife;
 
 namespace Tinja
 {
@@ -23,6 +25,13 @@ namespace Tinja
             ioc.AddSingleton(typeof(IServiceResolvingContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
+
+            ioc.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
+            ioc.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
+            ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
+            ioc.AddSingleton<IInterceptionTargetProvider, InterceptionTargetProvider>();
+            ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            ioc.AddSingleton<IMemberInterceptorFilter, MemberInterceptorFilter>();
 
             builder.Initialize(ioc.Components);
 
@@ -88,7 +97,6 @@ namespace Tinja
             return ioc.AddService(serviceType, factory, ServiceLifeStyle.Transient);
         }
 
-
         public static IContainer AddScoped(this IContainer ioc, Type serviceType, Type implementionType)
         {
             return ioc.AddService(serviceType, implementionType, ServiceLifeStyle.Scoped);
@@ -112,13 +120,13 @@ namespace Tinja
                 {
                     throw new NotImplementedException($"ImplementionType:{component.ImplementionType.FullName} is abstract or interface!");
                 }
-            }
 
-            var components = new List<Component>() { component };
+                CreateImplementionProxyType(component);
+            }
 
             ioc.Components.AddOrUpdate(
                 component.ServiceType,
-                components,
+                 new List<Component>() { component },
                 (k, v) =>
                 {
                     if (v.Contains(component))
@@ -157,6 +165,69 @@ namespace Tinja
                     }
                 }
             );
+        }
+
+        private static void CreateImplementionProxyType(Component component)
+        {
+            if (component.ImplementionType.IsSealed)
+            {
+                return;
+            }
+
+            if (ShouldCreateProxy(component.ServiceType) ||
+                ShouldCreateProxy(component.ImplementionType))
+            {
+                component.ImplementionType = new ProxyTypeGenerator(component.ServiceType, component.ImplementionType).CreateProxyType();
+            }
+        }
+
+        private static bool ShouldCreateProxy(Type typeInfo)
+        {
+            if (typeInfo.IsSealed)
+            {
+                return false;
+            }
+
+            if (typeInfo.GetCustomAttributes<InterceptorAttribute>(false).Any())
+            {
+                return true;
+            };
+
+            if (typeInfo.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
+            {
+                return true;
+            }
+
+            foreach (var item in typeInfo
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(i => !i.IsFinal))
+            {
+                if (item.GetCustomAttributes<InterceptorAttribute>(false).Any())
+                {
+                    return true;
+                };
+
+                if (item.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
+                {
+                    return true;
+                }
+            }
+
+            foreach (var item in typeInfo
+                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                if (item.GetCustomAttributes<InterceptorAttribute>(false).Any())
+                {
+                    return true;
+                };
+
+                if (item.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

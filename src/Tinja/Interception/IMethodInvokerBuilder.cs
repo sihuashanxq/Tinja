@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
+using Tinja.Interception.Executors;
 
 namespace Tinja.Interception
 {
     public interface IMethodInvokerBuilder
     {
-        Func<MethodInvocation, Task> Build(MethodInfo methodInfo);
+        Func<IMethodInvocation, Task> Build(MethodInfo methodInfo);
     }
 }

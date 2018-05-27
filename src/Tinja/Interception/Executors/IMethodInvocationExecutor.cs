@@ -1,7 +1,9 @@
-﻿namespace Tinja.Interception
+﻿using Tinja.Interception.Executors;
+
+namespace Tinja.Interception
 {
     public interface IMethodInvocationExecutor
     {
-        object Execute(MethodInvocation invocation);
+        object Execute(IMethodInvocation invocation);
     }
 }

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Tinja.Interception.TypeMembers
 {
-    public abstract class TypeMemberCollector : ITypeMemberCollector
+    public class TypeMemberCollector : ITypeMemberCollector
     {
         protected const BindingFlags BindingFlag = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -41,9 +41,21 @@ namespace Tinja.Interception.TypeMembers
             return CollectedMembers;
         }
 
-        protected abstract void CollectMethods();
+        protected virtual void CollectMethods()
+        {
+            foreach (var methodInfo in TargetMethods.Where(m => m.IsOverrideable()))
+            {
+                HandleCollectedTypeMember(methodInfo);
+            }
+        }
 
-        protected abstract void CollectProperties();
+        protected virtual void CollectProperties()
+        {
+            foreach (var property in TargetProperties.Where(i => i.IsOverrideable()))
+            {
+                HandleCollectedTypeMember(property);
+            }
+        }
 
         protected virtual void HandleCollectedTypeMember(MemberInfo memberInfo)
         {
@@ -87,12 +99,7 @@ namespace Tinja.Interception.TypeMembers
 
         public static IEnumerable<TypeMember> Collect(Type baseType, Type implementionType)
         {
-            if (baseType.IsInterface)
-            {
-                return new InterfaceTypeMemberCollector(baseType, implementionType).Collect();
-            }
-
-            return new ClassTypeMemberCollector(baseType, implementionType).Collect();
+            return new TypeMemberCollector(baseType, implementionType).Collect();
         }
     }
 }

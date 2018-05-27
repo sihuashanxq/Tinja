@@ -39,6 +39,11 @@ namespace Tinja
             return type != null && typeof(Task).IsAssignableFrom(type);
         }
 
+        internal static bool IsValueTask(this Type type)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>);
+        }
+
         internal static IEnumerable<TElement> Distinct<TElement, TKey>(this IEnumerable<TElement> elements, Func<TElement, TKey> keyProvider)
         {
             if (elements == null)

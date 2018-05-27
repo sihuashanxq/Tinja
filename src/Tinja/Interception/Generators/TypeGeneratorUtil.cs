@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -44,32 +43,6 @@ namespace Tinja.Interception
                    baseType.IsInterface ? typeof(object) : baseType,
                    baseType.IsInterface ? new[] { baseType } : null
                );
-        }
-
-        public static void AssignFieldWithMethodInfo(ILGenerator il, FieldBuilder field, MethodInfo method)
-        {
-            var getMethod = typeof(Type).GetMethod("GetMethod", new[] { typeof(string), typeof(BindingFlags), typeof(Binder), typeof(Type[]), typeof(ParameterModifier[]) });
-            var parameterTypes = method.GetParameters().Select(info => info.ParameterType).ToArray();
-            var GetTypeFromRuntimeHandleMethod = typeof(Type).GetMethod("GetTypeFromHandle");
-
-            il.Emit(OpCodes.Ldtoken, method.DeclaringType);
-
-            il.Emit(OpCodes.Ldstr, method.Name);
-            il.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
-            il.Emit(OpCodes.Ldnull);
-            il.Emit(OpCodes.Ldc_I4, parameterTypes.Length);
-            il.Emit(OpCodes.Newarr, typeof(Type));
-
-            for (var i = 0; i < parameterTypes.Length; i++)
-            {
-                il.Emit(OpCodes.Ldc_I4, i);
-                il.Emit(OpCodes.Ldtoken, parameterTypes[i]);
-                il.Emit(OpCodes.Stelem, typeof(Type));
-            }
-
-            il.Emit(OpCodes.Ldnull);
-            il.EmitCall(OpCodes.Call, getMethod, null);
-            il.Emit(OpCodes.Stsfld, field);
         }
 
         static string GetTypeName(Type serviceType)

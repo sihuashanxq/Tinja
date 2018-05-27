@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using Tinja;
 using Tinja.Interception;
+using Tinja.Interception.Executors;
 using Tinja.Interception.Generators;
 using Tinja.Interception.Internal;
 using Tinja.ServiceLife;
@@ -95,7 +96,7 @@ namespace Sample
 
     public class InterceptorTest : IInterceptor
     {
-        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
             return next(invocation);
             Console.WriteLine("brefore InterceptorTest             ");
@@ -107,20 +108,21 @@ namespace Sample
 
     public class InterceptorTest2 : IInterceptor
     {
-        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
             invocation.ReturnValue = 10000;
-            Console.WriteLine("brefore InterceptorTest2222222222222222");
+            //Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
-            Console.WriteLine("after InterceptorTest222222222222222222");
+            //Console.WriteLine("after InterceptorTest222222222222222222");
             return task;
         }
     }
 
     public class InterceptorTest3 : IInterceptor
     {
-        public Task InvokeAsync(MethodInvocation invocation, Func<MethodInvocation, Task> next)
+        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
+            return next(invocation);
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
             Console.WriteLine("after InterceptorTest222222222222222222");
@@ -129,17 +131,19 @@ namespace Sample
     }
 
     [Interceptor(typeof(InterceptorTest))]
+    [Interceptor(typeof(InterceptorTest2))]
     public class Abc : IAbc
     {
         public event Action OnOk;
 
+        [Interceptor(typeof(InterceptorTest3))]
         public virtual object M()
         {
-            Console.WriteLine("方法执行 执行");
+
             return 6;
         }
 
-        public virtual void M2()
+        public void M2()
         {
 
         }
@@ -169,11 +173,8 @@ namespace Sample
     {
         static void Main(string[] args)
         {
-            var x = new Tinja.Interception.TypeMembers.ClassTypeMemberCollector(typeof(Abc), typeof(Abc2)).Collect();
-
             var watch = new System.Diagnostics.Stopwatch();
             var container = new Container();
-            var services = new ServiceCollection();
 
             container.AddService(typeof(IServiceA), _ => new ServiceA(), ServiceLifeStyle.Transient);
             container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
@@ -181,43 +182,22 @@ namespace Sample
             container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
             container.AddTransient<InterceptorTest, InterceptorTest>();
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
-            container.AddTransient<IMethodInvocationExecutor, MethodInvocationExecutor>();
-            container.AddTransient<IMethodInvokerBuilder, MethodInvokerBuilder>();
+            container.AddTransient<InterceptorTest3, InterceptorTest3>();
             container.AddTransient(typeof(Abc), typeof(Abc));
-            container.AddTransient(typeof(IInterceptorCollector), typeof(InterceptorCollector));
-            container.AddTransient(typeof(IInterceptionTargetProvider), typeof(InterceptionTargetProvider));
-            container.AddTransient(typeof(IObjectMethodExecutorProvider), typeof(ObjectMethodExecutorProvider));
-            container.AddTransient(typeof(IMemberInterceptorFilter), typeof(MemberInterceptorFilter));
-            var proxyType = new ProxyClassTypeGenerator(typeof(Abc), typeof(Abc)).CreateProxyType();
-
-            container.AddTransient(proxyType, proxyType);
-
-            services.AddScoped<IServiceA, ServiceA>();
-            services.AddTransient<IServiceB, ServiceB>();
-            services.AddTransient<IService, Service>();
-
-            var provider = services.BuildServiceProvider();
             var resolver = container.BuildResolver();
 
             watch.Reset();
             watch.Start();
 
-            //for (var i = 0; i < 1000_0000; i++)
-            //{
-            //    provider.GetService(typeof(IService));
-            //}
-
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();
-
-            var proxyService = resolver.Resolve(proxyType) as Abc;
-
+            xx.M();
             watch.Reset();
             watch.Start();
             for (var i = 0; i < 1000000; i++)
             {
-                proxyService.M();
+                xx.M();
             }
 
             watch.Start();
@@ -227,13 +207,11 @@ namespace Sample
             watch.Start();
             for (var i = 0; i < 1000000; i++)
             {
-                xxxxxx.Id = 2;
+                xxxxxx.M2();
             }
 
             watch.Start();
             Console.WriteLine("Inter2:" + watch.ElapsedMilliseconds);
-
-            var id = proxyService.Id;
 
             var y = resolver.Resolve(typeof(IServiceA));
             var b = resolver.Resolve(typeof(IServiceB));

@@ -16,7 +16,6 @@ namespace Tinja.Interception
                 if (member != null)
                 {
                     map[item.Interceptor] = member.Priority;
-                    break;
                 }
             }
 

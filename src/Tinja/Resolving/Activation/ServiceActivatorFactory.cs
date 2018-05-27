@@ -173,9 +173,6 @@ namespace Tinja.Resolving.Activation
         protected virtual Expression BuildWithConstructor(ServiceDependencyChain node)
         {
             var parameterValues = new Expression[node.Parameters?.Count ?? 0];
-            var varible = Expression.Variable(node.Constructor.ConstructorInfo.DeclaringType);
-            var statements = new List<Expression>();
-            var lable = Expression.Label(varible.Type);
 
             for (var i = 0; i < parameterValues.Length; i++)
             {

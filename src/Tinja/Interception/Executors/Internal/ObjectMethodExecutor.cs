@@ -47,7 +47,7 @@ namespace Tinja.Interception.Internal
                 }
                 catch (Exception e)
                 {
-                    return Task.FromResult<object>(e);
+                    throw;
                 }
             };
         }

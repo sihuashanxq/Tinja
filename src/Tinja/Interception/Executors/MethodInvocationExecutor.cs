@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Tinja.Interception.Executors;
 
 namespace Tinja.Interception
 {
@@ -12,33 +13,44 @@ namespace Tinja.Interception
             Builder = builder;
         }
 
-        public object Execute(MethodInvocation methodInvocation)
+        public object Execute(IMethodInvocation inv)
         {
-            var invoker = Builder.Build(methodInvocation.TargetMethod);
+            var invoker = Builder.Build(inv.TargetMethod);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));
             }
 
-            var task = invoker(methodInvocation);
+            var task = invoker(inv);
             if (task == null)
             {
                 throw new NullReferenceException(nameof(task));
             }
 
-            if (methodInvocation.TargetMethod.ReturnType.IsTask())
+            if (!inv.TargetMethod.ReturnType.IsTask() &&
+                !inv.TargetMethod.ReturnType.IsValueTask())
             {
-                var tcs = new TaskCompletionSource<object>();
-                var awaiter = task.GetAwaiter();
+                task.Wait();
 
-                awaiter.OnCompleted(() => tcs.SetResult(methodInvocation.ReturnValue));
-
-                return tcs.Task;
+                return inv.ReturnValue;
             }
 
-            task.Wait();
+            return GetAsyncReturnValue(task, new TaskCompletionSource<object>(), inv);
+        }
 
-            return methodInvocation.ReturnValue;
+        private static object GetAsyncReturnValue(Task task, TaskCompletionSource<object> taskCompletion, IMethodInvocation inv)
+        {
+            task.GetAwaiter().OnCompleted(() =>
+            {
+                taskCompletion.SetResult(inv.ReturnValue);
+            });
+
+            if (inv.TargetMethod.ReturnType.IsValueTask())
+            {
+                return Activator.CreateInstance(typeof(ValueTask<>).MakeGenericType(inv.TargetMethod.ReturnType.GetGenericArguments()), taskCompletion.Task);
+            }
+
+            return taskCompletion.Task;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -9,61 +8,58 @@ namespace Tinja.Interception
 {
     public class MethodInvokerBuilder : IMethodInvokerBuilder
     {
-        private IEnumerable<IInterceptorSelector> _interceptorSelectors;
+        protected IEnumerable<IInterceptorSelector> InterceptorSelectors { get; }
 
-        private IObjectMethodExecutorProvider _objectMethodExecutorProvider;
+        protected IObjectMethodExecutorProvider ObjectMethodExecutorProvider { get; }
 
-        private ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>> _invokers;
+        protected ConcurrentDictionary<MethodInfo, Func<IMethodInvocation, Task>> Cache { get; }
 
-        public MethodInvokerBuilder(
-            IEnumerable<IInterceptorSelector> interceptorSelectors,
-            IObjectMethodExecutorProvider objectMethodExecutorProvider
-        )
+        public MethodInvokerBuilder(IEnumerable<IInterceptorSelector> interceptorSelectors, IObjectMethodExecutorProvider objectMethodExecutorProvider)
         {
-            _interceptorSelectors = interceptorSelectors;
-            _objectMethodExecutorProvider = objectMethodExecutorProvider;
-            _invokers = new ConcurrentDictionary<MethodInfo, Func<MethodInvocation, Task>>();
+            InterceptorSelectors = interceptorSelectors;
+            ObjectMethodExecutorProvider = objectMethodExecutorProvider;
+            Cache = new ConcurrentDictionary<MethodInfo, Func<IMethodInvocation, Task>>();
         }
 
-        public Func<MethodInvocation, Task> Build(MethodInfo methodInfo)
+        public Func<IMethodInvocation, Task> Build(MethodInfo methodInfo)
         {
-            return _invokers.GetOrAdd(methodInfo, (m) => Build(_objectMethodExecutorProvider.GetExecutor(m)));
+            return Cache.GetOrAdd(methodInfo, (m) => Build(ObjectMethodExecutorProvider.GetExecutor(m)));
         }
 
-        protected virtual Func<MethodInvocation, Task> Build(IObjectMethodExecutor executor)
+        protected virtual Func<IMethodInvocation, Task> Build(IObjectMethodExecutor executor)
         {
-            return (invocation) =>
+            return inv =>
             {
-                var interceptors = invocation.Interceptors;
-                var stack = new Stack<Func<MethodInvocation, Task>>();
+                var interceptors = inv.Interceptors;
+                var callStack = new Stack<Func<IMethodInvocation, Task>>();
 
-                stack.Push(async (inv) =>
+                callStack.Push(async (invocation) =>
                 {
                     inv.ReturnValue = await executor.ExecuteAsync(invocation.Target, invocation.ParameterValues);
                 });
 
-                foreach (var item in _interceptorSelectors)
+                foreach (var item in InterceptorSelectors)
                 {
-                    interceptors = item.Select(invocation.Target, invocation.TargetMethod, interceptors);
+                    interceptors = item.Select(inv.Target, inv.TargetMethod, interceptors);
                 }
 
                 if (interceptors == null || interceptors.Length == 0)
                 {
-                    return stack.Pop()(invocation);
+                    return callStack.Pop()(inv);
                 }
 
                 for (var i = interceptors.Length - 1; i >= 0; i--)
                 {
-                    var next = stack.Pop();
+                    var next = callStack.Pop();
                     var item = interceptors[i];
 
-                    stack.Push(async (inv) =>
+                    callStack.Push(async (invocation) =>
                     {
-                        await item.InvokeAsync(inv, next);
+                        await item.InvokeAsync(invocation, next);
                     });
                 }
 
-                return stack.Pop()(invocation);
+                return callStack.Pop()(inv);
             };
         }
     }
