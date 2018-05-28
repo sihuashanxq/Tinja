@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tinja.Interception;
+using Tinja.Interception.Generators;
 using Tinja.Interception.Internal;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
@@ -31,7 +32,6 @@ namespace Tinja
             ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             ioc.AddSingleton<IInterceptionTargetProvider, InterceptionTargetProvider>();
             ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
-            ioc.AddSingleton<IMemberInterceptorFilter, MemberInterceptorFilter>();
 
             builder.Initialize(ioc.Components);
 

@@ -7,7 +7,7 @@ using Tinja.Extension;
 using Tinja.Interception.Executors;
 using Tinja.Interception.TypeMembers;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Generators
 {
     public class ProxyTypeGenerator : IProxyTypeGenerator
     {
@@ -30,8 +30,7 @@ namespace Tinja.Interception
         protected virtual Type[] ExtraConstrcutorParameters => new[]
         {
             typeof(IInterceptorCollector),
-            typeof(IMethodInvocationExecutor),
-            typeof(IMemberInterceptorFilter)
+            typeof(IMethodInvocationExecutor)
         };
 
         static ProxyTypeGenerator()
@@ -60,7 +59,6 @@ namespace Tinja.Interception
         {
             BaseType = baseType;
             ImplementionType = implemetionType;
-
             TypeMembers = TypeMemberCollector.Collect(BaseType, implemetionType);
             TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
 
@@ -71,13 +69,13 @@ namespace Tinja.Interception
         {
             CreateTypeFields();
 
-            CreateTypeEvents();
-
             CreateTypeMethods();
 
             CreateTypeProperties();
 
             CreateTypeConstrcutors();
+
+            this.CreateTypeCustomAttribute(TypeBuilder, ImplementionType);
 
             return TypeBuilder.CreateType();
         }
@@ -123,23 +121,6 @@ namespace Tinja.Interception
 
         #endregion
 
-        #region Event
-
-        protected virtual void CreateTypeEvents()
-        {
-            foreach (var item in TypeMembers.Where(i => i.IsEvent))
-            {
-                CreateTypeEvent(item.Member as EventInfo);
-            }
-        }
-
-        protected virtual EventBuilder CreateTypeEvent(EventInfo @event)
-        {
-            return null;
-        }
-
-        #endregion Event
-
         #region Method
 
         protected virtual void CreateTypeMethods()
@@ -170,6 +151,8 @@ namespace Tinja.Interception
                 methodInfo.ReturnType,
                 paramterTypes
             );
+
+            this.CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
 
@@ -243,6 +226,8 @@ namespace Tinja.Interception
                 propertyInfo.GetIndexParameters().Select(i => i.ParameterType).ToArray()
             );
 
+            this.CreateTypePropertyCustomAttributes(propertyBuilder, propertyInfo);
+
             if (propertyInfo.CanWrite)
             {
                 var setter = CreateTypeMethod(propertyInfo.SetMethod, propertyInfo);
@@ -274,28 +259,28 @@ namespace Tinja.Interception
 
         protected virtual void CreateTypeConstrcutors()
         {
+            CreateTypeDefaultStaticConstrcutor();
+
             var bases = GetBaseConstructorInfos();
-            if (bases.Any())
-            {
-                foreach (var item in bases)
-                {
-                    CreateTypeConstructor(item);
-                }
-            }
-            else
+            if (!bases.Any())
             {
                 CreateTypeDefaultConstructor();
+                return;
             }
 
-            CreateTypeDefaultStaticConstrcutor();
+            foreach (var item in bases)
+            {
+                CreateTypeConstructor(item);
+            }
         }
 
         protected virtual void CreateTypeConstructor(ConstructorInfo consturctor)
         {
             var parameters = consturctor.GetParameters().Select(i => i.ParameterType).ToArray();
-            var ilGen = TypeBuilder
-                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameters.Concat(parameters).ToArray())
-                .GetILGenerator();
+            var constructorBuilder = TypeBuilder.DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameters.Concat(parameters).ToArray());
+            var ilGen = constructorBuilder.GetILGenerator();
+
+            this.CreateTypeConstructorCustomAttributes(constructorBuilder, consturctor);
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldarg_1);
@@ -309,9 +294,9 @@ namespace Tinja.Interception
             ilGen.Emit(OpCodes.Stfld, GetField("__executor"));
 
             ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_3);
+            ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
             ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
-
+       
             ilGen.Emit(OpCodes.Ldarg_0);
 
             for (var i = ExtraConstrcutorParameters.Length; i < parameters.Length; i++)
@@ -341,7 +326,7 @@ namespace Tinja.Interception
             ilGen.Emit(OpCodes.Stsfld, GetField("__executor"));
 
             ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_3);
+            ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
             ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
 
             ilGen.Emit(OpCodes.Ret);

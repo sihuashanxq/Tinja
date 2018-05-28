@@ -130,16 +130,12 @@ namespace Sample
         }
     }
 
-    [Interceptor(typeof(InterceptorTest))]
-    [Interceptor(typeof(InterceptorTest2))]
     public class Abc : IAbc
     {
         public event Action OnOk;
 
-        [Interceptor(typeof(InterceptorTest3))]
         public virtual object M()
         {
-
             return 6;
         }
 
@@ -155,11 +151,11 @@ namespace Sample
     [Interceptor(typeof(InterceptorTest3))]
     public class Abc2 : Abc
     {
-        public override object M()
-        {
-            Console.WriteLine("方法执行 执行");
-            return 6;
-        }
+        //public override object M()
+        //{
+        //    Console.WriteLine("方法执行 执行");
+        //    return 6;
+        //}
     }
 
     public interface IAbc
@@ -195,7 +191,7 @@ namespace Sample
             xx.M();
             watch.Reset();
             watch.Start();
-            for (var i = 0; i < 1000000; i++)
+            for (var i = 0; i < 10000000; i++)
             {
                 xx.M();
             }
@@ -205,7 +201,7 @@ namespace Sample
             watch.Reset();
             var xxxxxx = new Abc();
             watch.Start();
-            for (var i = 0; i < 1000000; i++)
+            for (var i = 0; i < 10000000; i++)
             {
                 xxxxxx.M2();
             }
