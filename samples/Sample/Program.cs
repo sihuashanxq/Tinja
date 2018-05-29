@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Tinja;
 using Tinja.Interception;
@@ -110,7 +111,7 @@ namespace Sample
     {
         public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
-            invocation.ReturnValue = 10000;
+            invocation.ResultValue = 10000;
             //Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
             //Console.WriteLine("after InterceptorTest222222222222222222");
@@ -134,8 +135,10 @@ namespace Sample
     {
         public event Action OnOk;
 
-        public virtual object M()
+        [Interceptor(typeof(InterceptorTest))]
+        public virtual object M<T>() where T : class
         {
+            var t = typeof(T);
             return 6;
         }
 
@@ -162,7 +165,7 @@ namespace Sample
     {
         event Action OnOk;
 
-        object M();
+        object M<T>() where T : class;
     }
 
     class Program
@@ -188,12 +191,12 @@ namespace Sample
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();
-            xx.M();
+
             watch.Reset();
             watch.Start();
-            for (var i = 0; i < 10000000; i++)
+            for (var i = 0; i < 1000000; i++)
             {
-                xx.M();
+                xx.M<object>();
             }
 
             watch.Start();

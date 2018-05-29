@@ -35,7 +35,7 @@ namespace Tinja.Interception
 
                 callStack.Push(async (invocation) =>
                 {
-                    inv.ReturnValue = await executor.ExecuteAsync(invocation.Target, invocation.ParameterValues);
+                    inv.ResultValue = await executor.ExecuteAsync(invocation.Target, invocation.ParameterValues);
                 });
 
                 foreach (var item in InterceptorSelectors)

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 namespace Tinja.Interception.Executors
 {
@@ -6,8 +7,8 @@ namespace Tinja.Interception.Executors
     {
         public PropertyInfo TargetProperty { get; }
 
-        public MethodPropertyInvocation(object target, MethodInfo targetMethod, object[] parameterValues, IInterceptor[] interceptors, PropertyInfo propertyInfo)
-            : base(target, targetMethod, parameterValues, interceptors)
+        public MethodPropertyInvocation(object target, MethodInfo targetMethod, Type[] genericArguments, object[] parameterValues, IInterceptor[] interceptors, PropertyInfo propertyInfo)
+            : base(target, targetMethod, genericArguments, parameterValues, interceptors)
         {
             TargetProperty = propertyInfo;
         }

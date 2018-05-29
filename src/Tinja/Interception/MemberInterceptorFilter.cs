@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 
 namespace Tinja.Interception
 {
-    public class MemberInterceptorFilter : IMemberInterceptorFilter
+    public class MemberInterceptorFilter 
     {
         private ConcurrentDictionary<MemberInfo, IInterceptor[]> _memberInterceptors;
 

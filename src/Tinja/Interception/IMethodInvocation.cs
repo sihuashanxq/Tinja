@@ -6,7 +6,7 @@ namespace Tinja.Interception
     {
         object Target { get; }
 
-        object ReturnValue { get; set; }
+        object ResultValue { get; set; }
 
         MethodInfo TargetMethod { get; }
 

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 namespace Tinja.Interception.Executors
 {
@@ -8,18 +9,28 @@ namespace Tinja.Interception.Executors
 
         public MethodInfo TargetMethod { get; }
 
-        public object ReturnValue { get; set; }
+        public object ResultValue { get; set; }
 
         public object[] ParameterValues { get; }
 
         public IInterceptor[] Interceptors { get; }
 
-        public MethodInvocation(object target, MethodInfo targetMethod, object[] parameterValues, IInterceptor[] interceptors)
+        public MethodInvocation(object proxy, MethodInfo targetMethod, Type[] genericArguments, object[] parameterValues, IInterceptor[] interceptors)
         {
-            Target = target;
-            TargetMethod = targetMethod;
+            Target = proxy;
             ParameterValues = parameterValues;
             Interceptors = interceptors;
+            TargetMethod = targetMethod;
+
+            if (TargetMethod.IsGenericMethod)
+            {
+                if (genericArguments == null)
+                {
+                    throw new InvalidCastException("MakeGenericMethod Faild!");
+                }
+
+                TargetMethod = TargetMethod.MakeGenericMethod(genericArguments);
+            }
         }
     }
 }

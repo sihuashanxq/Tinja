@@ -32,7 +32,7 @@ namespace Tinja.Interception
             {
                 task.Wait();
 
-                return inv.ReturnValue;
+                return inv.ResultValue;
             }
 
             return GetAsyncReturnValue(task, new TaskCompletionSource<object>(), inv);
@@ -42,7 +42,7 @@ namespace Tinja.Interception
         {
             task.GetAwaiter().OnCompleted(() =>
             {
-                taskCompletion.SetResult(inv.ReturnValue);
+                taskCompletion.SetResult(inv.ResultValue);
             });
 
             if (inv.TargetMethod.ReturnType.IsValueTask())

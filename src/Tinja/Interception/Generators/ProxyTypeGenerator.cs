@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+
 using Tinja.Extension;
 using Tinja.Interception.Executors;
 using Tinja.Interception.TypeMembers;
@@ -41,6 +43,7 @@ namespace Tinja.Interception.Generators
             {
                 typeof(object),
                 typeof(MethodInfo),
+                typeof(Type[]),
                 typeof(object[]),
                 typeof(IInterceptor[])
             });
@@ -49,6 +52,7 @@ namespace Tinja.Interception.Generators
             {
                 typeof(object),
                 typeof(MethodInfo),
+                typeof(Type[]),
                 typeof(object[]),
                 typeof(IInterceptor[]),
                 typeof(PropertyInfo)
@@ -75,7 +79,9 @@ namespace Tinja.Interception.Generators
 
             CreateTypeConstrcutors();
 
-            this.CreateTypeCustomAttribute(TypeBuilder, ImplementionType);
+            CreateGenericParameters(TypeBuilder, ImplementionType);
+
+            CreateTypeCustomAttribute(TypeBuilder, ImplementionType);
 
             return TypeBuilder.CreateType();
         }
@@ -86,7 +92,7 @@ namespace Tinja.Interception.Generators
         {
             CreateField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
             CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
-            CreateField("__filter", typeof(IMemberInterceptorFilter), FieldAttributes.Private);
+            CreateField("__filter", typeof(MemberInterceptorFilter), FieldAttributes.Private);
 
             foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
@@ -152,7 +158,8 @@ namespace Tinja.Interception.Generators
                 paramterTypes
             );
 
-            this.CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
+            CreateGenericParameters(methodBudiler, methodInfo);
+            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
 
@@ -163,6 +170,15 @@ namespace Tinja.Interception.Generators
             //this.executor.Execute(new MethodInvocation)
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
+
+            if (methodInfo.IsGenericMethod)
+            {
+                ilGen.LoadMethodGenericArguments(methodInfo);
+            }
+            else
+            {
+                ilGen.Emit(OpCodes.Ldnull);
+            }
 
             //new Parameters[]
             ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
@@ -186,14 +202,13 @@ namespace Tinja.Interception.Generators
             if (property == null)
             {
                 ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
-                ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
+                ilGen.Emit(OpCodes.Call, typeof(MemberInterceptorFilter).GetMethod("Filter"));
                 ilGen.Emit(OpCodes.Newobj, NewMethodInvocation);
             }
             else
             {
                 ilGen.Emit(OpCodes.Ldsfld, GetField(property));
-                ilGen.Emit(OpCodes.Call, typeof(IMemberInterceptorFilter).GetMethod("Filter"));
-
+                ilGen.Emit(OpCodes.Call, typeof(MemberInterceptorFilter).GetMethod("Filter"));
                 ilGen.Emit(OpCodes.Ldsfld, GetField(property));
                 ilGen.Emit(OpCodes.Newobj, NewPropertyMethodInvocation);
             }
@@ -226,7 +241,7 @@ namespace Tinja.Interception.Generators
                 propertyInfo.GetIndexParameters().Select(i => i.ParameterType).ToArray()
             );
 
-            this.CreateTypePropertyCustomAttributes(propertyBuilder, propertyInfo);
+            CreateTypePropertyCustomAttributes(propertyBuilder, propertyInfo);
 
             if (propertyInfo.CanWrite)
             {
@@ -280,7 +295,7 @@ namespace Tinja.Interception.Generators
             var constructorBuilder = TypeBuilder.DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameters.Concat(parameters).ToArray());
             var ilGen = constructorBuilder.GetILGenerator();
 
-            this.CreateTypeConstructorCustomAttributes(constructorBuilder, consturctor);
+            CreateTypeConstructorCustomAttributes(constructorBuilder, consturctor);
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldarg_1);
@@ -296,7 +311,7 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
             ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
-       
+
             ilGen.Emit(OpCodes.Ldarg_0);
 
             for (var i = ExtraConstrcutorParameters.Length; i < parameters.Length; i++)
@@ -405,5 +420,144 @@ namespace Tinja.Interception.Generators
         {
             return "__proxy__member__" + memberInfo.Name + "_" + memberInfo.GetHashCode();
         }
+
+        #region Attribute
+
+        private static void CreateTypeCustomAttribute(TypeBuilder typeBuilder, Type target)
+        {
+            foreach (var customAttriute in target.CustomAttributes)
+            {
+                typeBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
+            }
+        }
+
+        private static void CreateTypeMethodCustomAttributes(MethodBuilder methodBuilder, MethodInfo methodInfo)
+        {
+            foreach (var customAttriute in methodInfo.CustomAttributes)
+            {
+                methodBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
+            }
+        }
+
+        private static void CreateTypePropertyCustomAttributes(PropertyBuilder propertyBuilder, PropertyInfo propertyInfo)
+        {
+            foreach (var customAttriute in propertyInfo.CustomAttributes)
+            {
+                propertyBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
+            }
+        }
+
+        private static void CreateTypeConstructorCustomAttributes(ConstructorBuilder constructorBuilder, ConstructorInfo constructorInfo)
+        {
+            foreach (var customAttriute in constructorInfo.CustomAttributes)
+            {
+                constructorBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
+            }
+        }
+
+        private static void CreateTypeConstructorCustomAttributes(ParameterBuilder parameterBuilder, ConstructorInfo constructorInfo)
+        {
+            foreach (var customAttriute in constructorInfo.CustomAttributes)
+            {
+                parameterBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
+            }
+        }
+
+        private static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
+        {
+            if (customAttribute.NamedArguments == null)
+            {
+                return new CustomAttributeBuilder(customAttribute.Constructor, customAttribute.ConstructorArguments.Select(c => c.Value).ToArray());
+            }
+
+            var args = new object[customAttribute.ConstructorArguments.Count];
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (typeof(IEnumerable).IsAssignableFrom(customAttribute.ConstructorArguments[i].ArgumentType))
+                {
+                    args[i] = (customAttribute.ConstructorArguments[i].Value as IEnumerable<CustomAttributeTypedArgument>).Select(x => x.Value).ToArray();
+                    continue;
+                }
+
+                args[i] = customAttribute.ConstructorArguments[i].Value;
+            }
+
+            var namedProperties = customAttribute
+                .NamedArguments
+                .Where(n => !n.IsField)
+                .Select(n => customAttribute.AttributeType.GetProperty(n.MemberName))
+                .ToArray();
+
+            var properties = customAttribute
+                .NamedArguments
+                .Where(n => !n.IsField)
+                .Select(n => n.TypedValue.Value)
+                .ToArray();
+
+            var namedFields = customAttribute
+                .NamedArguments
+                .Where(n => n.IsField)
+                .Select(n => customAttribute.AttributeType.GetField(n.MemberName))
+                .ToArray();
+
+            var fields = customAttribute
+                .NamedArguments
+                .Where(n => n.IsField)
+                .Select(n => n.TypedValue.Value)
+                .ToArray();
+
+            return new CustomAttributeBuilder(customAttribute.Constructor, args
+               , namedProperties
+               , properties, namedFields, fields);
+        }
+
+        #endregion
+
+        #region Generic
+
+        private static void CreateGenericParameters(TypeBuilder typeBuilder, Type target)
+        {
+            if (!target.IsGenericType)
+            {
+                return;
+            }
+
+            var genericArguments = target.GetGenericArguments();
+            var genericArgumentBuilders = typeBuilder.DefineGenericParameters(genericArguments.Select(i => i.Name).ToArray());
+
+            SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
+        }
+
+        private static void CreateGenericParameters(MethodBuilder methodBuilder, MethodInfo target)
+        {
+            if (!target.IsGenericMethod)
+            {
+                return;
+            }
+
+            var genericArguments = target.GetGenericArguments();
+            var genericArgumentBuilders = methodBuilder.DefineGenericParameters(genericArguments.Select(i => i.Name).ToArray());
+
+            SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
+        }
+
+        private static void SetGenericParameterConstraints(GenericTypeParameterBuilder[] genericArgumentBuilders, Type[] genericArguments)
+        {
+            for (var i = 0; i < genericArguments.Length; i++)
+            {
+                foreach (var constraint in genericArguments[i].GetGenericParameterConstraints())
+                {
+                    if (constraint.IsInterface)
+                    {
+                        genericArgumentBuilders[i].SetInterfaceConstraints(constraint);
+                        continue;
+                    }
+
+                    genericArgumentBuilders[i].SetBaseTypeConstraint(constraint);
+                }
+            }
+        }
+
+        #endregion
     }
 }
