@@ -135,7 +135,13 @@ namespace Tinja
                 .ToArray();
         }
 
-        public static IEnumerable<MemberInfo> GetInterfaceMembers(this MethodInfo methodInfo, Type[] interfaces)
+        /// <summary>
+        /// 获取给定方法在定接口中的映射成员
+        /// </summary>
+        /// <param name="interfaces"></param>
+        /// <param name="methodInfo"></param>
+        /// <returns></returns>
+        internal static IEnumerable<MemberInfo> GetInterfaceMapMembers(this MethodInfo methodInfo, Type[] interfaces)
         {
             foreach (var @interface in interfaces)
             {
@@ -157,7 +163,13 @@ namespace Tinja
             }
         }
 
-        public static IEnumerable<MemberInfo> GetInterfaceMembers(this PropertyInfo property, Type[] interfaces)
+        /// <summary>
+        /// 获取给定属性在定接口中的映射成员
+        /// </summary>
+        /// <param name="interfaces"></param>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        internal static IEnumerable<MemberInfo> GetInterfaceMapMembers(this PropertyInfo property, Type[] interfaces)
         {
             foreach (var @interface in interfaces)
             {
@@ -169,7 +181,13 @@ namespace Tinja
             }
         }
 
-        public static IEnumerable<MemberInfo> GetInterfaceMembers(this EventInfo eventInfo, Type[] interfaces)
+        /// <summary>
+        /// 获取给定事件在定接口中的映射成员
+        /// </summary>
+        /// <param name="eventInfo"></param>
+        /// <param name="interfaces"></param>
+        /// <returns></returns>
+        internal static IEnumerable<MemberInfo> GetInterfaceMapMembers(this EventInfo eventInfo, Type[] interfaces)
         {
             foreach (var @interface in interfaces)
             {
@@ -181,7 +199,12 @@ namespace Tinja
             }
         }
 
-        public static bool IsOverrideable(this MemberInfo memberInfo)
+        /// <summary>
+        /// 是否可override
+        /// </summary>
+        /// <param name="memberInfo"></param>
+        /// <returns></returns>
+        internal static bool IsOverrideable(this MemberInfo memberInfo)
         {
             if (memberInfo == null)
             {

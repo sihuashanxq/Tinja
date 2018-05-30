@@ -13,7 +13,7 @@ namespace Tinja.Interception.TypeMembers
 
         protected Type TargetType { get; }
 
-        protected List<TypeMember> CollectedMembers { get; }
+        protected List<TypeMember> Members { get; }
 
         protected Type[] TargetInterfaces { get; }
 
@@ -26,7 +26,7 @@ namespace Tinja.Interception.TypeMembers
             BaseType = baseType;
             TargetType = targetType;
 
-            CollectedMembers = new List<TypeMember>();
+            Members = new List<TypeMember>();
 
             TargetMethods = TargetType.GetMethods(BindingFlag);
             TargetProperties = TargetType.GetProperties(BindingFlag);
@@ -35,71 +35,95 @@ namespace Tinja.Interception.TypeMembers
 
         public virtual IEnumerable<TypeMember> Collect()
         {
-            CollectMethods();
-            CollectProperties();
+            CollectTypeEvents();
+            CollectTypeMethods();
+            CollectTypeProperties();
 
-            return CollectedMembers;
+            return Members;
         }
 
-        protected virtual void CollectMethods()
+        protected virtual void CollectTypeMethods()
         {
             foreach (var methodInfo in TargetMethods.Where(m => m.IsOverrideable()))
             {
-                HandleCollectedTypeMember(methodInfo);
+                HandleCollectedMemberInfo(methodInfo);
             }
         }
 
-        protected virtual void CollectProperties()
+        /// <summary>
+        /// </summary>
+        protected virtual void CollectTypeProperties()
         {
-            foreach (var property in TargetProperties.Where(i => i.IsOverrideable()))
+            foreach (var property in TargetProperties.Where(m => m.IsOverrideable()))
             {
-                HandleCollectedTypeMember(property);
+                HandleCollectedMemberInfo(property);
             }
         }
 
-        protected virtual void HandleCollectedTypeMember(MemberInfo memberInfo)
+        protected virtual void CollectTypeEvents()
         {
-            var interfaceMembers = null as IEnumerable<MemberInfo>;
+
+        }
+
+        protected virtual void HandleCollectedMemberInfo(MemberInfo memberInfo)
+        {
+            var mapMembers = null as IEnumerable<MemberInfo>;
 
             switch (memberInfo)
             {
                 case MethodInfo methodInfo:
-                    interfaceMembers = methodInfo.GetInterfaceMembers(TargetInterfaces);
+                    mapMembers = methodInfo.GetInterfaceMapMembers(TargetInterfaces);
                     break;
                 case PropertyInfo propertyInfo:
-                    interfaceMembers = propertyInfo.GetInterfaceMembers(TargetInterfaces);
+                    mapMembers = propertyInfo.GetInterfaceMapMembers(TargetInterfaces);
                     break;
                 case EventInfo eventInfo:
-                    interfaceMembers = eventInfo.GetInterfaceMembers(TargetInterfaces);
+                    mapMembers = eventInfo.GetInterfaceMapMembers(TargetInterfaces);
                     break;
                 default:
                     break;
             }
 
-            if (interfaceMembers == null)
+            if (mapMembers == null)
             {
-                interfaceMembers = new MemberInfo[0];
-            }
-
-            //must be declared in interface 
-            if (BaseType.IsInterface && !interfaceMembers.Any())
-            {
-                return;
+                mapMembers = new MemberInfo[0];
             }
 
             var typeMemberInfo = new TypeMember
             {
                 Member = memberInfo,
-                InterfaceMembers = interfaceMembers,
-                Interfaces = interfaceMembers.Select(i => i.DeclaringType)
+                InterfaceMembers = mapMembers,
+                Interfaces = mapMembers.Select(i => i.DeclaringType)
             };
 
-            CollectedMembers.Add(typeMemberInfo);
+            Members.Add(typeMemberInfo);
         }
 
-        public static IEnumerable<TypeMember> Collect(Type baseType, Type implementionType)
+        /// <summary>
+        /// 收集给定基类型与实现类型代理类的实现成员
+        /// </summary>
+        /// <param name="baseType">基类型</param>
+        /// <param name="implementionType">实现类型</param>
+        /// <param name="onlyInterface">仅仅收集接口成员(实现类成员不要求virtual),否则实现类成员需要virtutal</param>
+        /// <returns></returns>
+        public static IEnumerable<TypeMember> Collect(Type baseType, Type implementionType, bool onlyInterface = false)
         {
-            return new TypeMemberCollector(baseType, implementionType).Collect();
+            if (baseType == null)
+            {
+                throw new NullReferenceException(nameof(baseType));
+            }
+
+            if (implementionType == null)
+            {
+                throw new NullReferenceException(nameof(implementionType));
+            }
+
+            if (!baseType.IsInterface || !onlyInterface)
+            {
+                return new TypeMemberCollector(baseType, implementionType).Collect();
+            }
+
+            return new InterfaceTargetTypeMemberCollector(baseType, implementionType).Collect();
         }
     }
 }
