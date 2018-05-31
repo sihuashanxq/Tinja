@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 namespace Tinja.Interception
 {
@@ -11,6 +12,8 @@ namespace Tinja.Interception
         MethodInfo TargetMethod { get; }
 
         object[] ParameterValues { get; }
+
+        Type ProxyTargetType { get; }
 
         IInterceptor[] Interceptors { get; }
     }

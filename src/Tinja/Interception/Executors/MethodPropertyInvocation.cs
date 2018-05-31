@@ -7,8 +7,8 @@ namespace Tinja.Interception.Executors
     {
         public PropertyInfo TargetProperty { get; }
 
-        public MethodPropertyInvocation(object target, MethodInfo targetMethod, Type[] genericArguments, object[] parameterValues, IInterceptor[] interceptors, PropertyInfo propertyInfo)
-            : base(target, targetMethod, genericArguments, parameterValues, interceptors)
+        public MethodPropertyInvocation(object target, Type proxyTargetType, MethodInfo targetMethod, Type[] genericArguments, object[] parameterValues, IInterceptor[] interceptors, PropertyInfo propertyInfo)
+            : base(target, proxyTargetType, targetMethod, genericArguments, parameterValues, interceptors)
         {
             TargetProperty = propertyInfo;
         }

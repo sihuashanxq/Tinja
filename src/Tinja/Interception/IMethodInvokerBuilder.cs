@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
-using Tinja.Interception.Executors;
 
 namespace Tinja.Interception
 {

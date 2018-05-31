@@ -123,6 +123,7 @@ namespace Sample
     {
         public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
+            invocation.ResultValue = "HelloWorld";
             return next(invocation);
             Console.WriteLine("brefore InterceptorTest2222222222222222");
             var task = next(invocation);
@@ -136,10 +137,9 @@ namespace Sample
         public event Action OnOk;
 
         [Interceptor(typeof(InterceptorTest))]
-        public virtual object M<T>() where T : class
+        public virtual T M<T>() where T : class
         {
-            var t = typeof(T);
-            return 6;
+            return default(T);
         }
 
         public void M2()
@@ -163,9 +163,14 @@ namespace Sample
 
     public interface IAbc
     {
-        event Action OnOk;
+        [Interceptor(typeof(InterceptorTest3))]
+        T M<T>() where T : class;
+    }
 
-        object M<T>() where T : class;
+    public abstract class A2
+    {
+        [Interceptor(typeof(InterceptorTest3))]
+        public abstract string M();
     }
 
     class Program
@@ -182,12 +187,16 @@ namespace Sample
             container.AddTransient<InterceptorTest, InterceptorTest>();
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
             container.AddTransient<InterceptorTest3, InterceptorTest3>();
-            container.AddTransient(typeof(Abc), typeof(Abc));
+
+            container.AddTransient<IAbc, IAbc>();
+            container.AddTransient<A2, A2>();
+
             var resolver = container.BuildResolver();
 
             watch.Reset();
             watch.Start();
-
+            var m2 = resolver.Resolve<A2>();
+            var str = m2.M();
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
             var xx = resolver.Resolve<Abc>();

@@ -5,6 +5,7 @@ using System.Reflection;
 using Tinja.Interception;
 using Tinja.Interception.Generators;
 using Tinja.Interception.Internal;
+using Tinja.Interception.Members;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Metadata;
@@ -32,6 +33,7 @@ namespace Tinja
             ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             ioc.AddSingleton<IInterceptionTargetProvider, InterceptionTargetProvider>();
             ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            ioc.AddSingleton(typeof(IMemberCollectorFactory), _ => MemberCollectorFactory.Default);
 
             builder.Initialize(ioc.Components);
 
@@ -116,10 +118,10 @@ namespace Tinja
         {
             if (component.ImplementionType != null)
             {
-                if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
-                {
-                    throw new NotImplementedException($"ImplementionType:{component.ImplementionType.FullName} is abstract or interface!");
-                }
+                //if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
+                //{
+                //    throw new NotImplementedException($"ImplementionType:{component.ImplementionType.FullName} is abstract or interface!");
+                //}
 
                 CreateImplementionProxyType(component);
             }
@@ -177,7 +179,7 @@ namespace Tinja
             if (ShouldCreateProxy(component.ServiceType) ||
                 ShouldCreateProxy(component.ImplementionType))
             {
-                component.ImplementionType = new ProxyTypeGenerator(component.ServiceType, component.ImplementionType).CreateProxyType();
+                component.ImplementionType = new ClassProxyTypeGenerator(component.ImplementionType).CreateProxyType();
             }
         }
 

@@ -26,11 +26,6 @@ namespace Tinja.Interception
 
         public static TypeBuilder DefineType(Type implementionType, Type baseType)
         {
-            if (implementionType.IsInterface || implementionType.IsAbstract)
-            {
-                throw new NotSupportedException($"implemention type:{implementionType.FullName} must not be interface and abstract!");
-            }
-
             if (implementionType.IsValueType)
             {
                 throw new NotSupportedException($"implemention type:{implementionType.FullName} must not be value type");
@@ -40,8 +35,8 @@ namespace Tinja.Interception
                 ModuleBuilder.DefineType(
                    GetTypeName(baseType),
                    TypeAttributes.Class | TypeAttributes.Public,
-                   baseType.IsInterface ? typeof(object) : baseType,
-                   baseType.IsInterface ? new[] { baseType } : null
+                   implementionType.IsInterface ? typeof(object) : implementionType,
+                   implementionType.GetInterfaces()
                );
         }
 

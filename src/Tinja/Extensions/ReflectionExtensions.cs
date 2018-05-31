@@ -219,14 +219,24 @@ namespace Tinja
 
             if (memberInfo is MethodInfo methodInfo)
             {
-                return !methodInfo.IsPrivate && methodInfo.IsVirtual && !methodInfo.IsFinal;
+                if (methodInfo.IsPrivate)
+                {
+                    return false;
+                }
+
+                if (methodInfo.IsFinal)
+                {
+                    return false;
+                }
+
+                return methodInfo.IsVirtual || methodInfo.IsAbstract;
             }
 
             if (memberInfo is PropertyInfo property)
             {
                 return
-                    property?.GetMethod.IsOverrideable() ??
-                    property?.SetMethod.IsOverrideable() ??
+                    property.GetMethod?.IsOverrideable() ??
+                    property.SetMethod?.IsOverrideable() ??
                     false;
             }
 

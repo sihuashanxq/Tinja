@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Tinja.Interception.TypeMembers
+namespace Tinja.Interception.Members
 {
-    public class TypeMember
+    public class ProxyMember
     {
         public MemberInfo Member { get; set; }
 

@@ -3,34 +3,35 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-
-using Tinja.Interception.TypeMembers;
+using Tinja.Interception.Members;
 
 namespace Tinja.Interception
 {
     public class InterceptionTargetProvider : IInterceptionTargetProvider
     {
-        private ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptionTarget>> _targetCaches;
+        private readonly ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptionTarget>> _caches;
 
-        public InterceptionTargetProvider()
+        private readonly IMemberCollectorFactory _memberCollectorFactory;
+
+        public InterceptionTargetProvider(IMemberCollectorFactory memberCollectorFactory)
         {
-            _targetCaches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptionTarget>>();
+            _memberCollectorFactory = memberCollectorFactory;
+            _caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptionTarget>>();
         }
 
         public IEnumerable<InterceptionTarget> GetTargets(Type baseType, Type implementionType)
         {
-            return _targetCaches.GetOrAdd(Tuple.Create(baseType, implementionType), key =>
-            {
-                return CollectTargets(baseType, implementionType);
-            });
+            return _caches.GetOrAdd(Tuple.Create(baseType, implementionType), key => CollectTargets(baseType, implementionType));
         }
 
         protected IEnumerable<InterceptionTarget> CollectTargets(Type baseType, Type implementionType)
         {
             var targets = new Dictionary<Type, InterceptionTarget>();
-            var typeMembers = TypeMemberCollector.Collect(baseType, implementionType);
+            var members = _memberCollectorFactory
+                .Create(baseType, implementionType)
+                .Collect();
 
-            foreach (var typeMember in typeMembers.Where(i => !i.IsEvent))
+            foreach (var typeMember in members.Where(i => !i.IsEvent))
             {
                 CollectTargets(typeMember.Member, typeMember.InterfaceMembers, targets);
                 CollectTargets(typeMember.DeclaringType, typeMember.Interfaces, targets);
@@ -49,12 +50,6 @@ namespace Tinja.Interception
             foreach (var attribute in attributes)
             {
                 var target = targets.GetValueOrDefault(attribute.InterceptorType);
-                var memberPriority = new InterceptionMemberPriority()
-                {
-                    Priority = attribute.Priority,
-                    MemberInfo = memberInfo
-                };
-
                 if (target == null)
                 {
                     target = targets[attribute.InterceptorType] = new InterceptionTarget()

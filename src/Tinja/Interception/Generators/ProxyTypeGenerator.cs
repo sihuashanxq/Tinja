@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-
 using Tinja.Extension;
 using Tinja.Interception.Executors;
-using Tinja.Interception.TypeMembers;
+using Tinja.Interception.Members;
 
 namespace Tinja.Interception.Generators
 {
@@ -19,17 +18,17 @@ namespace Tinja.Interception.Generators
 
         protected static ConstructorInfo NewPropertyMethodInvocation { get; }
 
-        protected Type BaseType { get; }
+        protected Type ServiceType { get; }
 
-        protected Type ImplementionType { get; }
+        protected Type ProxyTargetType { get; }
 
         protected TypeBuilder TypeBuilder { get; set; }
 
-        protected IEnumerable<TypeMember> TypeMembers { get; }
+        protected IEnumerable<ProxyMember> ProxyMembers { get; set; }
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
-        protected virtual Type[] ExtraConstrcutorParameters => new[]
+        protected virtual Type[] DefaultConstrcutorParameters => new[]
         {
             typeof(IInterceptorCollector),
             typeof(IMethodInvocationExecutor)
@@ -42,6 +41,7 @@ namespace Tinja.Interception.Generators
             NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
             {
                 typeof(object),
+                typeof(Type),
                 typeof(MethodInfo),
                 typeof(Type[]),
                 typeof(object[]),
@@ -51,6 +51,7 @@ namespace Tinja.Interception.Generators
             NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
             {
                 typeof(object),
+                typeof(Type),
                 typeof(MethodInfo),
                 typeof(Type[]),
                 typeof(object[]),
@@ -59,12 +60,17 @@ namespace Tinja.Interception.Generators
             });
         }
 
-        public ProxyTypeGenerator(Type baseType, Type implemetionType)
+        public ProxyTypeGenerator(Type serviceType, Type implemetionType)
         {
-            BaseType = baseType;
-            ImplementionType = implemetionType;
-            TypeMembers = TypeMemberCollector.Collect(BaseType, implemetionType);
-            TypeBuilder = TypeGeneratorUtil.DefineType(ImplementionType, BaseType);
+            ServiceType = serviceType;
+            ProxyTargetType = implemetionType;
+
+            TypeBuilder = TypeGeneratorUtil.DefineType(ProxyTargetType, ServiceType);
+
+            ProxyMembers = MemberCollectorFactory
+                .Default
+                .Create(serviceType, implemetionType)
+                .Collect();
 
             Fields = new Dictionary<string, FieldBuilder>();
         }
@@ -79,9 +85,9 @@ namespace Tinja.Interception.Generators
 
             CreateTypeConstrcutors();
 
-            CreateGenericParameters(TypeBuilder, ImplementionType);
+            CreateGenericParameters(TypeBuilder, ProxyTargetType);
 
-            CreateTypeCustomAttribute(TypeBuilder, ImplementionType);
+            CreateTypeCustomAttribute(TypeBuilder, ProxyTargetType);
 
             return TypeBuilder.CreateType();
         }
@@ -94,12 +100,12 @@ namespace Tinja.Interception.Generators
             CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
             CreateField("__filter", typeof(MemberInterceptorFilter), FieldAttributes.Private);
 
-            foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
                 CreateField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
 
-            foreach (var item in TypeMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
+            foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
                 CreateField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
@@ -131,7 +137,7 @@ namespace Tinja.Interception.Generators
 
         protected virtual void CreateTypeMethods()
         {
-            foreach (var item in TypeMembers.Where(i => i.IsMethod))
+            foreach (var item in ProxyMembers.Where(i => i.IsMethod))
             {
                 CreateTypeMethod(item.Member.AsMethod());
             }
@@ -148,76 +154,7 @@ namespace Tinja.Interception.Generators
 
         protected virtual MethodBuilder CreateTypeMethod(MethodInfo methodInfo, PropertyInfo property)
         {
-            var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
-            var methodAttributes = GetMethodAttributes(methodInfo);
-            var methodBudiler = TypeBuilder.DefineMethod(
-                methodInfo.Name,
-                methodAttributes,
-                CallingConventions.HasThis,
-                methodInfo.ReturnType,
-                paramterTypes
-            );
-
-            CreateGenericParameters(methodBudiler, methodInfo);
-            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
-
-            var ilGen = methodBudiler.GetILGenerator();
-
-            //this.__executor
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__executor"));
-
-            //this.executor.Execute(new MethodInvocation)
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
-
-            if (methodInfo.IsGenericMethod)
-            {
-                ilGen.LoadMethodGenericArguments(methodInfo);
-            }
-            else
-            {
-                ilGen.Emit(OpCodes.Ldnull);
-            }
-
-            //new Parameters[]
-            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
-            ilGen.Emit(OpCodes.Newarr, typeof(object));
-
-            for (var i = 0; i < paramterTypes.Length; i++)
-            {
-                ilGen.Emit(OpCodes.Dup);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-                ilGen.Box(paramterTypes[i]);
-                ilGen.Emit(OpCodes.Stelem_Ref);
-            }
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__filter"));
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__interceptors"));
-
-            if (property == null)
-            {
-                ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
-                ilGen.Emit(OpCodes.Call, typeof(MemberInterceptorFilter).GetMethod("Filter"));
-                ilGen.Emit(OpCodes.Newobj, NewMethodInvocation);
-            }
-            else
-            {
-                ilGen.Emit(OpCodes.Ldsfld, GetField(property));
-                ilGen.Emit(OpCodes.Call, typeof(MemberInterceptorFilter).GetMethod("Filter"));
-                ilGen.Emit(OpCodes.Ldsfld, GetField(property));
-                ilGen.Emit(OpCodes.Newobj, NewPropertyMethodInvocation);
-            }
-
-            ilGen.Emit(OpCodes.Callvirt, MethodInvocationExecute);
-            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-            ilGen.Emit(OpCodes.Ret);
-
-            return methodBudiler;
+            return null;
         }
 
         #endregion
@@ -226,7 +163,7 @@ namespace Tinja.Interception.Generators
 
         protected virtual void CreateTypeProperties()
         {
-            foreach (var item in TypeMembers.Where(i => i.IsProperty))
+            foreach (var item in ProxyMembers.Where(i => i.IsProperty))
             {
                 CreateTypeProperty(item.Member.AsProperty());
             }
@@ -274,33 +211,20 @@ namespace Tinja.Interception.Generators
 
         protected virtual void CreateTypeConstrcutors()
         {
-            CreateTypeDefaultStaticConstrcutor();
-
-            var bases = GetBaseConstructorInfos();
-            if (!bases.Any())
-            {
-                CreateTypeDefaultConstructor();
-                return;
-            }
-
-            foreach (var item in bases)
-            {
-                CreateTypeConstructor(item);
-            }
+            CreateTypeDefaultConstructor();
+            CreateTypeStaticConstrcutor();
         }
 
-        protected virtual void CreateTypeConstructor(ConstructorInfo consturctor)
+        protected virtual void CreateTypeDefaultConstructor()
         {
-            var parameters = consturctor.GetParameters().Select(i => i.ParameterType).ToArray();
-            var constructorBuilder = TypeBuilder.DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameters.Concat(parameters).ToArray());
-            var ilGen = constructorBuilder.GetILGenerator();
-
-            CreateTypeConstructorCustomAttributes(constructorBuilder, consturctor);
+            var ilGen = TypeBuilder
+                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameters)
+                .GetILGenerator();
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldarg_1);
-            ilGen.Emit(OpCodes.Ldtoken, BaseType);
-            ilGen.Emit(OpCodes.Ldtoken, ImplementionType);
+            ilGen.Emit(OpCodes.Ldtoken, ServiceType);
+            ilGen.Emit(OpCodes.Ldtoken, ProxyTargetType);
             ilGen.Emit(OpCodes.Call, typeof(IInterceptorCollector).GetMethod("Collect"));
             ilGen.Emit(OpCodes.Stfld, GetField("__interceptors"));
 
@@ -312,54 +236,22 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
             ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-
-            for (var i = ExtraConstrcutorParameters.Length; i < parameters.Length; i++)
-            {
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-            }
-
-            ilGen.Emit(OpCodes.Call, consturctor);
             ilGen.Emit(OpCodes.Ret);
         }
 
-        protected virtual void CreateTypeDefaultConstructor()
-        {
-            var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, ExtraConstrcutorParameters)
-                .GetILGenerator();
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_1);
-            ilGen.Emit(OpCodes.Ldtoken, BaseType);
-            ilGen.Emit(OpCodes.Ldtoken, ImplementionType);
-            ilGen.Emit(OpCodes.Call, typeof(IInterceptorCollector).GetMethod("Collect"));
-            ilGen.Emit(OpCodes.Stsfld, GetField("__interceptors"));
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_2);
-            ilGen.Emit(OpCodes.Stsfld, GetField("__executor"));
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
-            ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
-
-            ilGen.Emit(OpCodes.Ret);
-        }
-
-        protected virtual void CreateTypeDefaultStaticConstrcutor()
+        protected virtual void CreateTypeStaticConstrcutor()
         {
             var ilGen = TypeBuilder
                 .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
                 .GetILGenerator();
 
-            foreach (var item in TypeMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
                 ilGen.LoadPropertyInfo(item);
                 ilGen.Emit(OpCodes.Stsfld, GetField(item));
             }
 
-            foreach (var item in TypeMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
+            foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
                 ilGen.LoadMethodInfo(item);
                 ilGen.Emit(OpCodes.Stsfld, GetField(item));
@@ -368,16 +260,11 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Ret);
         }
 
-        protected virtual ConstructorInfo[] GetBaseConstructorInfos()
-        {
-            return ImplementionType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        }
-
         #endregion
 
         protected virtual MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
         {
-            if (BaseType.IsInterface)
+            if (ServiceType.IsInterface)
             {
                 return MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual;
             }
@@ -423,7 +310,7 @@ namespace Tinja.Interception.Generators
 
         #region Attribute
 
-        private static void CreateTypeCustomAttribute(TypeBuilder typeBuilder, Type target)
+        protected static void CreateTypeCustomAttribute(TypeBuilder typeBuilder, Type target)
         {
             foreach (var customAttriute in target.CustomAttributes)
             {
@@ -431,7 +318,7 @@ namespace Tinja.Interception.Generators
             }
         }
 
-        private static void CreateTypeMethodCustomAttributes(MethodBuilder methodBuilder, MethodInfo methodInfo)
+        protected static void CreateTypeMethodCustomAttributes(MethodBuilder methodBuilder, MethodInfo methodInfo)
         {
             foreach (var customAttriute in methodInfo.CustomAttributes)
             {
@@ -439,7 +326,7 @@ namespace Tinja.Interception.Generators
             }
         }
 
-        private static void CreateTypePropertyCustomAttributes(PropertyBuilder propertyBuilder, PropertyInfo propertyInfo)
+        protected static void CreateTypePropertyCustomAttributes(PropertyBuilder propertyBuilder, PropertyInfo propertyInfo)
         {
             foreach (var customAttriute in propertyInfo.CustomAttributes)
             {
@@ -447,7 +334,7 @@ namespace Tinja.Interception.Generators
             }
         }
 
-        private static void CreateTypeConstructorCustomAttributes(ConstructorBuilder constructorBuilder, ConstructorInfo constructorInfo)
+        protected static void CreateTypeConstructorCustomAttributes(ConstructorBuilder constructorBuilder, ConstructorInfo constructorInfo)
         {
             foreach (var customAttriute in constructorInfo.CustomAttributes)
             {
@@ -455,7 +342,7 @@ namespace Tinja.Interception.Generators
             }
         }
 
-        private static void CreateTypeConstructorCustomAttributes(ParameterBuilder parameterBuilder, ConstructorInfo constructorInfo)
+        protected static void CreateTypeParameterCustomAttributes(ParameterBuilder parameterBuilder, ConstructorInfo constructorInfo)
         {
             foreach (var customAttriute in constructorInfo.CustomAttributes)
             {
@@ -463,7 +350,7 @@ namespace Tinja.Interception.Generators
             }
         }
 
-        private static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
+        protected static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
         {
             if (customAttribute.NamedArguments == null)
             {
@@ -475,7 +362,7 @@ namespace Tinja.Interception.Generators
             {
                 if (typeof(IEnumerable).IsAssignableFrom(customAttribute.ConstructorArguments[i].ArgumentType))
                 {
-                    args[i] = (customAttribute.ConstructorArguments[i].Value as IEnumerable<CustomAttributeTypedArgument>).Select(x => x.Value).ToArray();
+                    args[i] = (customAttribute.ConstructorArguments[i].Value as IEnumerable<CustomAttributeTypedArgument>)?.Select(x => x.Value).ToArray();
                     continue;
                 }
 
@@ -515,7 +402,7 @@ namespace Tinja.Interception.Generators
 
         #region Generic
 
-        private static void CreateGenericParameters(TypeBuilder typeBuilder, Type target)
+        protected static void CreateGenericParameters(TypeBuilder typeBuilder, Type target)
         {
             if (!target.IsGenericType)
             {
@@ -528,7 +415,7 @@ namespace Tinja.Interception.Generators
             SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
         }
 
-        private static void CreateGenericParameters(MethodBuilder methodBuilder, MethodInfo target)
+        protected static void CreateGenericParameters(MethodBuilder methodBuilder, MethodInfo target)
         {
             if (!target.IsGenericMethod)
             {
@@ -541,7 +428,7 @@ namespace Tinja.Interception.Generators
             SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
         }
 
-        private static void SetGenericParameterConstraints(GenericTypeParameterBuilder[] genericArgumentBuilders, Type[] genericArguments)
+        protected static void SetGenericParameterConstraints(GenericTypeParameterBuilder[] genericArgumentBuilders, Type[] genericArguments)
         {
             for (var i = 0; i < genericArguments.Length; i++)
             {
