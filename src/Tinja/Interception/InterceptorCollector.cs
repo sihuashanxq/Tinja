@@ -9,31 +9,31 @@ namespace Tinja.Interception
     {
         private IServiceResolver _resolver;
 
-        private IInterceptionTargetProvider _targetProvider;
+        private IMemberInterceptionProvider _targetProvider;
 
-        public InterceptorCollector(IServiceResolver resolver, IInterceptionTargetProvider targetProvider)
+        public InterceptorCollector(IServiceResolver resolver, IMemberInterceptionProvider targetProvider)
         {
             _resolver = resolver;
             _targetProvider = targetProvider;
         }
 
-        public IEnumerable<InterceptionTargetBinding> Collect(Type baseType, Type implementionType)
+        public IEnumerable<MemberInterceptionBinding> Collect(Type serviceType, Type implementionType)
         {
-            var targets = _targetProvider.GetTargets(baseType, implementionType);
+            var targets = _targetProvider.GetInterceptions(serviceType, implementionType);
             if (targets == null)
             {
-                targets = new InterceptionTarget[0];
+                targets = new MemberInterception[0];
             }
 
             foreach (var target in targets)
             {
-                var interceptor = _resolver.Resolve(target.InterceptorType) as IInterceptor;
+                var interceptor = _resolver.Resolve(target.Interceptor) as IInterceptor;
                 if (interceptor == null)
                 {
-                    throw new NotSupportedException($"can not resolve the interceptor with type:{target.InterceptorType.FullName}");
+                    throw new NotSupportedException($"can not resolve the interceptor with type:{target.Interceptor.FullName}");
                 }
 
-                yield return new InterceptionTargetBinding(interceptor, target);
+                yield return new MemberInterceptionBinding(interceptor, target);
             }
         }
     }

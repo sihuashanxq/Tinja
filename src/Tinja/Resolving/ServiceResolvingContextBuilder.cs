@@ -2,8 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Tinja.ServiceLife;
 using Tinja.Resolving.Metadata;
+using Tinja.ServiceLife;
 
 namespace Tinja.Resolving
 {

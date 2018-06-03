@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.ServiceLife;
 
 namespace Tinja.Resolving
 {
@@ -8,6 +9,24 @@ namespace Tinja.Resolving
 
         Component Component { get; }
 
-        TypeMetadata ImplementationTypeMeta { get; }
+        TypeMetadata ImplementationMeta { get; }
+    }
+
+    public interface IServiceResolvingContext2
+    {
+        Type ServiceType { get; }
+
+        Type ImplementionType { get; }
+
+        ServiceLifeStyle LifeStyle { get; }
+
+        Func<IServiceResolver, object> ImplementionFactory { get; }
+    }
+
+    public interface IServiceResolveContext3 : IServiceResolvingContext2
+    {
+        Type ProxyType { get; }
+
+        Func<IServiceResolver, object> ProxyFactory { get; }
     }
 }

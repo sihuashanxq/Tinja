@@ -5,7 +5,7 @@ namespace Tinja.Interception
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class InterceptorAttribute : Attribute
     {
-        public int Priority { get; set; } = -1;
+        public long Priority { get; set; } = -1;
 
         public bool Inherited { get; set; }
 

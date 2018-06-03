@@ -9,7 +9,7 @@ namespace Tinja.Resolving
 
         public Component Component { get; }
 
-        public TypeMetadata ImplementationTypeMeta { get; }
+        public TypeMetadata ImplementationMeta { get; }
 
         public List<IServiceResolvingContext> ElementContexts { get; }
 
@@ -18,7 +18,7 @@ namespace Tinja.Resolving
             Component = component;
             ServiceType = serviceType;
             ElementContexts = elementContexts;
-            ImplementationTypeMeta = implementationTypeMeta;
+            ImplementationMeta = implementationTypeMeta;
         }
     }
 }

@@ -66,5 +66,43 @@ namespace Tinja.Extension
 
             return ilGen;
         }
+
+        internal static MethodBuilder DefineParameters(this MethodBuilder builder, ParameterInfo[] parameters)
+        {
+            if (builder == null || parameters == null || parameters.Length == 0)
+            {
+                return builder;
+            }
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                builder.DefineParameter(
+                    i,
+                    parameters[i].Attributes,
+                    parameters[i].Name
+                );
+            }
+
+            return builder;
+        }
+
+        internal static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameters)
+        {
+            if (builder == null || parameters == null || parameters.Length == 0)
+            {
+                return builder;
+            }
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                builder.DefineParameter(
+                    i,
+                    parameters[i].Attributes,
+                    parameters[i].Name
+                );
+            }
+
+            return builder;
+        }
     }
 }

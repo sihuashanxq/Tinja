@@ -5,26 +5,20 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extension;
-using Tinja.Interception.Executors;
+using Tinja.Interception.Generators.Utils;
 using Tinja.Interception.Members;
 
 namespace Tinja.Interception.Generators
 {
     public class ProxyTypeGenerator : IProxyTypeGenerator
     {
-        protected static MethodInfo MethodInvocationExecute { get; }
-
-        protected static ConstructorInfo NewMethodInvocation { get; }
-
-        protected static ConstructorInfo NewPropertyMethodInvocation { get; }
-
         protected Type ServiceType { get; }
 
         protected Type ProxyTargetType { get; }
 
         protected TypeBuilder TypeBuilder { get; set; }
 
-        protected IEnumerable<ProxyMember> ProxyMembers { get; set; }
+        protected IEnumerable<ProxyMember> ProxyMembers { get; }
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
@@ -34,38 +28,10 @@ namespace Tinja.Interception.Generators
             typeof(IMethodInvocationExecutor)
         };
 
-        static ProxyTypeGenerator()
-        {
-            MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
-
-            NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
-            {
-                typeof(object),
-                typeof(Type),
-                typeof(MethodInfo),
-                typeof(Type[]),
-                typeof(object[]),
-                typeof(IInterceptor[])
-            });
-
-            NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
-            {
-                typeof(object),
-                typeof(Type),
-                typeof(MethodInfo),
-                typeof(Type[]),
-                typeof(object[]),
-                typeof(IInterceptor[]),
-                typeof(PropertyInfo)
-            });
-        }
-
         public ProxyTypeGenerator(Type serviceType, Type implemetionType)
         {
             ServiceType = serviceType;
             ProxyTargetType = implemetionType;
-
-            TypeBuilder = TypeGeneratorUtil.DefineType(ProxyTargetType, ServiceType);
 
             ProxyMembers = MemberCollectorFactory
                 .Default
@@ -77,6 +43,8 @@ namespace Tinja.Interception.Generators
 
         public virtual Type CreateProxyType()
         {
+            CreateTypeBuilder();
+
             CreateTypeFields();
 
             CreateTypeMethods();
@@ -92,12 +60,27 @@ namespace Tinja.Interception.Generators
             return TypeBuilder.CreateType();
         }
 
+        protected virtual void CreateTypeBuilder()
+        {
+            if (ProxyTargetType.IsValueType)
+            {
+                throw new NotSupportedException($"implemention type:{ProxyTargetType.FullName} must not be value type");
+            }
+
+            TypeBuilder = GeneratorUtility.ModuleBuilder.DefineType(
+                  GeneratorUtility.GetProxyTypeName(ProxyTargetType),
+                  TypeAttributes.Class | TypeAttributes.Public,
+                  ProxyTargetType.IsInterface ? typeof(object) : ProxyTargetType,
+                  ProxyTargetType.GetInterfaces()
+              );
+        }
+
         #region Field
 
         protected virtual void CreateTypeFields()
         {
             CreateField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            CreateField("__interceptors", typeof(IEnumerable<InterceptionTargetBinding>), FieldAttributes.Private);
+            CreateField("__interceptors", typeof(IEnumerable<MemberInterceptionBinding>), FieldAttributes.Private);
             CreateField("__filter", typeof(MemberInterceptorFilter), FieldAttributes.Private);
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
@@ -149,10 +132,10 @@ namespace Tinja.Interception.Generators
         /// <param name="methodInfo"></param>
         protected virtual MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
         {
-            return CreateTypeMethod(methodInfo, null);
+            return CreateTypeMethod(methodInfo);
         }
 
-        protected virtual MethodBuilder CreateTypeMethod(MethodInfo methodInfo, PropertyInfo property)
+        protected virtual MethodBuilder CreateTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             return null;
         }
@@ -182,7 +165,7 @@ namespace Tinja.Interception.Generators
 
             if (propertyInfo.CanWrite)
             {
-                var setter = CreateTypeMethod(propertyInfo.SetMethod, propertyInfo);
+                var setter = CreateTypePropertyMethod(propertyInfo.SetMethod, propertyInfo);
                 if (setter == null)
                 {
                     throw new NullReferenceException(nameof(setter));
@@ -193,7 +176,7 @@ namespace Tinja.Interception.Generators
 
             if (propertyInfo.CanRead)
             {
-                var getter = CreateTypeMethod(propertyInfo.GetMethod, propertyInfo);
+                var getter = CreateTypePropertyMethod(propertyInfo.GetMethod, propertyInfo);
                 if (getter == null)
                 {
                     throw new NullReferenceException(nameof(getter));
@@ -437,10 +420,12 @@ namespace Tinja.Interception.Generators
                     if (constraint.IsInterface)
                     {
                         genericArgumentBuilders[i].SetInterfaceConstraints(constraint);
+                        genericArgumentBuilders[i].SetGenericParameterAttributes(genericArguments[i].GenericParameterAttributes);
                         continue;
                     }
 
                     genericArgumentBuilders[i].SetBaseTypeConstraint(constraint);
+                    genericArgumentBuilders[i].SetGenericParameterAttributes(genericArguments[i].GenericParameterAttributes);
                 }
             }
         }

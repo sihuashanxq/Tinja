@@ -52,7 +52,7 @@ namespace Tinja.Resolving.Dependency.Builder
                 );
             }
 
-            using (ServiceDependScope.BeginScope(target, target.ImplementationTypeMeta.Type, scopeType))
+            using (ServiceDependScope.BeginScope(target, target.ImplementationMeta.Type, scopeType))
             {
                 var chain = BuildConstructor(target);
                 if (chain == null)
@@ -85,7 +85,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
         protected virtual ServiceDependencyChain BuildCommonConstructor(IServiceResolvingContext target)
         {
-            var constructors = target.ImplementationTypeMeta.Constructors;
+            var constructors = target.ImplementationMeta.Constructors;
             var parameters = new Dictionary<ParameterInfo, ServiceDependencyChain>();
 
             foreach (var item in constructors.OrderByDescending(i => i.Paramters.Length))
@@ -155,19 +155,19 @@ namespace Tinja.Resolving.Dependency.Builder
             return new ServiceDependencyEnumerableChain()
             {
                 Context = target,
-                Constructor = target.ImplementationTypeMeta.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
+                Constructor = target.ImplementationMeta.Constructors.FirstOrDefault(i => i.Paramters.Length == 0),
                 Elements = elements.ToArray()
             };
         }
 
         protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(IServiceResolvingContext target, IServiceResolvingContext parameter)
         {
-            throw new ServiceCircularExpcetion(parameter.ImplementationTypeMeta.Type, $"Circulard ependencies at type:{parameter.ImplementationTypeMeta.Type.FullName}");
+            throw new ServiceCircularExpcetion(parameter.ImplementationMeta.Type, $"Circulard ependencies at type:{parameter.ImplementationMeta.Type.FullName}");
         }
 
         protected virtual bool IsCircularDependency(IServiceResolvingContext target)
         {
-            return ServiceDependScope.Constains(target.ImplementationTypeMeta.Type);
+            return ServiceDependScope.Constains(target.ImplementationMeta.Type);
         }
 
         protected class CircularDependencyResolveResult

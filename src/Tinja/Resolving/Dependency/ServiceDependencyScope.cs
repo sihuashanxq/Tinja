@@ -27,7 +27,7 @@ namespace Tinja.Resolving.Dependency.Scope
         {
             if (target.Component.LifeStyle != ServiceLifeStyle.Transient)
             {
-                ResolvedServices[target.ImplementationTypeMeta.Type] = chain;
+                ResolvedServices[target.ImplementationMeta.Type] = chain;
             }
 
             return chain;

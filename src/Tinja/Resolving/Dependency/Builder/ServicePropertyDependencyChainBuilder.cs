@@ -44,7 +44,7 @@ namespace Tinja.Resolving.Dependency.Builder
 
         protected virtual void BuildPropertiesCore(ServiceDependencyChain chain)
         {
-            var meta = chain.Context.ImplementationTypeMeta;
+            var meta = chain.Context.ImplementationMeta;
             if (meta.Properties == null || meta.Properties.Length == 0)
             {
                 return;
@@ -100,7 +100,7 @@ namespace Tinja.Resolving.Dependency.Builder
             var result = new CircularDependencyResolveResult()
             {
                 Break = false,
-                Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(context.ImplementationTypeMeta.Type)
+                Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(context.ImplementationMeta.Type)
             };
 
             if (result.Chain != null)
@@ -124,7 +124,7 @@ namespace Tinja.Resolving.Dependency.Builder
                 return new CircularDependencyResolveResult()
                 {
                     Break = false,
-                    Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(parameter.ImplementationTypeMeta.Type)
+                    Chain = ServiceDependScope.ResolvedServices.GetValueOrDefault(parameter.ImplementationMeta.Type)
                 };
             }
 

@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 
 namespace Tinja.Interception
 {
-    public class MemberInterceptorFilter 
+    public class MemberInterceptorFilter
     {
         private ConcurrentDictionary<MemberInfo, IInterceptor[]> _memberInterceptors;
 
@@ -14,18 +14,21 @@ namespace Tinja.Interception
             _memberInterceptors = new ConcurrentDictionary<MemberInfo, IInterceptor[]>();
         }
 
-        public IInterceptor[] Filter(IEnumerable<InterceptionTargetBinding> interceptions, MemberInfo target)
+        public IInterceptor[] Filter(IEnumerable<MemberInterceptionBinding> interceptions, MemberInfo target)
         {
             return _memberInterceptors.GetOrAdd(target, _ =>
             {
-                var map = new Dictionary<IInterceptor, int>();
+                var map = new Dictionary<IInterceptor, long>();
 
                 foreach (var item in interceptions)
                 {
-                    var member = item.Target.Members.FirstOrDefault(n => n.MemberInfo == target || n.MemberInfo == target.DeclaringType);
-                    if (member != null)
+                    if (item.MemberInterception.Prioritys.ContainsKey(target))
                     {
-                        map[item.Interceptor] = member.Priority;
+                        map[item.Interceptor] = item.MemberInterception.Prioritys.GetValueOrDefault(target);
+                    }
+                    else if (item.MemberInterception.Prioritys.ContainsKey(target.DeclaringType))
+                    {
+                        map[item.Interceptor] = item.MemberInterception.Prioritys.GetValueOrDefault(target.DeclaringType);
                     }
                 }
 

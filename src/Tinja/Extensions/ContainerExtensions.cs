@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using Tinja.Interception;
-using Tinja.Interception.Generators;
 using Tinja.Interception.Internal;
 using Tinja.Interception.Members;
 using Tinja.Resolving;
@@ -31,7 +28,7 @@ namespace Tinja
             ioc.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             ioc.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
-            ioc.AddSingleton<IInterceptionTargetProvider, InterceptionTargetProvider>();
+            ioc.AddSingleton<IMemberInterceptionProvider, MemberInterceptionProvider>();
             ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
             ioc.AddSingleton(typeof(IMemberCollectorFactory), _ => MemberCollectorFactory.Default);
 
@@ -116,16 +113,6 @@ namespace Tinja
 
         internal static void AddComponent(this IContainer ioc, Component component)
         {
-            if (component.ImplementionType != null)
-            {
-                //if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
-                //{
-                //    throw new NotImplementedException($"ImplementionType:{component.ImplementionType.FullName} is abstract or interface!");
-                //}
-
-                CreateImplementionProxyType(component);
-            }
-
             ioc.Components.AddOrUpdate(
                 component.ServiceType,
                  new List<Component>() { component },
@@ -167,69 +154,6 @@ namespace Tinja
                     }
                 }
             );
-        }
-
-        private static void CreateImplementionProxyType(Component component)
-        {
-            if (component.ImplementionType.IsSealed)
-            {
-                return;
-            }
-
-            if (ShouldCreateProxy(component.ServiceType) ||
-                ShouldCreateProxy(component.ImplementionType))
-            {
-                component.ImplementionType = new ClassProxyTypeGenerator(component.ImplementionType).CreateProxyType();
-            }
-        }
-
-        private static bool ShouldCreateProxy(Type typeInfo)
-        {
-            if (typeInfo.IsSealed)
-            {
-                return false;
-            }
-
-            if (typeInfo.GetCustomAttributes<InterceptorAttribute>(false).Any())
-            {
-                return true;
-            };
-
-            if (typeInfo.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
-            {
-                return true;
-            }
-
-            foreach (var item in typeInfo
-                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(i => !i.IsFinal))
-            {
-                if (item.GetCustomAttributes<InterceptorAttribute>(false).Any())
-                {
-                    return true;
-                };
-
-                if (item.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
-                {
-                    return true;
-                }
-            }
-
-            foreach (var item in typeInfo
-                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-            {
-                if (item.GetCustomAttributes<InterceptorAttribute>(false).Any())
-                {
-                    return true;
-                };
-
-                if (item.GetCustomAttributes<InterceptorAttribute>(true).Where(i => i.Inherited = true).Any())
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }
