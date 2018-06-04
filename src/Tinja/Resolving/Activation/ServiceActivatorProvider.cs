@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using Tinja.Resolving;
 using Tinja.Resolving.Dependency;
-using Tinja.Resolving.Dependency.Builder;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Activation
@@ -11,11 +9,11 @@ namespace Tinja.Resolving.Activation
     {
         static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
 
-        private IServiceResolvingContextBuilder _builder;
+        private IServiceContextBuilder _builder;
 
         private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
 
-        public ServiceActivatorProvider(IServiceResolvingContextBuilder builder)
+        public ServiceActivatorProvider(IServiceContextBuilder builder)
         {
             _builder = builder;
             _activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
@@ -25,18 +23,18 @@ namespace Tinja.Resolving.Activation
         {
             return _activators.GetOrAdd(serviceType, type =>
             {
-                var context = _builder.BuildResolvingContext(type);
+                var context = _builder.BuildContext(type);
                 if (context == null)
                 {
                     return EmptyFactory;
                 }
 
-                if (context.Component.ImplementionFactory != null)
+                if (context is ServiceFactoryContext factoryContext)
                 {
                     return (resolver, scope) =>
                          scope.ApplyServiceLifeStyle(
                             context,
-                            scopeResolver => context.Component.ImplementionFactory(scopeResolver)
+                            scopeResolver => factoryContext.ImplementionFactory(scopeResolver)
                          );
                 }
 
@@ -50,7 +48,7 @@ namespace Tinja.Resolving.Activation
             });
         }
 
-        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceDependencyChain chain)
+        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceCallDependency chain)
         {
             if (chain.ContainsPropertyCircularDependencies())
             {
@@ -60,9 +58,9 @@ namespace Tinja.Resolving.Activation
             return new ServiceActivatorFactory().Create(chain);
         }
 
-        protected virtual ServiceDependencyChain GetDependencyChain(IServiceResolvingContext context)
+        protected virtual ServiceCallDependency GetDependencyChain(IServiceContext context)
         {
-            return new ServiceConstructorDependencyChainBuilder(_builder).Build(context);
+            return new ServiceCallDependencyBuilder(_builder).Build(context);
         }
     }
 }

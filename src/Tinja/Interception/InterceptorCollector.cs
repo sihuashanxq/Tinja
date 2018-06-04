@@ -11,7 +11,7 @@ namespace Tinja.Interception
 
         private IMemberInterceptionProvider _targetProvider;
 
-        public InterceptorCollector(IServiceResolver resolver, IMemberInterceptionProvider targetProvider)
+        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionProvider targetProvider)
         {
             _resolver = resolver;
             _targetProvider = targetProvider;

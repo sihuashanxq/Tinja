@@ -9,12 +9,12 @@ namespace Tinja
     {
         public IServiceConfiguration Configuration { get; }
 
-        public ConcurrentDictionary<Type, List<Component>> Components { get; }
+        public ConcurrentDictionary<Type, List<ServiceComponent>> Components { get; }
 
         public Container()
         {
             Configuration = new ServiceCongfiguration();
-            Components = new ConcurrentDictionary<Type, List<Component>>();
+            Components = new ConcurrentDictionary<Type, List<ServiceComponent>>();
         }
     }
 

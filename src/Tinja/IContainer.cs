@@ -8,6 +8,6 @@ namespace Tinja
     {
         IServiceConfiguration Configuration { get; }
 
-        ConcurrentDictionary<Type, List<Component>> Components { get; }
+        ConcurrentDictionary<Type, List<ServiceComponent>> Components { get; }
     }
 }

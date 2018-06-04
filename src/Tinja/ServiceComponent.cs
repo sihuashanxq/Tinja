@@ -4,8 +4,10 @@ using Tinja.ServiceLife;
 
 namespace Tinja
 {
-    public class Component
+    public class ServiceComponent
     {
+        public Type ProxyType { get; set; }
+
         public Type ServiceType { get; set; }
 
         public Type ImplementionType { get; set; }
@@ -21,6 +23,7 @@ namespace Tinja
             hashCode += (hashCode * 31) ^ (ImplementionType?.GetHashCode() ?? 0);
             hashCode += (hashCode * 31) ^ (ImplementionFactory?.GetHashCode() ?? 0);
             hashCode += (hashCode * 31) ^ LifeStyle.GetHashCode();
+            hashCode += (hashCode * 31) ^ (ProxyType?.GetHashCode() ?? 0);
 
             return hashCode;
         }
@@ -32,19 +35,20 @@ namespace Tinja
                 return true;
             }
 
-            if (obj is Component component)
+            if (obj is ServiceComponent component)
             {
                 return
                     LifeStyle == component.LifeStyle &&
                     ServiceType == component.ServiceType &&
                     ImplementionType == component.ImplementionType &&
-                    ImplementionFactory == component.ImplementionFactory;
+                    ImplementionFactory == component.ImplementionFactory &&
+                    ProxyType == component.ProxyType;
             }
 
             return false;
         }
 
-        public static bool operator ==(Component left, Component right)
+        public static bool operator ==(ServiceComponent left, ServiceComponent right)
         {
             if (!(left is null))
             {
@@ -59,9 +63,21 @@ namespace Tinja
             return true;
         }
 
-        public static bool operator !=(Component left, Component right)
+        public static bool operator !=(ServiceComponent left, ServiceComponent right)
         {
             return !(left == right);
+        }
+
+        public ServiceComponent Clone()
+        {
+            return new ServiceComponent()
+            {
+                ProxyType = ProxyType,
+                ImplementionFactory = ImplementionFactory,
+                LifeStyle = LifeStyle,
+                ImplementionType = ImplementionType,
+                ServiceType = ServiceType
+            };
         }
     }
 }

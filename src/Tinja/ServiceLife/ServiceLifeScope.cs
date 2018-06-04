@@ -36,14 +36,14 @@ namespace Tinja.ServiceLife
             _scopedObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyServiceLifeStyle(IServiceResolvingContext context, Func<IServiceResolver, object> factory)
+        public object ApplyServiceLifeStyle(IServiceContext context, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {
                 throw new NotSupportedException("scope has disposed!");
             }
 
-            switch (context.Component.LifeStyle)
+            switch (context.LifeStyle)
             {
                 case ServiceLifeStyle.Transient:
                     return ApplyTransientInstance(context.ServiceType, factory);

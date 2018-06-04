@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using Tinja.ServiceLife;
 using Tinja.Resolving;
 using Tinja.Resolving.Dependency;
+using Tinja.Extensions;
 
 namespace Tinja.Resolving.Activation
 {
@@ -36,10 +37,10 @@ namespace Tinja.Resolving.Activation
 
         public ServiceActivatorFactory()
         {
-            _resolvedProperties = new Dictionary<IServiceResolvingContext, HashSet<IServiceResolvingContext>>();
+            _resolvedProperties = new Dictionary<IServiceContext, HashSet<IServiceContext>>();
         }
 
-        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceDependencyChain chain)
+        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency chain)
         {
             var factory = CreateActivatorCore(chain);
             if (factory == null)
@@ -50,7 +51,7 @@ namespace Tinja.Resolving.Activation
             return factory;
         }
 
-        public Expression BuildPropertyInfo(Expression instance, ServiceDependencyChain node)
+        public Expression BuildPropertyInfo(Expression instance, ServiceCallDependency node)
         {
             if (instance.Type != node.Constructor.ConstructorInfo.DeclaringType)
             {
@@ -103,7 +104,7 @@ namespace Tinja.Resolving.Activation
 
         protected virtual
             Func<IServiceResolver, IServiceLifeScope, object>
-            CreateActivatorCore(ServiceDependencyChain chain)
+            CreateActivatorCore(ServiceCallDependency chain)
         {
             var lambdaBody = BuildExpression(chain);
             if (lambdaBody == null)
@@ -122,7 +123,7 @@ namespace Tinja.Resolving.Activation
                 .Compile();
         }
 
-        protected Expression BuildExpression(ServiceDependencyChain chain)
+        protected Expression BuildExpression(ServiceCallDependency chain)
         {
             if (chain.Constructor == null)
             {
@@ -130,13 +131,13 @@ namespace Tinja.Resolving.Activation
             }
 
             var instance = null as Expression;
-            if (chain is ServiceDependencyEnumerableChain enumerable)
+            if (chain is ServiceManyCallDependency enumerable)
             {
                 instance = BuildWithEnumerable(enumerable);
             }
             else
             {
-                instance = BuildWithConstructor(chain as ServiceDependencyChain);
+                instance = BuildWithConstructor(chain as ServiceCallDependency);
             }
 
             if (instance == null)
@@ -158,19 +159,19 @@ namespace Tinja.Resolving.Activation
             return WrapperWithLifeStyle(wInstance, chain);
         }
 
-        protected virtual Expression BuildWithImplFactory(ServiceDependencyChain chain)
+        protected virtual Expression BuildWithImplFactory(ServiceCallDependency chain)
         {
             return
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
                     Expression.Constant(chain.Context.ServiceType),
-                    Expression.Constant(chain.Context.Component.LifeStyle),
-                    Expression.Constant(chain.Context.Component.ImplementionFactory)
+                    Expression.Constant(chain.Context.LifeStyle),
+                    Expression.Constant(chain.Context.GetImplementionFactory())
                 );
         }
 
-        protected virtual Expression BuildWithConstructor(ServiceDependencyChain node)
+        protected virtual Expression BuildWithConstructor(ServiceCallDependency node)
         {
             var parameterValues = new Expression[node.Parameters?.Count ?? 0];
 
@@ -188,10 +189,10 @@ namespace Tinja.Resolving.Activation
             return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
         }
 
-        protected virtual Expression BuildWithEnumerable(ServiceDependencyEnumerableChain node)
+        protected virtual Expression BuildWithEnumerable(ServiceManyCallDependency node)
         {
             var elementInits = new ElementInit[node.Elements.Length];
-            var addElement = node.Context.Component.ImplementionType.GetMethod("Add");
+            var addElement = node.Context.GetImplementionType().GetMethod("Add");
 
             for (var i = 0; i < elementInits.Length; i++)
             {
@@ -207,7 +208,7 @@ namespace Tinja.Resolving.Activation
             return Expression.ListInit(Expression.New(node.Constructor.ConstructorInfo), elementInits);
         }
 
-        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceDependencyChain chain)
+        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceCallDependency chain)
         {
             if (!chain.ShouldHoldServiceLife())
             {
@@ -228,11 +229,11 @@ namespace Tinja.Resolving.Activation
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
                     Expression.Constant(chain.Context.ServiceType),
-                    Expression.Constant(chain.Context.Component.LifeStyle),
+                    Expression.Constant(chain.Context.LifeStyle),
                     Expression.Constant(factory)
                 );
         }
 
-        private Dictionary<IServiceResolvingContext, HashSet<IServiceResolvingContext>> _resolvedProperties;
+        private Dictionary<IServiceContext, HashSet<IServiceContext>> _resolvedProperties;
     }
 }

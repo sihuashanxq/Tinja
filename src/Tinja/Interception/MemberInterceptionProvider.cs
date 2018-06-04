@@ -7,7 +7,7 @@ using Tinja.Interception.Members;
 
 namespace Tinja.Interception
 {
-    public class MemberInterceptionProvider : IMemberInterceptionProvider
+    internal class MemberInterceptionProvider : IMemberInterceptionProvider
     {
         private readonly ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>> _caches;
 

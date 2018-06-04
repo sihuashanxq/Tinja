@@ -8,22 +8,15 @@ namespace Tinja.Resolving
     {
         public Type Type { get; }
 
-        public PropertyInfo[] Properties { get; }
-
-        public TypeConstructorMetadata[] Constructors { get; }
+        public TypeConstructor[] Constructors { get; }
 
         public TypeMetadata(Type type)
         {
             Type = type;
 
-            Properties = type
-                .GetProperties()
-                .Where(i => i.CanRead && i.IsDefined(typeof(InjectAttribute)))
-                .ToArray();
-
             Constructors = type
                 .GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Select(i => new TypeConstructorMetadata(i, i.GetParameters()))
+                .Select(i => new TypeConstructor(i, i.GetParameters()))
                 .ToArray();
         }
     }

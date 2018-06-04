@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Tinja.Interception
 {
-    public interface IMemberInterceptionProvider
+    internal interface IMemberInterceptionProvider
     {
         IEnumerable<MemberInterception> GetInterceptions(Type serviceType, Type implementionType);
     }

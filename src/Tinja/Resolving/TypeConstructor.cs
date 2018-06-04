@@ -2,13 +2,13 @@
 
 namespace Tinja.Resolving
 {
-    public class TypeConstructorMetadata
+    public class TypeConstructor
     {
         public ConstructorInfo ConstructorInfo { get; }
 
         public ParameterInfo[] Paramters { get; }
 
-        public TypeConstructorMetadata(ConstructorInfo constructor, ParameterInfo[] parameters)
+        public TypeConstructor(ConstructorInfo constructor, ParameterInfo[] parameters)
         {
             ConstructorInfo = constructor;
             Paramters = parameters;

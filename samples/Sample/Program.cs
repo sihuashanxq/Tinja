@@ -188,7 +188,7 @@ namespace Sample
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
             container.AddTransient<InterceptorTest3, InterceptorTest3>();
 
-            container.AddTransient<IAbc, IAbc>();
+
             container.AddTransient<A2, A2>();
 
             var resolver = container.BuildResolver();
@@ -199,13 +199,12 @@ namespace Sample
             var str = m2.M();
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
-            var xx = resolver.Resolve<Abc>();
 
             watch.Reset();
             watch.Start();
             for (var i = 0; i < 1000000; i++)
             {
-                xx.M<object>();
+
             }
 
             watch.Start();

@@ -4,7 +4,6 @@ using System.Text;
 using Xunit;
 using Tinja.Test.Fakes;
 using System.Linq;
-using Tinja.Resolving.Dependency.Builder;
 using System.Threading.Tasks;
 using Tinja.Resolving.Dependency;
 
@@ -319,8 +318,8 @@ namespace Tinja.Test
                 .AddTransient<IConstructorCircularDepenencyService, ConstructorCircularDepenencyService>()
                 .BuildResolver();
 
-            Assert.Throws<ServiceCircularExpcetion>(() => resolver.Resolve<IConstructorCircularDepenencyService>());
-            Assert.Throws<ServiceCircularExpcetion>(() => resolver.Resolve<IParamterService>());
+            Assert.Throws<ServiceCallCircularExpcetion>(() => resolver.Resolve<IConstructorCircularDepenencyService>());
+            Assert.Throws<ServiceCallCircularExpcetion>(() => resolver.Resolve<IParamterService>());
         }
 
         [Fact]

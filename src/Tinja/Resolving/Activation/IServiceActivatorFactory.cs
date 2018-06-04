@@ -6,6 +6,6 @@ namespace Tinja.Resolving.Activation
 {
     public interface IServiceActivatorFactory
     {
-        Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceDependencyChain chain);
+        Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency chain);
     }
 }

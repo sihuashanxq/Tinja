@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tinja.Interception;
 using Tinja.Interception.Internal;
 using Tinja.Interception.Members;
@@ -14,14 +15,16 @@ namespace Tinja
     {
         public static IServiceResolver BuildResolver(this IContainer ioc)
         {
-            var builder = new ServiceResolvingContextBuilder(new TypeMetadataFactory());
+            var interceptionProvider = new MemberInterceptionProvider(ioc.Configuration.Interception.Providers, MemberCollectorFactory.Default);
+            var builder = new ServiceContextBuilder(new TypeMetadataFactory(), interceptionProvider);
+
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
             var serviceActivatorProvider = new ServiceActivatorProvider(builder);
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
             ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
 
-            ioc.AddSingleton(typeof(IServiceResolvingContextBuilder), _ => builder);
+            ioc.AddSingleton(typeof(IServiceContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
 
@@ -39,7 +42,7 @@ namespace Tinja
 
         public static IContainer AddService(this IContainer ioc, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle)
         {
-            ioc.AddComponent(new Component()
+            ioc.AddComponent(new ServiceComponent()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
@@ -51,7 +54,7 @@ namespace Tinja
 
         public static IContainer AddService(this IContainer ioc, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle)
         {
-            ioc.AddComponent(new Component()
+            ioc.AddComponent(new ServiceComponent()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
@@ -111,11 +114,11 @@ namespace Tinja
             return ioc.AddService(serviceType, factory, ServiceLifeStyle.Scoped);
         }
 
-        internal static void AddComponent(this IContainer ioc, Component component)
+        internal static void AddComponent(this IContainer ioc, ServiceComponent component)
         {
             ioc.Components.AddOrUpdate(
                 component.ServiceType,
-                 new List<Component>() { component },
+                 new List<ServiceComponent>() { component },
                 (k, v) =>
                 {
                     if (v.Contains(component))

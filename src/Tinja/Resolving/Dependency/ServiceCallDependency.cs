@@ -5,25 +5,25 @@ using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceDependencyChain
+    public class ServiceCallDependency
     {
-        public IServiceResolvingContext Context { get; set; }
+        public IServiceContext Context { get; set; }
 
-        public TypeConstructorMetadata Constructor { get; set; }
+        public TypeConstructor Constructor { get; set; }
 
-        public Dictionary<PropertyInfo, ServiceDependencyChain> Properties { get; set; }
+        public Dictionary<PropertyInfo, ServiceCallDependency> Properties { get; set; }
 
-        public Dictionary<ParameterInfo, ServiceDependencyChain> Parameters { get; set; }
+        public Dictionary<ParameterInfo, ServiceCallDependency> Parameters { get; set; }
 
         /// <summary>
         /// Property Circular Dependencies,just Singleton/Scoped
         /// </summary>
         public bool IsPropertyCircularDependencies { get; internal set; }
 
-        public ServiceDependencyChain()
+        public ServiceCallDependency()
         {
-            Properties = new Dictionary<PropertyInfo, ServiceDependencyChain>();
-            Parameters = new Dictionary<ParameterInfo, ServiceDependencyChain>();
+            Properties = new Dictionary<PropertyInfo, ServiceCallDependency>();
+            Parameters = new Dictionary<ParameterInfo, ServiceCallDependency>();
         }
 
         public virtual bool ContainsPropertyCircularDependencies()
@@ -57,7 +57,7 @@ namespace Tinja.Resolving.Dependency
 
         public virtual bool ShouldHoldServiceLife()
         {
-            if (Context.Component.LifeStyle != ServiceLifeStyle.Transient)
+            if (Context.LifeStyle != ServiceLifeStyle.Transient)
             {
                 return true;
             }
