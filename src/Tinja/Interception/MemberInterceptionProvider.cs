@@ -22,9 +22,14 @@ namespace Tinja.Interception
             _caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>>();
         }
 
-        public IEnumerable<MemberInterception> GetInterceptions(Type serviceType, Type implementionType)
+        public IEnumerable<MemberInterception> GetInterceptions(Type serviceType, Type implementionType, bool caching = true)
         {
-            return _caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectInterceptions(serviceType, implementionType));
+            if (caching)
+            {
+                return _caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectInterceptions(serviceType, implementionType));
+            }
+
+            return CollectInterceptions(serviceType, implementionType);
         }
 
         protected virtual IEnumerable<MemberInterception> CollectInterceptions(Type serviceType, Type implementionType)

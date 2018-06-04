@@ -55,15 +55,15 @@ namespace Tinja.Resolving
         {
             if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
             {
-                component.ProxyType = new InterfaceProxyTypeGenerator(component.ImplementionType).CreateProxyType();
+                component.ProxyType = new InterfaceProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType();
             }
             else if (component.ServiceType.IsInterface)
             {
-                component.ProxyType = new InterfaceWithTargetProxyTypeGenerator(component.ServiceType, component.ImplementionType).CreateProxyType();
+                component.ProxyType = new InterfaceWithTargetProxyTypeGenerator(component.ServiceType, component.ImplementionType, InterceptionProvider).CreateProxyType();
             }
             else
             {
-                component.ProxyType = new ClassProxyTypeGenerator(component.ImplementionType).CreateProxyType();
+                component.ProxyType = new ClassProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType();
             }
         }
 
@@ -237,7 +237,7 @@ namespace Tinja.Resolving
                 return false;
             }
 
-            if (InterceptionProvider.GetInterceptions(component.ServiceType, component.ImplementionType).Any())
+            if (InterceptionProvider.GetInterceptions(component.ServiceType, component.ImplementionType, false).Any())
             {
                 return true;
             }

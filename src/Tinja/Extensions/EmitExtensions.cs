@@ -104,5 +104,73 @@ namespace Tinja.Extension
 
             return builder;
         }
+
+        internal static ILGenerator LoadDefaultValue(this ILGenerator ilGen, Type valueType)
+        {
+            if (valueType == typeof(void))
+            {
+                return ilGen;
+            }
+
+            switch (Type.GetTypeCode(valueType))
+            {
+                case TypeCode.Decimal:
+                    ilGen.Emit(OpCodes.Ldc_I4_0);
+                    ilGen.Emit(OpCodes.Newobj, valueType.GetConstructor(new Type[] { typeof(int) }));
+                    break;
+                case TypeCode.Double:
+                    ilGen.Emit(OpCodes.Ldc_R8, default(Double));
+                    break;
+                case TypeCode.DBNull:
+                case TypeCode.Empty:
+                case TypeCode.String:
+                    ilGen.Emit(OpCodes.Ldnull);
+                    break;
+                case TypeCode.Boolean:
+                case TypeCode.Byte:
+                case TypeCode.Char:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.SByte:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                    ilGen.Emit(OpCodes.Ldc_I4_0);
+                    break;
+                case TypeCode.Single:
+                    ilGen.Emit(OpCodes.Ldc_R4, default(Single));
+                    break;
+
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
+                    ilGen.Emit(OpCodes.Ldc_I8);
+                    break;
+                default:
+                    if (valueType.IsValueType)
+                    {
+                        var localVar = ilGen.DeclareLocal(valueType);
+                        ilGen.Emit(OpCodes.Ldloca, localVar);
+                        ilGen.Emit(OpCodes.Initobj, valueType);
+                        ilGen.Emit(OpCodes.Ldloc, localVar);
+                        break;
+                    }
+
+                    ilGen.Emit(OpCodes.Ldnull);
+                    break;
+            }
+
+            return ilGen;
+        }
+
+        internal static MethodBuilder BuildDefaultMethodBody(this ILGenerator ilGen, MethodBuilder methodBuilder)
+        {
+            if (!methodBuilder.IsVoidMethod())
+            {
+                ilGen.Emit(OpCodes.Ldnull);
+            }
+
+            ilGen.Emit(OpCodes.Ret);
+
+            return methodBuilder;
+        }
     }
 }

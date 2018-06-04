@@ -9,8 +9,8 @@ namespace Tinja.Interception.Generators
 {
     public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
-        public InterfaceProxyTypeGenerator(Type interfaceType)
-            : base(interfaceType, interfaceType)
+        public InterfaceProxyTypeGenerator(Type interfaceType, IMemberInterceptionProvider provider)
+            : base(interfaceType, interfaceType, provider)
         {
 
         }
@@ -33,6 +33,11 @@ namespace Tinja.Interception.Generators
             CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
+
+            if (!ContainsInterception(methodInfo))
+            {
+                return ilGen.BuildDefaultMethodBody(methodBudiler);
+            }
 
             //this.__executor
             ilGen.Emit(OpCodes.Ldarg_0);
@@ -98,6 +103,10 @@ namespace Tinja.Interception.Generators
             CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
+            if (!ContainsInterception(property))
+            {
+                return ilGen.BuildDefaultMethodBody(methodBudiler);
+            }
 
             //this.__executor
             ilGen.Emit(OpCodes.Ldarg_0);

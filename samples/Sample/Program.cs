@@ -147,6 +147,11 @@ namespace Sample
 
         }
 
+        public int GetId()
+        {
+            throw new NotImplementedException();
+        }
+
         [Interceptor(typeof(InterceptorTest))]
         public virtual object Id { get; set; }
     }
@@ -165,6 +170,8 @@ namespace Sample
     {
         [Interceptor(typeof(InterceptorTest3))]
         T M<T>() where T : class;
+
+        int GetId();
     }
 
     public abstract class A2
@@ -188,13 +195,13 @@ namespace Sample
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
             container.AddTransient<InterceptorTest3, InterceptorTest3>();
 
-
             container.AddTransient<A2, A2>();
-
+            container.AddTransient<IAbc, IAbc>();
             var resolver = container.BuildResolver();
 
             watch.Reset();
             watch.Start();
+            var x3 = resolver.Resolve<IAbc>();
             var m2 = resolver.Resolve<A2>();
             var str = m2.M();
             watch.Stop();
@@ -204,7 +211,7 @@ namespace Sample
             watch.Start();
             for (var i = 0; i < 1000000; i++)
             {
-
+                resolver.Resolve(typeof(A2));
             }
 
             watch.Start();

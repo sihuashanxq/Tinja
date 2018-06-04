@@ -9,13 +9,26 @@ namespace Tinja.Interception.Generators
 {
     public class ClassProxyTypeGenerator : ProxyTypeGenerator
     {
-        public ClassProxyTypeGenerator(Type targetToProxy)
-        : base(targetToProxy, targetToProxy)
+        public ClassProxyTypeGenerator(Type targetToProxy, IMemberInterceptionProvider provider)
+        : base(targetToProxy, targetToProxy, provider)
         {
 
         }
 
         #region Method
+
+        protected override void CreateTypeMethods()
+        {
+            foreach (var item in ProxyMembers.Where(i => i.IsEvent).Select(i => i.Member.AsMethod()))
+            {
+                if (!ContainsInterception(item) && !item.IsAbstract)
+                {
+                    continue;
+                }
+
+                CreateTypeMethod(item);
+            }
+        }
 
         protected override MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
         {
@@ -33,6 +46,11 @@ namespace Tinja.Interception.Generators
             CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
+
+            if (methodInfo.IsAbstract)
+            {
+                return ilGen.BuildDefaultMethodBody(methodBudiler);
+            }
 
             //this.__executor
             ilGen.Emit(OpCodes.Ldarg_0);
@@ -82,6 +100,24 @@ namespace Tinja.Interception.Generators
             return methodBudiler;
         }
 
+        protected override PropertyBuilder CreateTypeProperty(PropertyInfo propertyInfo)
+        {
+            if (!ContainsInterception(propertyInfo))
+            {
+                if (propertyInfo.CanRead && !propertyInfo.GetMethod.IsAbstract)
+                {
+                    return null;
+                }
+
+                if (propertyInfo.CanWrite && !propertyInfo.SetMethod.IsAbstract)
+                {
+                    return null;
+                }
+            }
+
+            return base.CreateTypeProperty(propertyInfo);
+        }
+
         protected override MethodBuilder CreateTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
@@ -98,6 +134,11 @@ namespace Tinja.Interception.Generators
             CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
+
+            if (methodInfo.IsAbstract)
+            {
+                return ilGen.BuildDefaultMethodBody(methodBudiler);
+            }
 
             //this.__executor
             ilGen.Emit(OpCodes.Ldarg_0);

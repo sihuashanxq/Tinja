@@ -27,12 +27,11 @@ namespace Tinja
             ioc.AddSingleton(typeof(IServiceContextBuilder), _ => builder);
             ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
-
             ioc.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             ioc.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
-            ioc.AddSingleton<IMemberInterceptionProvider, MemberInterceptionProvider>();
             ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            ioc.AddSingleton(typeof(IMemberInterceptionProvider), _ => interceptionProvider);
             ioc.AddSingleton(typeof(IMemberCollectorFactory), _ => MemberCollectorFactory.Default);
 
             builder.Initialize(ioc.Components);

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extension;
@@ -22,22 +23,27 @@ namespace Tinja.Interception.Generators
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
+        protected IMemberInterceptionProvider InterceptionProvider { get; }
+
+        protected IEnumerable<MemberInterception> MemberInterceptions { get; }
+
         protected virtual Type[] DefaultConstrcutorParameters => new[]
         {
             typeof(IInterceptorCollector),
             typeof(IMethodInvocationExecutor)
         };
 
-        public ProxyTypeGenerator(Type serviceType, Type implemetionType)
+        public ProxyTypeGenerator(Type serviceType, Type implemetionType, IMemberInterceptionProvider provider)
         {
             ServiceType = serviceType;
             ProxyTargetType = implemetionType;
-
+            InterceptionProvider = provider;
             ProxyMembers = MemberCollectorFactory
                 .Default
                 .Create(serviceType, implemetionType)
                 .Collect();
 
+            MemberInterceptions = InterceptionProvider.GetInterceptions(serviceType, implemetionType);
             Fields = new Dictionary<string, FieldBuilder>();
         }
 
@@ -71,7 +77,7 @@ namespace Tinja.Interception.Generators
                   GeneratorUtility.GetProxyTypeName(ProxyTargetType),
                   TypeAttributes.Class | TypeAttributes.Public,
                   ProxyTargetType.IsInterface ? typeof(object) : ProxyTargetType,
-                  ProxyTargetType.GetInterfaces()
+                  ProxyTargetType.IsInterface ? new[] { ProxyTargetType } : ProxyTargetType.GetInterfaces()
               );
         }
 
@@ -244,6 +250,11 @@ namespace Tinja.Interception.Generators
         }
 
         #endregion
+
+        protected virtual bool ContainsInterception(MemberInfo memberInfo)
+        {
+            return MemberInterceptions.Any(i => i.Prioritys.Any(n => n.Key == memberInfo || n.Key == memberInfo.DeclaringType));
+        }
 
         protected virtual MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
         {
