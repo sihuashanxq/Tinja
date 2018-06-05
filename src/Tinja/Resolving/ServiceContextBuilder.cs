@@ -53,9 +53,13 @@ namespace Tinja.Resolving
 
         protected virtual void InitializeProxyType(ServiceComponent component)
         {
-            if (component.ImplementionType.IsInterface || component.ImplementionType.IsAbstract)
+            if (component.ImplementionType.IsInterface)
             {
                 component.ProxyType = new InterfaceProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType();
+            }
+            else if (component.ImplementionType.IsAbstract)
+            {
+                component.ProxyType = new ClassProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType();
             }
             else if (component.ServiceType.IsInterface)
             {

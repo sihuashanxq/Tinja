@@ -30,23 +30,16 @@ namespace Tinja.Interception
         {
             return inv =>
             {
-                var interceptors = inv.Interceptors;
                 var callStack = new Stack<Func<IMethodInvocation, Task>>();
-                if (inv.ProxyTargetType.IsInterface || inv.ProxyTargetType.IsAbstract)
-                {
-                    callStack.Push(async invocation => { await Task.CompletedTask; });
+                var interceptors = inv.Interceptors;
 
-                }
-                else
+                callStack.Push(async invocation =>
                 {
-                    callStack.Push(async invocation =>
-                    {
-                        inv.ResultValue = await
-                            ObjectMethodExecutorProvider
-                                .GetExecutor(invocation.TargetMethod)
-                                .ExecuteAsync(invocation.Target, invocation.ParameterValues);
-                    });
-                }
+                    inv.ResultValue = await
+                        ObjectMethodExecutorProvider
+                            .GetExecutor(invocation.TargetMethod)
+                            .ExecuteAsync(invocation.Target, invocation.ParameterValues);
+                });
 
                 foreach (var item in InterceptorSelectors)
                 {

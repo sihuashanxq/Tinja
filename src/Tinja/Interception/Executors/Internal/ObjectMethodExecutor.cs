@@ -6,7 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Reflection.Emit;
-using Tinja.Extension;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Internal
 {

@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Interception.Executors;
@@ -67,6 +68,54 @@ namespace Tinja.Interception.Generators.Utils
 
                 return proxyTargetType.FullName + "." + proxyTargetType.Name + "_proxy_" + order;
             }
+        }
+
+        public static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
+        {
+            if (customAttribute.NamedArguments == null)
+            {
+                return new CustomAttributeBuilder(customAttribute.Constructor, customAttribute.ConstructorArguments.Select(c => c.Value).ToArray());
+            }
+
+            var args = new object[customAttribute.ConstructorArguments.Count];
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (typeof(IEnumerable).IsAssignableFrom(customAttribute.ConstructorArguments[i].ArgumentType))
+                {
+                    args[i] = (customAttribute.ConstructorArguments[i].Value as IEnumerable<CustomAttributeTypedArgument>)?.Select(x => x.Value).ToArray();
+                    continue;
+                }
+
+                args[i] = customAttribute.ConstructorArguments[i].Value;
+            }
+
+            var namedProperties = customAttribute
+                .NamedArguments
+                .Where(n => !n.IsField)
+                .Select(n => customAttribute.AttributeType.GetProperty(n.MemberName))
+                .ToArray();
+
+            var properties = customAttribute
+                .NamedArguments
+                .Where(n => !n.IsField)
+                .Select(n => n.TypedValue.Value)
+                .ToArray();
+
+            var namedFields = customAttribute
+                .NamedArguments
+                .Where(n => n.IsField)
+                .Select(n => customAttribute.AttributeType.GetField(n.MemberName))
+                .ToArray();
+
+            var fields = customAttribute
+                .NamedArguments
+                .Where(n => n.IsField)
+                .Select(n => n.TypedValue.Value)
+                .ToArray();
+
+            return new CustomAttributeBuilder(customAttribute.Constructor, args
+               , namedProperties
+               , properties, namedFields, fields);
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Tinja.Extension
+namespace Tinja.Extensions
 {
     internal static class EmitExtensions
     {
@@ -67,44 +67,6 @@ namespace Tinja.Extension
             return ilGen;
         }
 
-        internal static MethodBuilder DefineParameters(this MethodBuilder builder, ParameterInfo[] parameters)
-        {
-            if (builder == null || parameters == null || parameters.Length == 0)
-            {
-                return builder;
-            }
-
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                builder.DefineParameter(
-                    i,
-                    parameters[i].Attributes,
-                    parameters[i].Name
-                );
-            }
-
-            return builder;
-        }
-
-        internal static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameters)
-        {
-            if (builder == null || parameters == null || parameters.Length == 0)
-            {
-                return builder;
-            }
-
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                builder.DefineParameter(
-                    i,
-                    parameters[i].Attributes,
-                    parameters[i].Name
-                );
-            }
-
-            return builder;
-        }
-
         internal static ILGenerator LoadDefaultValue(this ILGenerator ilGen, Type valueType)
         {
             if (valueType == typeof(void))
@@ -161,16 +123,16 @@ namespace Tinja.Extension
             return ilGen;
         }
 
-        internal static MethodBuilder BuildDefaultMethodBody(this ILGenerator ilGen, MethodBuilder methodBuilder)
+        internal static ILGenerator BuildDefaultMethodBody(this ILGenerator ilGen, Type methodReturnType)
         {
-            if (!methodBuilder.IsVoidMethod())
+            if (methodReturnType != typeof(void))
             {
-                ilGen.Emit(OpCodes.Ldnull);
+                ilGen.LoadDefaultValue(methodReturnType);
             }
 
             ilGen.Emit(OpCodes.Ret);
 
-            return methodBuilder;
+            return ilGen;
         }
     }
 }

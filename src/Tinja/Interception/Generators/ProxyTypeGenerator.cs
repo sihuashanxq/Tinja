@@ -5,7 +5,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Extension;
+using Tinja.Extensions;
+using Tinja.Interception.Generators.Extensions;
 using Tinja.Interception.Generators.Utils;
 using Tinja.Interception.Members;
 
@@ -49,54 +50,54 @@ namespace Tinja.Interception.Generators
 
         public virtual Type CreateProxyType()
         {
-            CreateTypeBuilder();
+            DefineTypeBuilder();
 
-            CreateTypeFields();
+            DefineTypeFields();
 
-            CreateTypeMethods();
+            DefineTypeMethods();
 
-            CreateTypeProperties();
+            DefineTypeProperties();
 
-            CreateTypeConstrcutors();
-
-            CreateGenericParameters(TypeBuilder, ProxyTargetType);
-
-            CreateTypeCustomAttribute(TypeBuilder, ProxyTargetType);
+            DefineTypeConstrcutors();
 
             return TypeBuilder.CreateType();
         }
 
-        protected virtual void CreateTypeBuilder()
+        protected virtual void DefineTypeBuilder()
         {
             if (ProxyTargetType.IsValueType)
             {
                 throw new NotSupportedException($"implemention type:{ProxyTargetType.FullName} must not be value type");
             }
 
-            TypeBuilder = GeneratorUtility.ModuleBuilder.DefineType(
-                  GeneratorUtility.GetProxyTypeName(ProxyTargetType),
-                  TypeAttributes.Class | TypeAttributes.Public,
-                  ProxyTargetType.IsInterface ? typeof(object) : ProxyTargetType,
-                  ProxyTargetType.IsInterface ? new[] { ProxyTargetType } : ProxyTargetType.GetInterfaces()
-              );
+            TypeBuilder = GeneratorUtility
+                .ModuleBuilder
+                .DefineType(
+                    GeneratorUtility.GetProxyTypeName(ProxyTargetType),
+                    TypeAttributes.Class | TypeAttributes.Public,
+                    ProxyTargetType.IsInterface ? typeof(object) : ProxyTargetType,
+                    ProxyTargetType.IsInterface ? new[] { ProxyTargetType } : ProxyTargetType.GetInterfaces()
+                )
+                .DefineGenericParameters(ProxyTargetType)
+                .SetCustomAttributes(ProxyTargetType);
         }
 
         #region Field
 
-        protected virtual void CreateTypeFields()
+        protected virtual void DefineTypeFields()
         {
-            CreateField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            CreateField("__interceptors", typeof(IEnumerable<MemberInterceptionBinding>), FieldAttributes.Private);
-            CreateField("__filter", typeof(MemberInterceptorFilter), FieldAttributes.Private);
+            DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
+            DefineField("__interceptors", typeof(IEnumerable<MemberInterceptionBinding>), FieldAttributes.Private);
+            DefineField("__filter", typeof(MemberInterceptorFilter), FieldAttributes.Private);
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
-                CreateField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+                DefineField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
 
             foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                CreateField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                DefineField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
         }
 
@@ -110,7 +111,7 @@ namespace Tinja.Interception.Generators
             return GetField(GetMemberIdentifier(memberInfo));
         }
 
-        public FieldBuilder CreateField(string field, Type fieldType, FieldAttributes attributes)
+        public FieldBuilder DefineField(string field, Type fieldType, FieldAttributes attributes)
         {
             if (!Fields.ContainsKey(field))
             {
@@ -124,11 +125,11 @@ namespace Tinja.Interception.Generators
 
         #region Method
 
-        protected virtual void CreateTypeMethods()
+        protected virtual void DefineTypeMethods()
         {
             foreach (var item in ProxyMembers.Where(i => i.IsMethod))
             {
-                CreateTypeMethod(item.Member.AsMethod());
+                DefineTypeMethod(item.Member.AsMethod());
             }
         }
 
@@ -136,12 +137,12 @@ namespace Tinja.Interception.Generators
         /// Create Method
         /// </summary>
         /// <param name="methodInfo"></param>
-        protected virtual MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
+        protected virtual MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
-            return CreateTypeMethod(methodInfo);
+            return DefineTypeMethod(methodInfo);
         }
 
-        protected virtual MethodBuilder CreateTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
+        protected virtual MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             return null;
         }
@@ -150,28 +151,28 @@ namespace Tinja.Interception.Generators
 
         #region Property
 
-        protected virtual void CreateTypeProperties()
+        protected virtual void DefineTypeProperties()
         {
             foreach (var item in ProxyMembers.Where(i => i.IsProperty))
             {
-                CreateTypeProperty(item.Member.AsProperty());
+                DefineTypeProperty(item.Member.AsProperty());
             }
         }
 
-        protected virtual PropertyBuilder CreateTypeProperty(PropertyInfo propertyInfo)
+        protected virtual PropertyBuilder DefineTypeProperty(PropertyInfo propertyInfo)
         {
-            var propertyBuilder = TypeBuilder.DefineProperty(
-                propertyInfo.Name,
-                propertyInfo.Attributes,
-                propertyInfo.PropertyType,
-                propertyInfo.GetIndexParameters().Select(i => i.ParameterType).ToArray()
-            );
-
-            CreateTypePropertyCustomAttributes(propertyBuilder, propertyInfo);
+            var propertyBuilder = TypeBuilder
+                .DefineProperty(
+                    propertyInfo.Name,
+                    propertyInfo.Attributes,
+                    propertyInfo.PropertyType,
+                    propertyInfo.GetIndexParameters().Select(i => i.ParameterType).ToArray()
+                )
+                .SetCustomAttributes(propertyInfo);
 
             if (propertyInfo.CanWrite)
             {
-                var setter = CreateTypePropertyMethod(propertyInfo.SetMethod, propertyInfo);
+                var setter = DefineTypePropertyMethod(propertyInfo.SetMethod, propertyInfo);
                 if (setter == null)
                 {
                     throw new NullReferenceException(nameof(setter));
@@ -182,7 +183,7 @@ namespace Tinja.Interception.Generators
 
             if (propertyInfo.CanRead)
             {
-                var getter = CreateTypePropertyMethod(propertyInfo.GetMethod, propertyInfo);
+                var getter = DefineTypePropertyMethod(propertyInfo.GetMethod, propertyInfo);
                 if (getter == null)
                 {
                     throw new NullReferenceException(nameof(getter));
@@ -198,13 +199,13 @@ namespace Tinja.Interception.Generators
 
         #region Constructors
 
-        protected virtual void CreateTypeConstrcutors()
+        protected virtual void DefineTypeConstrcutors()
         {
-            CreateTypeDefaultConstructor();
-            CreateTypeStaticConstrcutor();
+            DefineTypeDefaultConstructor();
+            DefineTypeStaticConstrcutor();
         }
 
-        protected virtual void CreateTypeDefaultConstructor()
+        protected virtual void DefineTypeDefaultConstructor()
         {
             var ilGen = TypeBuilder
                 .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameters)
@@ -228,7 +229,7 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Ret);
         }
 
-        protected virtual void CreateTypeStaticConstrcutor()
+        protected virtual void DefineTypeStaticConstrcutor()
         {
             var ilGen = TypeBuilder
                 .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
@@ -251,7 +252,7 @@ namespace Tinja.Interception.Generators
 
         #endregion
 
-        protected virtual bool ContainsInterception(MemberInfo memberInfo)
+        protected virtual bool IsUsedInterception(MemberInfo memberInfo)
         {
             return MemberInterceptions.Any(i => i.Prioritys.Any(n => n.Key == memberInfo || n.Key == memberInfo.DeclaringType));
         }
@@ -301,146 +302,5 @@ namespace Tinja.Interception.Generators
         {
             return "__proxy__member__" + memberInfo.Name + "_" + memberInfo.GetHashCode();
         }
-
-        #region Attribute
-
-        protected static void CreateTypeCustomAttribute(TypeBuilder typeBuilder, Type target)
-        {
-            foreach (var customAttriute in target.CustomAttributes)
-            {
-                typeBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
-            }
-        }
-
-        protected static void CreateTypeMethodCustomAttributes(MethodBuilder methodBuilder, MethodInfo methodInfo)
-        {
-            foreach (var customAttriute in methodInfo.CustomAttributes)
-            {
-                methodBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
-            }
-        }
-
-        protected static void CreateTypePropertyCustomAttributes(PropertyBuilder propertyBuilder, PropertyInfo propertyInfo)
-        {
-            foreach (var customAttriute in propertyInfo.CustomAttributes)
-            {
-                propertyBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
-            }
-        }
-
-        protected static void CreateTypeConstructorCustomAttributes(ConstructorBuilder constructorBuilder, ConstructorInfo constructorInfo)
-        {
-            foreach (var customAttriute in constructorInfo.CustomAttributes)
-            {
-                constructorBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
-            }
-        }
-
-        protected static void CreateTypeParameterCustomAttributes(ParameterBuilder parameterBuilder, ConstructorInfo constructorInfo)
-        {
-            foreach (var customAttriute in constructorInfo.CustomAttributes)
-            {
-                parameterBuilder.SetCustomAttribute(CreateCustomAttribute(customAttriute));
-            }
-        }
-
-        protected static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
-        {
-            if (customAttribute.NamedArguments == null)
-            {
-                return new CustomAttributeBuilder(customAttribute.Constructor, customAttribute.ConstructorArguments.Select(c => c.Value).ToArray());
-            }
-
-            var args = new object[customAttribute.ConstructorArguments.Count];
-            for (var i = 0; i < args.Length; i++)
-            {
-                if (typeof(IEnumerable).IsAssignableFrom(customAttribute.ConstructorArguments[i].ArgumentType))
-                {
-                    args[i] = (customAttribute.ConstructorArguments[i].Value as IEnumerable<CustomAttributeTypedArgument>)?.Select(x => x.Value).ToArray();
-                    continue;
-                }
-
-                args[i] = customAttribute.ConstructorArguments[i].Value;
-            }
-
-            var namedProperties = customAttribute
-                .NamedArguments
-                .Where(n => !n.IsField)
-                .Select(n => customAttribute.AttributeType.GetProperty(n.MemberName))
-                .ToArray();
-
-            var properties = customAttribute
-                .NamedArguments
-                .Where(n => !n.IsField)
-                .Select(n => n.TypedValue.Value)
-                .ToArray();
-
-            var namedFields = customAttribute
-                .NamedArguments
-                .Where(n => n.IsField)
-                .Select(n => customAttribute.AttributeType.GetField(n.MemberName))
-                .ToArray();
-
-            var fields = customAttribute
-                .NamedArguments
-                .Where(n => n.IsField)
-                .Select(n => n.TypedValue.Value)
-                .ToArray();
-
-            return new CustomAttributeBuilder(customAttribute.Constructor, args
-               , namedProperties
-               , properties, namedFields, fields);
-        }
-
-        #endregion
-
-        #region Generic
-
-        protected static void CreateGenericParameters(TypeBuilder typeBuilder, Type target)
-        {
-            if (!target.IsGenericType)
-            {
-                return;
-            }
-
-            var genericArguments = target.GetGenericArguments();
-            var genericArgumentBuilders = typeBuilder.DefineGenericParameters(genericArguments.Select(i => i.Name).ToArray());
-
-            SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
-        }
-
-        protected static void CreateGenericParameters(MethodBuilder methodBuilder, MethodInfo target)
-        {
-            if (!target.IsGenericMethod)
-            {
-                return;
-            }
-
-            var genericArguments = target.GetGenericArguments();
-            var genericArgumentBuilders = methodBuilder.DefineGenericParameters(genericArguments.Select(i => i.Name).ToArray());
-
-            SetGenericParameterConstraints(genericArgumentBuilders, genericArguments);
-        }
-
-        protected static void SetGenericParameterConstraints(GenericTypeParameterBuilder[] genericArgumentBuilders, Type[] genericArguments)
-        {
-            for (var i = 0; i < genericArguments.Length; i++)
-            {
-                foreach (var constraint in genericArguments[i].GetGenericParameterConstraints())
-                {
-                    if (constraint.IsInterface)
-                    {
-                        genericArgumentBuilders[i].SetInterfaceConstraints(constraint);
-                        genericArgumentBuilders[i].SetGenericParameterAttributes(genericArguments[i].GenericParameterAttributes);
-                        continue;
-                    }
-
-                    genericArgumentBuilders[i].SetBaseTypeConstraint(constraint);
-                    genericArgumentBuilders[i].SetGenericParameterAttributes(genericArguments[i].GenericParameterAttributes);
-                }
-            }
-        }
-
-        #endregion
     }
 }

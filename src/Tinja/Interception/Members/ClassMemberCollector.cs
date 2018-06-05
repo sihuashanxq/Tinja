@@ -28,5 +28,13 @@ namespace Tinja.Interception.Members
                 HandleCollectedMemberInfo(property);
             }
         }
+
+        protected override void CollectTypeEvents()
+        {
+            foreach (var eventInfo in ProxyTargetType.GetEvents(BindingFlag).Where(e => e.AddMethod.IsOverrideable() || e.RaiseMethod.IsOverrideable() || e.RemoveMethod.IsOverrideable()))
+            {
+                HandleCollectedMemberInfo(eventInfo);
+            }
+        }
     }
 }

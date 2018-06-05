@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Extension;
+using Tinja.Extensions;
+using Tinja.Interception.Generators.Extensions;
 using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators
@@ -17,39 +18,36 @@ namespace Tinja.Interception.Generators
 
         #region Method
 
-        protected override void CreateTypeMethods()
+        protected override void DefineTypeMethods()
         {
-            foreach (var item in ProxyMembers.Where(i => i.IsEvent).Select(i => i.Member.AsMethod()))
+            foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                if (!ContainsInterception(item) && !item.IsAbstract)
+                if (!IsUsedInterception(item) && !item.IsAbstract)
                 {
                     continue;
                 }
 
-                CreateTypeMethod(item);
+                DefineTypeMethod(item);
             }
         }
 
-        protected override MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
+        protected override MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
             var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
-            var methodBudiler = TypeBuilder.DefineMethod(
-                methodInfo.Name,
-                methodAttributes,
-                CallingConventions.HasThis,
-                methodInfo.ReturnType,
-                paramterTypes
-            );
-
-            CreateGenericParameters(methodBudiler, methodInfo);
-            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
+            var methodBudiler = TypeBuilder
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .SetCustomAttributes(methodInfo)
+                .DefineParameters(methodInfo)
+                .DefineReturnParameter(methodInfo)
+                .DefineGenericParameters(methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
 
             if (methodInfo.IsAbstract)
             {
-                return ilGen.BuildDefaultMethodBody(methodBudiler);
+                ilGen.BuildDefaultMethodBody(methodInfo.ReturnType);
+                return methodBudiler;
             }
 
             //this.__executor
@@ -79,7 +77,7 @@ namespace Tinja.Interception.Generators
                 ilGen.Emit(OpCodes.Dup);
                 ilGen.Emit(OpCodes.Ldc_I4, i);
                 ilGen.Emit(OpCodes.Ldarg, i + 1);
-                ilGen.Box(paramterTypes[i]);
+
                 ilGen.Emit(OpCodes.Stelem_Ref);
             }
 
@@ -100,9 +98,9 @@ namespace Tinja.Interception.Generators
             return methodBudiler;
         }
 
-        protected override PropertyBuilder CreateTypeProperty(PropertyInfo propertyInfo)
+        protected override PropertyBuilder DefineTypeProperty(PropertyInfo propertyInfo)
         {
-            if (!ContainsInterception(propertyInfo))
+            if (!IsUsedInterception(propertyInfo))
             {
                 if (propertyInfo.CanRead && !propertyInfo.GetMethod.IsAbstract)
                 {
@@ -115,29 +113,26 @@ namespace Tinja.Interception.Generators
                 }
             }
 
-            return base.CreateTypeProperty(propertyInfo);
+            return base.DefineTypeProperty(propertyInfo);
         }
 
-        protected override MethodBuilder CreateTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
+        protected override MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
-            var methodBudiler = TypeBuilder.DefineMethod(
-                methodInfo.Name,
-                methodAttributes,
-                CallingConventions.HasThis,
-                methodInfo.ReturnType,
-                paramterTypes
-            );
-
-            CreateGenericParameters(methodBudiler, methodInfo);
-            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
+            var methodBudiler = TypeBuilder
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .SetCustomAttributes(methodInfo)
+                .DefineParameters(methodInfo)
+                .DefineReturnParameter(methodInfo)
+                .DefineGenericParameters(methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
 
             if (methodInfo.IsAbstract)
             {
-                return ilGen.BuildDefaultMethodBody(methodBudiler);
+                ilGen.BuildDefaultMethodBody(methodInfo.ReturnType);
+                return methodBudiler;
             }
 
             //this.__executor
@@ -191,23 +186,25 @@ namespace Tinja.Interception.Generators
 
         #endregion
 
-        protected override void CreateTypeConstrcutors()
+        protected override void DefineTypeConstrcutors()
         {
             foreach (var item in ProxyTargetType.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
                 CreateTypeConstructor(item);
             }
 
-            CreateTypeStaticConstrcutor();
+            DefineTypeStaticConstrcutor();
         }
 
         protected virtual void CreateTypeConstructor(ConstructorInfo consturctor)
         {
-            var parameters = consturctor.GetParameters().Select(i => i.ParameterType).ToArray();
-            var constructorBuilder = TypeBuilder.DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, DefaultConstrcutorParameters.Concat(parameters).ToArray());
-            var ilGen = constructorBuilder.GetILGenerator();
-
-            CreateTypeConstructorCustomAttributes(constructorBuilder, consturctor);
+            var parameterInfos = consturctor.GetParameters();
+            var parameterTypes = parameterInfos.Select(i => i.ParameterType).ToArray();
+            var ilGen = TypeBuilder
+                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, DefaultConstrcutorParameters.Concat(parameterTypes).ToArray())
+                .SetCustomAttributes(consturctor)
+                .DefineParameters(parameterInfos, parameterInfos.Length + DefaultConstrcutorParameters.Length)
+                .GetILGenerator();
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldarg_1);
@@ -226,7 +223,7 @@ namespace Tinja.Interception.Generators
 
             ilGen.Emit(OpCodes.Ldarg_0);
 
-            for (var i = DefaultConstrcutorParameters.Length; i < parameters.Length; i++)
+            for (var i = DefaultConstrcutorParameters.Length; i < parameterTypes.Length; i++)
             {
                 ilGen.Emit(OpCodes.Ldarg, i + 1);
             }

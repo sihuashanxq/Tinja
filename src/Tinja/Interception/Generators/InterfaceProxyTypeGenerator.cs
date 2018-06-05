@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Extension;
+using Tinja.Extensions;
+using Tinja.Interception.Generators.Extensions;
 using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators
@@ -17,26 +18,23 @@ namespace Tinja.Interception.Generators
 
         #region Method
 
-        protected override MethodBuilder CreateTypeMethod(MethodInfo methodInfo)
+        protected override MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
             var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
-            var methodBudiler = TypeBuilder.DefineMethod(
-                methodInfo.Name,
-                methodAttributes,
-                CallingConventions.HasThis,
-                methodInfo.ReturnType,
-                paramterTypes
-            );
-
-            CreateGenericParameters(methodBudiler, methodInfo);
-            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
+            var methodBudiler = TypeBuilder
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .SetCustomAttributes(methodInfo)
+                .DefineParameters(methodInfo)
+                .DefineReturnParameter(methodInfo)
+                .DefineGenericParameters(methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
 
-            if (!ContainsInterception(methodInfo))
+            if (!IsUsedInterception(methodInfo))
             {
-                return ilGen.BuildDefaultMethodBody(methodBudiler);
+                ilGen.BuildDefaultMethodBody(methodInfo.ReturnType);
+                return methodBudiler;
             }
 
             //this.__executor
@@ -87,25 +85,22 @@ namespace Tinja.Interception.Generators
             return methodBudiler;
         }
 
-        protected override MethodBuilder CreateTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
+        protected override MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
-            var methodBudiler = TypeBuilder.DefineMethod(
-                methodInfo.Name,
-                methodAttributes,
-                CallingConventions.HasThis,
-                methodInfo.ReturnType,
-                paramterTypes
-            );
-
-            CreateGenericParameters(methodBudiler, methodInfo);
-            CreateTypeMethodCustomAttributes(methodBudiler, methodInfo);
+            var methodBudiler = TypeBuilder
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .SetCustomAttributes(methodInfo)
+                .DefineParameters(methodInfo)
+                .DefineReturnParameter(methodInfo)
+                .DefineGenericParameters(methodInfo);
 
             var ilGen = methodBudiler.GetILGenerator();
-            if (!ContainsInterception(property))
+            if (!IsUsedInterception(property))
             {
-                return ilGen.BuildDefaultMethodBody(methodBudiler);
+                ilGen.BuildDefaultMethodBody(methodInfo.ReturnType);
+                return methodBudiler;
             }
 
             //this.__executor
