@@ -24,6 +24,20 @@ namespace Tinja.Extensions
             return il;
         }
 
+        internal static ILGenerator UnBoxAny(this ILGenerator ilGen, Type unBoxType)
+        {
+            if (unBoxType.IsByRef)
+            {
+                ilGen.Emit(OpCodes.Unbox_Any, unBoxType.GetElementType());
+            }
+            else
+            {
+                ilGen.Emit(OpCodes.Unbox_Any, unBoxType);
+            }
+
+            return ilGen;
+        }
+
         internal static void LoadMethodInfo(this ILGenerator ilGen, MethodInfo methodInfo)
         {
             ilGen.Emit(OpCodes.Ldtoken, methodInfo);
@@ -133,6 +147,76 @@ namespace Tinja.Extensions
             ilGen.Emit(OpCodes.Ret);
 
             return ilGen;
+        }
+
+
+
+        /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        internal static ILGenerator CastValueToObject(this ILGenerator ilGen, Type valueType)
+        {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (valueType == null)
+            {
+                throw new NullReferenceException(nameof(valueType));
+            }
+
+            if (!valueType.IsByRef)
+            {
+                return ilGen.Box(valueType);
+            }
+
+            var elementType = valueType.GetElementType();
+            if (elementType == null)
+            {
+                return ilGen;
+            }
+
+            switch (Type.GetTypeCode(elementType))
+            {
+                case TypeCode.Boolean:
+                case TypeCode.Byte:
+                    ilGen.Emit(OpCodes.Ldind_U1);
+                    break;
+                case TypeCode.SByte:
+                    ilGen.Emit(OpCodes.Ldind_I1);
+                    break;
+                case TypeCode.Int16:
+                    ilGen.Emit(OpCodes.Ldind_I2);
+                    break;
+                case TypeCode.Char:
+                case TypeCode.UInt16:
+                    ilGen.Emit(OpCodes.Ldind_U2);
+                    break;
+                case TypeCode.Int32:
+                    ilGen.Emit(OpCodes.Ldind_I4);
+                    break;
+                case TypeCode.UInt32:
+                    ilGen.Emit(OpCodes.Ldind_U4);
+                    break;
+                case TypeCode.Int64:
+                    ilGen.Emit(OpCodes.Ldind_I8);
+                    break;
+                case TypeCode.UInt64:
+                    ilGen.Emit(OpCodes.Ldind_Ref);
+                    break;
+                case TypeCode.Single:
+                    ilGen.Emit(OpCodes.Ldind_R4);
+                    break;
+                case TypeCode.Double:
+                    ilGen.Emit(OpCodes.Ldind_R8);
+                    break;
+                default:
+                    ilGen.Emit(OpCodes.Ldind_Ref);
+                    break;
+            }
+
+            return ilGen.Box(elementType);
         }
     }
 }

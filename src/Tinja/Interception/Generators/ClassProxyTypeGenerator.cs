@@ -50,6 +50,23 @@ namespace Tinja.Interception.Generators
                 return methodBudiler;
             }
 
+            var arguments = ilGen.DeclareLocal(typeof(object[]));
+            var result = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+
+            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
+            ilGen.Emit(OpCodes.Newarr, typeof(object));
+
+            for (var i = 0; i < paramterTypes.Length; i++)
+            {
+                ilGen.Emit(OpCodes.Dup);
+                ilGen.Emit(OpCodes.Ldc_I4, i);
+                ilGen.Emit(OpCodes.Ldarg, i + 1);
+                ilGen.CastValueToObject(paramterTypes[i]);
+                ilGen.Emit(OpCodes.Stelem_Ref);
+            }
+
+            ilGen.Emit(OpCodes.Stloc, arguments);
+
             //this.__executor
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldfld, GetField("__executor"));
@@ -68,18 +85,7 @@ namespace Tinja.Interception.Generators
                 ilGen.Emit(OpCodes.Ldnull);
             }
 
-            //new Parameters[]
-            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
-            ilGen.Emit(OpCodes.Newarr, typeof(object));
-
-            for (var i = 0; i < paramterTypes.Length; i++)
-            {
-                ilGen.Emit(OpCodes.Dup);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-
-                ilGen.Emit(OpCodes.Stelem_Ref);
-            }
+            ilGen.Emit(OpCodes.Ldloc, arguments);
 
             ilGen.Emit(OpCodes.Ldarg_0);
             ilGen.Emit(OpCodes.Ldfld, GetField("__filter"));
@@ -92,6 +98,26 @@ namespace Tinja.Interception.Generators
             ilGen.Emit(OpCodes.Newobj, GeneratorUtility.NewMethodInvocation);
 
             ilGen.Emit(OpCodes.Callvirt, GeneratorUtility.MethodInvocationExecute);
+            ilGen.Emit(OpCodes.Stloc, result);
+
+            //update ref out
+            for (var i = 0; i < paramterTypes.Length; i++)
+            {
+                var parameterType = paramterTypes[i];
+                if (!parameterType.IsByRef)
+                {
+                    continue;
+                }
+
+                ilGen.Emit(OpCodes.Ldarg, i + 1);
+                ilGen.Emit(OpCodes.Ldloc, arguments);
+                ilGen.Emit(OpCodes.Ldc_I4, i);
+                ilGen.Emit(OpCodes.Ldelem_Ref);
+                ilGen.UnBoxAny(parameterType);
+                ilGen.Emit(OpCodes.Stind_Ref);
+            }
+
+            ilGen.Emit(OpCodes.Ldloc, result);
             ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
             ilGen.Emit(OpCodes.Ret);
 

@@ -178,7 +178,7 @@ namespace Sample
     {
         public abstract string M();
 
-        public virtual void SetId(out int id)
+        public virtual void SetId(ref int id)
         {
             id = 2;
         }
@@ -206,9 +206,9 @@ namespace Sample
             watch.Start();
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
-            var z = 0;
+            var z = 5;
             var a2 = resolver.Resolve(typeof(A2)) as A2;
-            a2.SetId(out z);
+            a2.SetId(ref z);
 
             watch.Reset();
             watch.Start();

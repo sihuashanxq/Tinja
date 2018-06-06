@@ -115,22 +115,46 @@ namespace Tinja.Interception.Internal
 
         private static Func<object, object[], object> CreateMethodInvoker(MethodInfo methodInfo)
         {
-            var argIndex = 0;
             var dyMethod = new DynamicMethod(methodInfo.Name, typeof(object), new[] { typeof(object), typeof(object[]) });
+            var parameters = methodInfo.GetParameters();
             var ilGen = dyMethod.GetILGenerator();
+            var result = ilGen.DeclareLocal(methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType);
+
+            var refs = new Dictionary<int, LocalBuilder>();
 
             ilGen.Emit(OpCodes.Ldarg_0);
 
-            foreach (var item in methodInfo.GetParameters().Select(n => n.ParameterType))
+            for (var i = 0; i < parameters.Length; i++)
             {
+                var parameter = parameters[i];
                 ilGen.Emit(OpCodes.Ldarg_1);
-                ilGen.Emit(OpCodes.Ldc_I4, argIndex++);
-                ilGen.Box(item);
+                ilGen.Emit(OpCodes.Ldc_I4, i);
                 ilGen.Emit(OpCodes.Ldelem_Ref);
+
+                if (parameter.ParameterType.IsByRef)
+                {
+                    refs[i] = ilGen.DeclareLocal(parameter.ParameterType);
+                    ilGen.Emit(OpCodes.Stloc, refs[i]);
+                    ilGen.Emit(OpCodes.Ldloc, refs[i]);
+                }
             }
 
             ilGen.Emit(OpCodes.Call, methodInfo);
             ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Ldnull : OpCodes.Nop);
+            ilGen.Emit(OpCodes.Stloc, result);
+
+            foreach (var kv in refs)
+            {
+                ilGen.Emit(OpCodes.Ldarg_1);
+                ilGen.Emit(OpCodes.Ldc_I4, kv.Key);
+
+                ilGen.Emit(OpCodes.Ldloc, kv.Value);
+                ilGen.CastValueToObject(kv.Value.LocalType);
+
+                ilGen.Emit(OpCodes.Stelem_Ref);
+            }
+
+            ilGen.Emit(OpCodes.Ldloc, result);
             ilGen.Emit(OpCodes.Ret);
 
             return (Func<object, object[], object>)dyMethod.CreateDelegate(typeof(Func<object, object[], object>));
