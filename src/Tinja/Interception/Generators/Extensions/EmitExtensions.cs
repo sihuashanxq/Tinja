@@ -24,15 +24,15 @@ namespace Tinja.Extensions
             return il;
         }
 
-        internal static ILGenerator UnBoxAny(this ILGenerator ilGen, Type unBoxType)
+        internal static ILGenerator UnBoxAny(this ILGenerator ilGen, Type valueType)
         {
-            if (unBoxType.IsByRef)
+            if (valueType.IsByRef)
             {
-                ilGen.Emit(OpCodes.Unbox_Any, unBoxType.GetElementType());
+                ilGen.Emit(OpCodes.Unbox_Any, valueType.GetElementType());
             }
             else
             {
-                ilGen.Emit(OpCodes.Unbox_Any, unBoxType);
+                ilGen.Emit(OpCodes.Unbox_Any, valueType);
             }
 
             return ilGen;
@@ -57,6 +57,7 @@ namespace Tinja.Extensions
         {
             if (!methodInfo.IsGenericMethod)
             {
+                ilGen.Emit(OpCodes.Ldnull);
                 return ilGen;
             }
 
@@ -149,8 +150,6 @@ namespace Tinja.Extensions
             return ilGen;
         }
 
-
-
         /// <summary>
         /// </summary>
         /// <returns></returns>
@@ -203,7 +202,8 @@ namespace Tinja.Extensions
                     ilGen.Emit(OpCodes.Ldind_I8);
                     break;
                 case TypeCode.UInt64:
-                    ilGen.Emit(OpCodes.Ldind_Ref);
+                    ilGen.Emit(OpCodes.Ldind_I8);
+                    ilGen.Emit(OpCodes.Conv_U8);
                     break;
                 case TypeCode.Single:
                     ilGen.Emit(OpCodes.Ldind_R4);
@@ -217,6 +217,251 @@ namespace Tinja.Extensions
             }
 
             return ilGen.Box(elementType);
+        }
+
+        internal static ILGenerator NewArray(this ILGenerator ilGen, Type arrayElementType, int length)
+        {
+            ilGen.Emit(OpCodes.Ldc_I4, length);
+            ilGen.Emit(OpCodes.Newarr, arrayElementType);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadArrayElement(this ILGenerator ilGen, Action<ILGenerator> loadArrayInstance, int arrayIndex, Type elementType)
+        {
+            if (arrayIndex < 0)
+            {
+                throw new IndexOutOfRangeException(nameof(arrayIndex));
+            }
+
+            loadArrayInstance(ilGen);
+            ilGen.Emit(OpCodes.Ldc_I4, arrayIndex);
+            ilGen.Emit(OpCodes.Ldelem_Ref);
+            ilGen.UnBoxAny(elementType);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator SetArrayElement(this ILGenerator ilGen, Action<ILGenerator> loadArrayInstance, Action<ILGenerator> loadElementValue, int arrayIndex, Type valueType)
+        {
+            if (arrayIndex < 0)
+            {
+                throw new IndexOutOfRangeException(nameof(arrayIndex));
+            }
+
+            loadArrayInstance(ilGen);
+            ilGen.Emit(OpCodes.Ldc_I4, arrayIndex);
+            loadElementValue(ilGen);
+            ilGen.CastValueToObject(valueType);
+            ilGen.Emit(OpCodes.Stelem_Ref);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator SetThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action<ILGenerator> loadFieldValue)
+        {
+            ilGen.This();
+            loadFieldValue(ilGen);
+            ilGen.Emit(OpCodes.Stfld, fieldBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder)
+        {
+            ilGen.This();
+            ilGen.Emit(OpCodes.Ldfld, fieldBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator SetStaticField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action<ILGenerator> loadFieldValue)
+        {
+            loadFieldValue(ilGen);
+            ilGen.Emit(OpCodes.Stsfld, fieldBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadStaticField(this ILGenerator ilGen, FieldBuilder fieldBuilder)
+        {
+            ilGen.Emit(OpCodes.Ldsfld, fieldBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator Call(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
+        {
+            if (argumentStuffers != null)
+            {
+                foreach (var stuffer in argumentStuffers)
+                {
+                    stuffer(ilGen);
+                }
+            }
+
+            ilGen.Emit(OpCodes.Call, methodInfo);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action<ILGenerator>[] argumentStuffers)
+        {
+            ilGen.This();
+
+            if (argumentStuffers != null)
+            {
+                foreach (var stuffer in argumentStuffers)
+                {
+                    stuffer(ilGen);
+                }
+            }
+
+            ilGen.Emit(OpCodes.Call, constructorInfo);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator CallVirt(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
+        {
+            if (argumentStuffers != null)
+            {
+                foreach (var stuffer in argumentStuffers)
+                {
+                    stuffer(ilGen);
+                }
+            }
+
+            ilGen.Emit(OpCodes.Callvirt, methodInfo);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator New(this ILGenerator ilGen, ConstructorInfo constructor, params Action<ILGenerator>[] argumentStuffers)
+        {
+            if (argumentStuffers != null)
+            {
+                foreach (var stuffer in argumentStuffers)
+                {
+                    stuffer(ilGen);
+                }
+            }
+
+            ilGen.Emit(OpCodes.Newobj, constructor);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadArgument(this ILGenerator ilGen, int argumentIndex)
+        {
+            if (argumentIndex < 0 || argumentIndex > ushort.MaxValue)
+            {
+                throw new IndexOutOfRangeException(nameof(argumentIndex));
+            }
+
+            switch (argumentIndex)
+            {
+                case 0:
+                    ilGen.Emit(OpCodes.Ldarg_0);
+                    break;
+                case 1:
+                    ilGen.Emit(OpCodes.Ldarg_1);
+                    break;
+                case 2:
+                    ilGen.Emit(OpCodes.Ldarg_2);
+                    break;
+                case 3:
+                    ilGen.Emit(OpCodes.Ldarg_3);
+                    break;
+                default:
+                    if (argumentIndex <= byte.MaxValue)
+                    {
+                        ilGen.Emit(OpCodes.Ldarg_S);
+                        break;
+                    }
+
+                    ilGen.Emit(OpCodes.Ldarg, argumentIndex);
+                    break;
+            }
+
+            return ilGen;
+        }
+
+        internal static ILGenerator This(this ILGenerator ilGen)
+        {
+            ilGen.Emit(OpCodes.Ldarg_0);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator Return(this ILGenerator ilGen)
+        {
+            ilGen.Emit(OpCodes.Ret);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator SetVariableValue(this ILGenerator ilGen, LocalBuilder localBuilder)
+        {
+            ilGen.Emit(OpCodes.Stloc, localBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadVariableRef(this ILGenerator ilGen, LocalBuilder localBuilder)
+        {
+            ilGen.Emit(OpCodes.Ldloca, localBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadVariable(this ILGenerator ilGen, LocalBuilder localBuilder)
+        {
+            ilGen.Emit(OpCodes.Ldloc, localBuilder);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator LoadVariable(this ILGenerator ilGen, int slot)
+        {
+            if (slot < 0)
+            {
+                throw new IndexOutOfRangeException(nameof(slot));
+            }
+
+            switch (slot)
+            {
+                case 0:
+                    ilGen.Emit(OpCodes.Ldloc_0);
+                    break;
+                case 1:
+                    ilGen.Emit(OpCodes.Ldloc_1);
+                    break;
+                case 2:
+                    ilGen.Emit(OpCodes.Ldloc_2);
+                    break;
+                case 3:
+                    ilGen.Emit(OpCodes.Ldloc_3);
+                    break;
+                default:
+                    if (slot <= byte.MaxValue)
+                    {
+                        ilGen.Emit(OpCodes.Ldloc_S, slot);
+                        break;
+                    }
+
+                    ilGen.Emit(OpCodes.Ldloc, slot);
+                    break;
+            }
+
+            return ilGen;
+        }
+
+        internal static ILGenerator TypeOf(this ILGenerator ilGen, Type type)
+        {
+            ilGen.Emit(OpCodes.Ldtoken, type);
+
+            return ilGen;
         }
     }
 }

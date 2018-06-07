@@ -115,48 +115,53 @@ namespace Tinja.Interception.Internal
 
         private static Func<object, object[], object> CreateMethodInvoker(MethodInfo methodInfo)
         {
-            var dyMethod = new DynamicMethod(methodInfo.Name, typeof(object), new[] { typeof(object), typeof(object[]) });
-            var parameters = methodInfo.GetParameters();
-            var ilGen = dyMethod.GetILGenerator();
-            var result = ilGen.DeclareLocal(methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType);
-            var refs = new Dictionary<int, LocalBuilder>();
+            var dynamicMethod = new DynamicMethod(methodInfo.Name, typeof(object), new[] { typeof(object), typeof(object[]) });
+            var parameterInfos = methodInfo.GetParameters();
 
-            ilGen.Emit(OpCodes.Ldarg_0);
+            var map = new Dictionary<int, LocalBuilder>();
+            var ilGen = dynamicMethod.GetILGenerator();
+            var methodReturnValue = methodInfo.IsVoidMethod()
+                ? ilGen.DeclareLocal(typeof(object))
+                : ilGen.DeclareLocal(methodInfo.ReturnType);
 
-            for (var i = 0; i < parameters.Length; i++)
+            ilGen.LoadArgument(0);
+
+            for (var i = 0; i < parameterInfos.Length; i++)
             {
-                var parameter = parameters[i];
-                ilGen.Emit(OpCodes.Ldarg_1);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldelem_Ref);
-
-                if (parameter.ParameterType.IsByRef)
+                var parameterInfo = parameterInfos[i];
+                if (!parameterInfo.ParameterType.IsByRef)
                 {
-                    refs[i] = ilGen.DeclareLocal(parameter.ParameterType.GetElementType());
-                    ilGen.UnBoxAny(refs[i].LocalType);
-                    ilGen.Emit(OpCodes.Stloc, refs[i]);
-                    ilGen.Emit(OpCodes.Ldloca, refs[i]);
+                    ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterInfo.ParameterType);
+                    continue;
                 }
+
+                map[i] = ilGen.DeclareLocal(parameterInfo.ParameterType.GetElementType());
+
+                ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterInfo.ParameterType);
+                ilGen.SetVariableValue(map[i]);
+                ilGen.LoadVariableRef(map[i]);
             }
 
-            ilGen.Emit(OpCodes.Call, methodInfo);
-            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Ldnull : OpCodes.Nop);
-            ilGen.Emit(OpCodes.Stloc, result);
+            ilGen.Call(methodInfo);
 
-            foreach (var kv in refs)
+            if (methodInfo.IsVoidMethod()) ilGen.Emit(OpCodes.Ldnull);
+
+            ilGen.SetVariableValue(methodReturnValue);
+
+            foreach (var kv in map)
             {
-                ilGen.Emit(OpCodes.Ldarg_1);
-                ilGen.Emit(OpCodes.Ldc_I4, kv.Key);
-                ilGen.Emit(OpCodes.Ldloc, kv.Value);
-                ilGen.Box(kv.Value.LocalType);
-
-                ilGen.Emit(OpCodes.Stelem_Ref);
+                ilGen.SetArrayElement(
+                    _ => ilGen.LoadArgument(1),
+                    _ => ilGen.Emit(OpCodes.Ldloc, kv.Value),
+                    kv.Key,
+                    kv.Value.LocalType
+                );
             }
 
-            ilGen.Emit(OpCodes.Ldloc, result);
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.LoadVariable(methodReturnValue);
+            ilGen.Return();
 
-            return (Func<object, object[], object>)dyMethod.CreateDelegate(typeof(Func<object, object[], object>));
+            return (Func<object, object[], object>)dynamicMethod.CreateDelegate(typeof(Func<object, object[], object>));
         }
     }
 }

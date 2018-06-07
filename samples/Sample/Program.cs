@@ -182,6 +182,11 @@ namespace Sample
         {
             id = 2;
         }
+
+        public virtual void SetObj(ref object obj)
+        {
+            obj = new { Id = 2 };
+        }
     }
 
     class Program
@@ -207,8 +212,10 @@ namespace Sample
             watch.Stop();
             Console.WriteLine(watch.ElapsedMilliseconds);
             var z = 5;
+            object o = null;
             var a2 = resolver.Resolve(typeof(A2)) as A2;
             a2.SetId(ref z);
+            a2.SetObj(ref o);
 
             watch.Reset();
             watch.Start();

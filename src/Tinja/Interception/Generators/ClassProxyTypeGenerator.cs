@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -33,10 +34,11 @@ namespace Tinja.Interception.Generators
 
         protected override MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
-            var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
+            var parameterInfos = methodInfo.GetParameters();
+            var parameterTypes = parameterInfos.Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
             var methodBudiler = TypeBuilder
-                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, parameterTypes)
                 .SetCustomAttributes(methodInfo)
                 .DefineParameters(methodInfo)
                 .DefineReturnParameter(methodInfo)
@@ -51,75 +53,62 @@ namespace Tinja.Interception.Generators
             }
 
             var arguments = ilGen.DeclareLocal(typeof(object[]));
-            var result = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
 
-            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
-            ilGen.Emit(OpCodes.Newarr, typeof(object));
+            ilGen.NewArray(typeof(object), parameterTypes.Length);
 
-            for (var i = 0; i < paramterTypes.Length; i++)
+            for (var i = 0; i < parameterTypes.Length; i++)
             {
-                ilGen.Emit(OpCodes.Dup);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-                ilGen.CastValueToObject(paramterTypes[i]);
-                ilGen.Emit(OpCodes.Stelem_Ref);
+                ilGen.SetArrayElement(
+                    _ => ilGen.Emit(OpCodes.Dup),
+                    _ => ilGen.Emit(OpCodes.Ldarg, i + 1),
+                    i,
+                    parameterTypes[i]
+                );
             }
 
-            ilGen.Emit(OpCodes.Stloc, arguments);
+            ilGen.SetVariableValue(arguments);
 
             //this.__executor
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__executor"));
+            ilGen.LoadThisField(GetField("__executor"));
 
             //this.executor.Execute(new MethodInvocation)
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldtoken, ProxyTargetType);
-            ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
+            ilGen.This();
 
-            if (methodInfo.IsGenericMethod)
-            {
-                ilGen.LoadMethodGenericArguments(methodInfo);
-            }
-            else
-            {
-                ilGen.Emit(OpCodes.Ldnull);
-            }
+            ilGen.TypeOf(ProxyTargetType);
 
-            ilGen.Emit(OpCodes.Ldloc, arguments);
+            ilGen.LoadStaticField(GetField(methodInfo));
+            ilGen.LoadMethodGenericArguments(methodInfo);
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__filter"));
+            ilGen.LoadVariable(arguments);
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__interceptors"));
+            ilGen.LoadThisField(GetField("__filter"));
+            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadStaticField(GetField(methodInfo));
 
-            ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
-            ilGen.Emit(OpCodes.Call, GeneratorUtility.MemberInterceptorFilter);
-            ilGen.Emit(OpCodes.Newobj, GeneratorUtility.NewMethodInvocation);
+            ilGen.Call(GeneratorUtility.MemberInterceptorFilter);
+            ilGen.New(GeneratorUtility.NewMethodInvocation);
+            ilGen.CallVirt(GeneratorUtility.MethodInvocationExecute);
 
-            ilGen.Emit(OpCodes.Callvirt, GeneratorUtility.MethodInvocationExecute);
-            ilGen.Emit(OpCodes.Stloc, result);
+            ilGen.SetVariableValue(methodReturnValue);
 
             //update ref out
-            for (var i = 0; i < paramterTypes.Length; i++)
+            for (var argIndex = 0; argIndex < parameterInfos.Length; argIndex++)
             {
-                var parameterType = paramterTypes[i];
-                if (!parameterType.IsByRef)
+                var parameterInfo = parameterInfos[argIndex];
+                if (!parameterInfo.ParameterType.IsByRef || parameterInfo.IsIn)
                 {
                     continue;
                 }
 
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-                ilGen.Emit(OpCodes.Ldloc, arguments);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldelem_Ref);
-                ilGen.UnBoxAny(parameterType);
+                ilGen.LoadArgument(argIndex + 1);
+                ilGen.LoadArrayElement(_ => ilGen.Emit(OpCodes.Ldloc, arguments), argIndex, parameterInfo.ParameterType);
                 ilGen.Emit(OpCodes.Stind_Ref);
             }
 
-            ilGen.Emit(OpCodes.Ldloc, result);
+            ilGen.LoadVariable(methodReturnValue);
             ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.Return();
 
             return methodBudiler;
         }
@@ -144,10 +133,11 @@ namespace Tinja.Interception.Generators
 
         protected override MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
-            var paramterTypes = methodInfo.GetParameters().Select(i => i.ParameterType).ToArray();
+            var parameterInfos = methodInfo.GetParameters();
+            var parameterTypes = parameterInfos.Select(i => i.ParameterType).ToArray();
             var methodAttributes = GetMethodAttributes(methodInfo);
             var methodBudiler = TypeBuilder
-                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, paramterTypes)
+                .DefineMethod(methodInfo.Name, methodAttributes, CallingConventions.HasThis, methodInfo.ReturnType, parameterTypes)
                 .SetCustomAttributes(methodInfo)
                 .DefineParameters(methodInfo)
                 .DefineReturnParameter(methodInfo)
@@ -161,51 +151,67 @@ namespace Tinja.Interception.Generators
                 return methodBudiler;
             }
 
+            var arguments = ilGen.DeclareLocal(typeof(object[]));
+            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+
+            ilGen.NewArray(typeof(object), parameterTypes.Length);
+
+            for (var i = 0; i < parameterTypes.Length; i++)
+            {
+                ilGen.SetArrayElement(
+                    _ => ilGen.Emit(OpCodes.Dup),
+                    _ => ilGen.Emit(OpCodes.Ldarg, i + 1),
+                    i,
+                    parameterTypes[i]
+                );
+            }
+
+            ilGen.SetVariableValue(arguments);
+
             //this.__executor
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__executor"));
+            ilGen.LoadThisField(GetField("__executor"));
 
             //this.executor.Execute(new MethodInvocation)
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldtoken, ProxyTargetType);
-            ilGen.Emit(OpCodes.Ldsfld, GetField(methodInfo));
+            ilGen.This();
 
-            if (methodInfo.IsGenericMethod)
-            {
-                ilGen.LoadMethodGenericArguments(methodInfo);
-            }
-            else
-            {
-                ilGen.Emit(OpCodes.Ldnull);
-            }
+            ilGen.TypeOf(ProxyTargetType);
+
+            ilGen.LoadStaticField(GetField(methodInfo));
+
+            ilGen.LoadMethodGenericArguments(methodInfo);
 
             //new Parameters[]
-            ilGen.Emit(OpCodes.Ldc_I4, paramterTypes.Length);
-            ilGen.Emit(OpCodes.Newarr, typeof(object));
+            ilGen.LoadVariable(arguments);
 
-            for (var i = 0; i < paramterTypes.Length; i++)
+            ilGen.LoadThisField(GetField("__filter"));
+            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadStaticField(GetField(property));
+
+            ilGen.Call(GeneratorUtility.MemberInterceptorFilter);
+            ilGen.LoadStaticField(GetField(property));
+
+            ilGen.New(GeneratorUtility.NewPropertyMethodInvocation);
+            ilGen.CallVirt(GeneratorUtility.MethodInvocationExecute);
+
+            ilGen.SetVariableValue(methodReturnValue);
+
+            //update ref out
+            for (var argIndex = 0; argIndex < parameterInfos.Length; argIndex++)
             {
-                ilGen.Emit(OpCodes.Dup);
-                ilGen.Emit(OpCodes.Ldc_I4, i);
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
-                ilGen.Box(paramterTypes[i]);
-                ilGen.Emit(OpCodes.Stelem_Ref);
+                var parameterInfo = parameterInfos[argIndex];
+                if (!parameterInfo.ParameterType.IsByRef || parameterInfo.IsIn)
+                {
+                    continue;
+                }
+
+                ilGen.LoadArgument(argIndex + 1);
+                ilGen.LoadArrayElement(_ => ilGen.Emit(OpCodes.Ldloc, arguments), argIndex, parameterInfo.ParameterType);
+                ilGen.Emit(OpCodes.Stind_Ref);
             }
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__filter"));
-
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldfld, GetField("__interceptors"));
-
-            ilGen.Emit(OpCodes.Ldsfld, GetField(property));
-            ilGen.Emit(OpCodes.Call, GeneratorUtility.MemberInterceptorFilter);
-            ilGen.Emit(OpCodes.Ldsfld, GetField(property));
-            ilGen.Emit(OpCodes.Newobj, GeneratorUtility.NewPropertyMethodInvocation);
-
-            ilGen.Emit(OpCodes.Callvirt, GeneratorUtility.MethodInvocationExecute);
+            ilGen.LoadVariable(methodReturnValue);
             ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.Return();
 
             return methodBudiler;
         }
@@ -232,30 +238,33 @@ namespace Tinja.Interception.Generators
                 .DefineParameters(parameterInfos, parameterInfos.Length + DefaultConstrcutorParameters.Length)
                 .GetILGenerator();
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_1);
-            ilGen.Emit(OpCodes.Ldtoken, ServiceType);
-            ilGen.Emit(OpCodes.Ldtoken, ProxyTargetType);
-            ilGen.Emit(OpCodes.Call, typeof(IInterceptorCollector).GetMethod("Collect"));
-            ilGen.Emit(OpCodes.Stfld, GetField("__interceptors"));
+            ilGen.SetThisField(
+                GetField("__interceptors"),
+                _ =>
+                {
+                    ilGen.LoadArgument(1);
+                    ilGen.TypeOf(ServiceType);
+                    ilGen.TypeOf(ProxyTargetType);
+                    ilGen.CallVirt(typeof(IInterceptorCollector).GetMethod("Collect"));
+                }
+            );
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_2);
-            ilGen.Emit(OpCodes.Stfld, GetField("__executor"));
+            ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
-            ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
+            var baseArgs = new List<Action<ILGenerator>>();
+            var argIndex = DefaultConstrcutorParameters.Length;
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-
-            for (var i = DefaultConstrcutorParameters.Length; i < parameterTypes.Length; i++)
+            if (parameterInfos.Length > 0)
             {
-                ilGen.Emit(OpCodes.Ldarg, i + 1);
+                for (; argIndex < parameterTypes.Length; argIndex++)
+                {
+                    baseArgs.Add(_ => ilGen.LoadArgument(argIndex + 1));
+                }
             }
 
-            ilGen.Emit(OpCodes.Call, consturctor);
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.Base(consturctor, baseArgs.ToArray());
+            ilGen.Return();
         }
     }
 }

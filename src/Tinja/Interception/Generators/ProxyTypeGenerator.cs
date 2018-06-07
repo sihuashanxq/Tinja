@@ -211,22 +211,21 @@ namespace Tinja.Interception.Generators
                 .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameters)
                 .GetILGenerator();
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_1);
-            ilGen.Emit(OpCodes.Ldtoken, ServiceType);
-            ilGen.Emit(OpCodes.Ldtoken, ProxyTargetType);
-            ilGen.Emit(OpCodes.Call, typeof(IInterceptorCollector).GetMethod("Collect"));
-            ilGen.Emit(OpCodes.Stfld, GetField("__interceptors"));
+            ilGen.SetThisField(
+                GetField("__interceptors"),
+                _ =>
+                {
+                    ilGen.LoadArgument(1);
+                    ilGen.TypeOf(ServiceType);
+                    ilGen.TypeOf(ProxyTargetType);
+                    ilGen.CallVirt(typeof(IInterceptorCollector).GetMethod("Collect"));
+                }
+            );
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Ldarg_2);
-            ilGen.Emit(OpCodes.Stfld, GetField("__executor"));
+            ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
 
-            ilGen.Emit(OpCodes.Ldarg_0);
-            ilGen.Emit(OpCodes.Newobj, typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes));
-            ilGen.Emit(OpCodes.Stfld, GetField("__filter"));
-
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.Return();
         }
 
         protected virtual void DefineTypeStaticConstrcutor()
@@ -237,17 +236,15 @@ namespace Tinja.Interception.Generators
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
-                ilGen.LoadPropertyInfo(item);
-                ilGen.Emit(OpCodes.Stsfld, GetField(item));
+                ilGen.SetStaticField(GetField(item), _ => ilGen.LoadPropertyInfo(item));
             }
 
             foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                ilGen.LoadMethodInfo(item);
-                ilGen.Emit(OpCodes.Stsfld, GetField(item));
+                ilGen.SetStaticField(GetField(item), _ => ilGen.LoadMethodInfo(item));
             }
 
-            ilGen.Emit(OpCodes.Ret);
+            ilGen.Return();
         }
 
         #endregion
