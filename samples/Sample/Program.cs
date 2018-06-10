@@ -146,7 +146,7 @@ namespace Sample
 
         }
 
-        public int GetId()
+        public int GetId(out int id)
         {
             throw new NotImplementedException();
         }
@@ -170,7 +170,7 @@ namespace Sample
         [Interceptor(typeof(InterceptorTest3))]
         T M<T>() where T : class;
 
-        int GetId();
+        int GetId(out int id);
     }
 
     [Interceptor(typeof(InterceptorTest3))]
@@ -187,6 +187,8 @@ namespace Sample
         {
             obj = new { Id = 2 };
         }
+
+        public abstract void SetOutId(out int id);
     }
 
     class Program
@@ -216,6 +218,8 @@ namespace Sample
             var a2 = resolver.Resolve(typeof(A2)) as A2;
             a2.SetId(ref z);
             a2.SetObj(ref o);
+
+            a2.SetOutId(out z);
 
             watch.Reset();
             watch.Start();

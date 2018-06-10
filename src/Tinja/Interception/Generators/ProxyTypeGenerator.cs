@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extensions;
+using Tinja.Interception.Executors;
 using Tinja.Interception.Generators.Extensions;
 using Tinja.Interception.Generators.Utils;
 using Tinja.Interception.Members;
@@ -33,6 +32,31 @@ namespace Tinja.Interception.Generators
             typeof(IInterceptorCollector),
             typeof(IMethodInvocationExecutor)
         };
+
+        protected static MethodInfo MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
+
+        protected static MethodInfo MemberInterceptorFilter = typeof(MemberInterceptorFilter).GetMethod("Filter");
+
+        protected static ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
+        {
+            typeof(object),
+            typeof(Type),
+            typeof(MethodInfo),
+            typeof(Type[]),
+            typeof(object[]),
+            typeof(IInterceptor[])
+        });
+
+        protected static ConstructorInfo NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
+        {
+            typeof(object),
+            typeof(Type),
+            typeof(MethodInfo),
+            typeof(Type[]),
+            typeof(object[]),
+            typeof(IInterceptor[]),
+            typeof(PropertyInfo)
+        });
 
         public ProxyTypeGenerator(Type serviceType, Type implemetionType, IMemberInterceptionProvider provider)
         {
@@ -252,42 +276,6 @@ namespace Tinja.Interception.Generators
         protected virtual bool IsUsedInterception(MemberInfo memberInfo)
         {
             return MemberInterceptions.Any(i => i.Prioritys.Any(n => n.Key == memberInfo || n.Key == memberInfo.DeclaringType));
-        }
-
-        protected virtual MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
-        {
-            if (ServiceType.IsInterface)
-            {
-                return MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual;
-            }
-
-            var attributes = MethodAttributes.HideBySig | MethodAttributes.Virtual;
-            if (methodInfo.IsPublic)
-            {
-                return MethodAttributes.Public | attributes;
-            }
-
-            if (methodInfo.IsFamily)
-            {
-                return MethodAttributes.Family | attributes;
-            }
-
-            if (methodInfo.IsFamilyAndAssembly)
-            {
-                return MethodAttributes.FamANDAssem | attributes;
-            }
-
-            if (methodInfo.IsFamilyOrAssembly)
-            {
-                return MethodAttributes.FamORAssem | attributes;
-            }
-
-            if (methodInfo.IsPrivate)
-            {
-                return MethodAttributes.Private | attributes;
-            }
-
-            return attributes;
         }
 
         /// <summary>

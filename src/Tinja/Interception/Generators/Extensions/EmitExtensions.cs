@@ -138,18 +138,6 @@ namespace Tinja.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator BuildDefaultMethodBody(this ILGenerator ilGen, Type methodReturnType)
-        {
-            if (methodReturnType != typeof(void))
-            {
-                ilGen.LoadDefaultValue(methodReturnType);
-            }
-
-            ilGen.Emit(OpCodes.Ret);
-
-            return ilGen;
-        }
-
         /// <summary>
         /// </summary>
         /// <returns></returns>
@@ -223,6 +211,41 @@ namespace Tinja.Extensions
         {
             ilGen.Emit(OpCodes.Ldc_I4, length);
             ilGen.Emit(OpCodes.Newarr, arrayElementType);
+
+            return ilGen;
+        }
+
+        internal static ILGenerator MakeArgumentArray(this ILGenerator ilGen, ParameterInfo[] parameters)
+        {
+            ilGen.NewArray(typeof(object), parameters.Length);
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                ilGen.SetArrayElement(
+                    _ => ilGen.Emit(OpCodes.Dup),
+                    _ => ilGen.Emit(OpCodes.Ldarg, i + 1),
+                    i,
+                    parameters[i].ParameterType
+                );
+            }
+
+            return ilGen;
+        }
+
+        internal static ILGenerator SetRefArgumentsWithArray(this ILGenerator ilGen, ParameterInfo[] parameters, LocalBuilder array)
+        {
+            for (var argIndex = 0; argIndex < parameters.Length; argIndex++)
+            {
+                var parameter = parameters[argIndex];
+                if (parameter.IsIn || !parameter.ParameterType.IsByRef)
+                {
+                    continue;
+                }
+
+                ilGen.LoadArgument(argIndex + 1);
+                ilGen.LoadArrayElement(_ => ilGen.Emit(OpCodes.Ldloc, array), argIndex, parameter.ParameterType);
+                ilGen.Emit(OpCodes.Stind_Ref);
+            }
 
             return ilGen;
         }

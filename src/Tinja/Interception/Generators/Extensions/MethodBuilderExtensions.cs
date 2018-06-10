@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Tinja.Extensions;
 using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators.Extensions
@@ -90,6 +91,20 @@ namespace Tinja.Interception.Generators.Extensions
                     builder.SetCustomAttribute(attributeBuilder);
                 }
             }
+
+            return builder;
+        }
+
+        public static MethodBuilder MakeDefaultMethodBody(this MethodBuilder builder, MethodInfo methodInfo)
+        {
+            var ilGen = builder.GetILGenerator();
+
+            if (!methodInfo.ReturnType.IsVoid())
+            {
+                ilGen.LoadDefaultValue(builder.ReturnType);
+            }
+
+            ilGen.Return();
 
             return builder;
         }

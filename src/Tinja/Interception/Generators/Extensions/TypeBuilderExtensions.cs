@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
 using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators.Extensions
@@ -53,6 +52,53 @@ namespace Tinja.Interception.Generators.Extensions
             }
 
             return builder;
+        }
+
+        internal static MethodBuilder DefineMethod(this TypeBuilder typeBuilder, MethodInfo methodInfo)
+        {
+            return typeBuilder
+                 .DefineMethod(
+                    methodInfo.Name,
+                    GetMethodAttributes(methodInfo),
+                    CallingConventions.HasThis,
+                    methodInfo.ReturnType,
+                    methodInfo.GetParameters().Select(i => i.ParameterType).ToArray()
+                 )
+                 .SetCustomAttributes(methodInfo)
+                 .DefineParameters(methodInfo)
+                 .DefineReturnParameter(methodInfo)
+                 .DefineGenericParameters(methodInfo);
+        }
+
+        private static MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
+        {
+            var attributes = MethodAttributes.HideBySig | MethodAttributes.Virtual;
+            if (methodInfo.IsPublic)
+            {
+                return MethodAttributes.Public | attributes;
+            }
+
+            if (methodInfo.IsFamily)
+            {
+                return MethodAttributes.Family | attributes;
+            }
+
+            if (methodInfo.IsFamilyAndAssembly)
+            {
+                return MethodAttributes.FamANDAssem | attributes;
+            }
+
+            if (methodInfo.IsFamilyOrAssembly)
+            {
+                return MethodAttributes.FamORAssem | attributes;
+            }
+
+            if (methodInfo.IsPrivate)
+            {
+                return MethodAttributes.Private | attributes;
+            }
+
+            return attributes;
         }
     }
 }
