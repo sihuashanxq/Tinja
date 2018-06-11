@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extensions;
 using Tinja.Interception.Generators.Extensions;
-using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators
 {
@@ -191,12 +190,13 @@ namespace Tinja.Interception.Generators
             ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
 
             var baseArgs = new List<Action<ILGenerator>>();
-            var argIndex = DefaultConstrcutorParameters.Length;
+            var startIndex = DefaultConstrcutorParameters.Length;
 
             if (parameterInfos.Length > 0)
             {
-                for (; argIndex < parameterTypes.Length; argIndex++)
+                for (; startIndex < parameterTypes.Length; startIndex++)
                 {
+                    var argIndex = startIndex;
                     baseArgs.Add(_ => ilGen.LoadArgument(argIndex + 1));
                 }
             }

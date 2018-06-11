@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Members
 {
@@ -11,6 +12,7 @@ namespace Tinja.Interception.Members
 
         }
 
+        /// <inheritdoc />
         protected override void CollectTypeMethods()
         {
             foreach (var methodInfo in ProxyTargetType.GetMethods(BindingFlag).Where(m => m.IsOverrideable()))
@@ -19,8 +21,7 @@ namespace Tinja.Interception.Members
             }
         }
 
-        /// <summary>
-        /// </summary>
+        /// <inheritdoc />
         protected override void CollectTypeProperties()
         {
             foreach (var property in ProxyTargetType.GetProperties(BindingFlag).Where(m => m.IsOverrideable()))
@@ -29,11 +30,23 @@ namespace Tinja.Interception.Members
             }
         }
 
+        /// <inheritdoc />
         protected override void CollectTypeEvents()
         {
-            foreach (var eventInfo in ProxyTargetType.GetEvents(BindingFlag).Where(e => e.AddMethod.IsOverrideable() || e.RaiseMethod.IsOverrideable() || e.RemoveMethod.IsOverrideable()))
+            foreach (var eventInfo in ProxyTargetType.GetEvents(BindingFlag))
             {
-                HandleCollectedMemberInfo(eventInfo);
+                if (eventInfo.AddMethod != null && eventInfo.AddMethod.IsAbstract)
+                {
+                    HandleCollectedMemberInfo(eventInfo);
+                }
+                else if (eventInfo.RemoveMethod != null && eventInfo.RemoveMethod.IsAbstract)
+                {
+                    HandleCollectedMemberInfo(eventInfo);
+                }
+                else if (eventInfo.RaiseMethod != null && eventInfo.RaiseMethod.IsAbstract)
+                {
+                    HandleCollectedMemberInfo(eventInfo);
+                }
             }
         }
     }

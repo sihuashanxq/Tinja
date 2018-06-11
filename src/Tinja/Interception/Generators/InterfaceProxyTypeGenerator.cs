@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Extensions;
 using Tinja.Interception.Generators.Extensions;
-using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators
 {

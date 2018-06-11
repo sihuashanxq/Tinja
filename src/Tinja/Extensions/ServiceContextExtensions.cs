@@ -15,16 +15,6 @@ namespace Tinja.Extensions
             throw new InvalidOperationException($"Type:{ctx.GetType().FullName} can not converted to ServiceFactoryImplTypeContext");
         }
 
-        public static Type GetImplementionProxyType(this IServiceContext ctx)
-        {
-            if (ctx is ServiceProxyContext proxyContext)
-            {
-                return proxyContext.ProxyType;
-            }
-
-            throw new InvalidOperationException($"Type:{ctx.GetType().FullName} can not converted to ServiceProxyImplTypeContext");
-        }
-
         public static Type GetImplementionType(this IServiceContext ctx)
         {
             if (ctx is ServiceTypeContext implContext)

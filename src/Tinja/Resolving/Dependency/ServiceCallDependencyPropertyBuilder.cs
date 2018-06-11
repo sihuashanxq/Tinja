@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Reflection;
 using Tinja.ServiceLife;
-using Tinja.Resolving.Dependency.Scope;
 using Tinja.Extensions;
 
 namespace Tinja.Resolving.Dependency

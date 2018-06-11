@@ -7,9 +7,9 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorProvider : IServiceActivatorProvider
     {
-        static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
+        private static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
 
-        private IServiceContextBuilder _builder;
+        private readonly IServiceContextBuilder _builder;
 
         private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
 

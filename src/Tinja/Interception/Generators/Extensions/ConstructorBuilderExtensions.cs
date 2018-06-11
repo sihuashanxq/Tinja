@@ -1,7 +1,6 @@
-﻿using System;
+﻿using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators.Extensions
 {
@@ -40,7 +39,9 @@ namespace Tinja.Interception.Generators.Extensions
                 return builder;
             }
 
-            foreach (var customAttriute in constructorInfo.CustomAttributes)
+            foreach (var customAttriute in constructorInfo
+                .CustomAttributes
+                .Where(item => item.AttributeType != typeof(InjectAttribute) && item.AttributeType != typeof(InterceptorAttribute)))
             {
                 var attributeBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
                 if (attributeBuilder != null)

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Tinja.Interception;
 
-namespace Tinja
+namespace Tinja.Extensions
 {
     internal static class ReflectionExtensions
     {
@@ -48,7 +48,7 @@ namespace Tinja
         {
             if (elements == null)
             {
-                return elements;
+                return null;
             }
 
             var pairs = new Dictionary<TKey, TElement>();
@@ -67,49 +67,6 @@ namespace Tinja
 
             return pairs.Values;
         }
-
-        internal static IEnumerable<PropertyInfo> GetProperties(this Type typeInfo, IEnumerable<Type> excepts)
-        {
-            if (typeInfo == null)
-            {
-                return new PropertyInfo[0];
-            }
-
-            if (excepts != null)
-            {
-                var set = excepts.ToHashSet();
-                if (set.Any())
-                {
-                    return typeInfo
-                        .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                        .Where(i => !set.Contains(i.DeclaringType));
-                }
-            }
-
-            return typeInfo.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        }
-
-        internal static IEnumerable<MethodInfo> GetMethods(this Type typeInfo, IEnumerable<Type> excepts)
-        {
-            if (typeInfo == null)
-            {
-                return new MethodInfo[0];
-            }
-
-            if (excepts != null)
-            {
-                var set = excepts.ToHashSet();
-                if (set.Any())
-                {
-                    return typeInfo
-                        .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                        .Where(i => !set.Contains(i.DeclaringType));
-                }
-            }
-
-            return typeInfo.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        }
-
         internal static InterceptorAttribute[] GetInterceptorAttributes(this MemberInfo memberInfo)
         {
             var attrs = memberInfo.GetCustomAttributes<InterceptorAttribute>(false);
@@ -124,12 +81,13 @@ namespace Tinja
                 return attrs.ToArray();
             }
 
+            var array = attrs as InterceptorAttribute[] ?? attrs.ToArray();
             var inheritedAttrs = memberInfo
                 .GetCustomAttributes<InterceptorAttribute>(true)
-                .Except(attrs)
+                .Except(array)
                 .Where(i => i.Inherited);
 
-            return attrs
+            return array
                 .Concat(inheritedAttrs)
                 .Distinct(i => i.InterceptorType)
                 .ToArray();

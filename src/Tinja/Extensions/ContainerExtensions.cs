@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Tinja.Interception;
-using Tinja.Interception.Internal;
+using Tinja.Interception.Executors;
+using Tinja.Interception.Executors.Internal;
 using Tinja.Interception.Members;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
 using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
-namespace Tinja
+namespace Tinja.Extensions
 {
     public static class ContainerExtensions
     {

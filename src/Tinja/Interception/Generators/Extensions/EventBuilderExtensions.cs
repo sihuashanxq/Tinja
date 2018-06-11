@@ -4,16 +4,16 @@ using System.Reflection.Emit;
 
 namespace Tinja.Interception.Generators.Extensions
 {
-    public static class PropertyInfoBuilderExtensions
+    public static class EventBuilderExtensions
     {
-        public static PropertyBuilder SetCustomAttributes(this PropertyBuilder builder, PropertyInfo propertyInfo)
+        public static EventBuilder SetCustomAttributes(this EventBuilder builder, EventInfo eventInfo)
         {
-            if (builder == null || propertyInfo == null)
+            if (builder == null || eventInfo == null)
             {
                 return builder;
             }
 
-            foreach (var customAttriute in propertyInfo
+            foreach (var customAttriute in eventInfo
                 .CustomAttributes
                 .Where(item => item.AttributeType != typeof(InjectAttribute) && item.AttributeType != typeof(InterceptorAttribute)))
             {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Resolving.Dependency.Scope
+namespace Tinja.Resolving.Dependency
 {
     public class ServiceCallDependencyScopeEntry
     {

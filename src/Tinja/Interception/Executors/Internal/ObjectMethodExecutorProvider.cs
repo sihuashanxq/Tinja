@@ -1,8 +1,7 @@
-﻿using System;
+﻿using System.Collections.Concurrent;
 using System.Reflection;
-using System.Collections.Concurrent;
 
-namespace Tinja.Interception.Internal
+namespace Tinja.Interception.Executors.Internal
 {
     public class ObjectMethodExecutorProvider : IObjectMethodExecutorProvider
     {

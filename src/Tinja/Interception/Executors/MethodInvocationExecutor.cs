@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Tinja.Interception.Executors;
+using Tinja.Extensions;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Executors
 {
     public class MethodInvocationExecutor : IMethodInvocationExecutor
     {

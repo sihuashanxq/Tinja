@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Tinja.Extensions;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Dependency

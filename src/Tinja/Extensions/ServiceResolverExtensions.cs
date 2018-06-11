@@ -1,6 +1,6 @@
 ﻿using Tinja.Resolving;
 
-namespace Tinja
+namespace Tinja.Extensions
 {
     public static class ServiceResolverExtensions
     {

@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Reflection;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Metadata
 {
     public class TypeMetadata
     {

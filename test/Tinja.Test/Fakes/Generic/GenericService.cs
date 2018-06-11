@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Tinja.Test.Fakes
+﻿namespace Tinja.Test.Fakes.Generic
 {
     public interface IGenericService<TService>
     {

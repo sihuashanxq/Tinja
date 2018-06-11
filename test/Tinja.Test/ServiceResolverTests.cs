@@ -5,7 +5,11 @@ using Xunit;
 using Tinja.Test.Fakes;
 using System.Linq;
 using System.Threading.Tasks;
+using Tinja.Extensions;
 using Tinja.Resolving.Dependency;
+using Tinja.Test.Fakes.Consturctor;
+using Tinja.Test.Fakes.Generic;
+using Tinja.Test.Fakes.Property;
 
 namespace Tinja.Test
 {

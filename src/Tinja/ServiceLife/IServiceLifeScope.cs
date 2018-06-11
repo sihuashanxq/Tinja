@@ -1,6 +1,5 @@
 ﻿using System;
 using Tinja.Resolving;
-using Tinja.Resolving;
 
 namespace Tinja.ServiceLife
 {

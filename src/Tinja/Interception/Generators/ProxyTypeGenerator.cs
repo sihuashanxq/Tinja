@@ -6,7 +6,6 @@ using System.Reflection.Emit;
 using Tinja.Extensions;
 using Tinja.Interception.Executors;
 using Tinja.Interception.Generators.Extensions;
-using Tinja.Interception.Generators.Utils;
 using Tinja.Interception.Members;
 
 namespace Tinja.Interception.Generators
@@ -77,6 +76,8 @@ namespace Tinja.Interception.Generators
             DefineTypeBuilder();
 
             DefineTypeFields();
+
+            DefineTypeEvents();
 
             DefineTypeMethods();
 
@@ -163,7 +164,7 @@ namespace Tinja.Interception.Generators
         /// <param name="methodInfo"></param>
         protected virtual MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
-            return DefineTypeMethod(methodInfo);
+            return null;
         }
 
         protected virtual MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
@@ -219,7 +220,39 @@ namespace Tinja.Interception.Generators
             return propertyBuilder;
         }
 
-        #endregion  
+        #endregion
+
+        #region  Event
+
+        protected virtual void DefineTypeEvents()
+        {
+            foreach (var @event in ProxyMembers.Where(i => i.IsEvent).Select(i => i.Member as EventInfo))
+            {
+                if (@event == null)
+                {
+                    continue;
+                }
+
+                var builder = TypeBuilder.DefineEvent(@event.Name, @event.Attributes, @event.EventHandlerType).SetCustomAttributes(@event);
+
+                if (@event.AddMethod != null)
+                {
+                    builder.SetAddOnMethod(DefineTypeMethod(@event.AddMethod));
+                }
+
+                if (@event.RaiseMethod != null)
+                {
+                    builder.SetRaiseMethod(DefineTypeMethod(@event.RaiseMethod));
+                }
+
+                if (@event.RemoveMethod != null)
+                {
+                    builder.SetRemoveOnMethod(DefineTypeMethod(@event.RemoveMethod));
+                }
+            }
+        }
+
+        #endregion
 
         #region Constructors
 

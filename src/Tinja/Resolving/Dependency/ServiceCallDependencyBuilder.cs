@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tinja.Extensions;
-using Tinja.Resolving.Dependency.Scope;
 
 namespace Tinja.Resolving.Dependency
 {
@@ -39,11 +38,11 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual ServiceCallDependency BuildCallDenpendency(IServiceContext ctx, ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None)
         {
-            if (ctx is ServiceFactoryContext fatoryContext)
+            if (ctx is ServiceFactoryContext)
             {
                 return CallDenpendencyScope.AddResolvedService(
                     ctx,
-                    new ServiceCallDependency()
+                    new ServiceCallDependency
                     {
                         Constructor = null,
                         Context = ctx
@@ -60,7 +59,7 @@ namespace Tinja.Resolving.Dependency
                     return BuildPropertyCallDependency(callDependency);
                 }
 
-                return callDependency;
+                return null;
             }
         }
 
@@ -80,7 +79,7 @@ namespace Tinja.Resolving.Dependency
             {
                 case ServiceProxyContext serviceProxy:
                     return BuildProxyImplemention(serviceProxy);
-                case ServiceEnumerableContext serviceEnumerable:
+                case ServiceManyContext serviceEnumerable:
                     return BuildManyImplemention(serviceEnumerable);
                 case ServiceTypeContext context:
                     return BuildNormalImplemention(context);
@@ -207,7 +206,7 @@ namespace Tinja.Resolving.Dependency
             return null;
         }
 
-        protected virtual ServiceCallDependency BuildManyImplemention(ServiceEnumerableContext ctx)
+        protected virtual ServiceCallDependency BuildManyImplemention(ServiceManyContext ctx)
         {
             var eles = new List<ServiceCallDependency>();
 

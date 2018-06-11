@@ -1,6 +1,4 @@
-﻿using Tinja.Interception.Executors;
-
-namespace Tinja.Interception
+﻿namespace Tinja.Interception.Executors
 {
     public interface IMethodInvocationExecutor
     {

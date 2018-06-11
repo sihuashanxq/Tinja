@@ -1,4 +1,4 @@
-﻿namespace Tinja.Test.Fakes
+﻿namespace Tinja.Test.Fakes.Consturctor
 {
     public interface ITransientServiceC
     {

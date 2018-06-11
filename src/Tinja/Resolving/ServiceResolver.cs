@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Extensions;
 using Tinja.Resolving.Activation;
 using Tinja.ServiceLife;
 
@@ -33,13 +34,7 @@ namespace Tinja.Resolving
 
         public object Resolve(Type serviceType)
         {
-            var activator = ServiceActivatorProvider.Get(serviceType);
-            if (activator == null)
-            {
-                return null;
-            }
-
-            return activator(this, ServiceLifeScope);
+            return ServiceActivatorProvider.Get(serviceType)?.Invoke(this, ServiceLifeScope);
         }
 
         public void Dispose()

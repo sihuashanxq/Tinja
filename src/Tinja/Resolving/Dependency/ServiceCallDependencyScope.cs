@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tinja.ServiceLife;
-using Tinja.Resolving;
 using Tinja.Extensions;
+using Tinja.ServiceLife;
 
-namespace Tinja.Resolving.Dependency.Scope
+namespace Tinja.Resolving.Dependency
 {
     public class ServiceCallDependencyScope
     {

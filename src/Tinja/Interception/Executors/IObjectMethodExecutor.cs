@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Executors
 {
     public interface IObjectMethodExecutor
     {

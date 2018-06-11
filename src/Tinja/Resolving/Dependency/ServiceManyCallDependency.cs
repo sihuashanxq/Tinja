@@ -5,7 +5,6 @@
         public ServiceCallDependency[] Elements { get; set; }
 
         public ServiceManyCallDependency()
-            : base()
         {
             Elements = new ServiceCallDependency[0];
         }

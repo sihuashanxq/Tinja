@@ -1,4 +1,6 @@
-﻿namespace Tinja.Test.Fakes
+﻿using Tinja.Test.Fakes.Consturctor;
+
+namespace Tinja.Test.Fakes.Property
 {
     public interface IPropertyInjectionService
     {

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Extensions;
 using Tinja.Interception.Members;
 
 namespace Tinja.Interception

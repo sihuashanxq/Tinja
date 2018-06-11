@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Resolving;
-using Tinja.Resolving;
 
 namespace Tinja.ServiceLife
 {
@@ -9,11 +8,11 @@ namespace Tinja.ServiceLife
     {
         private bool _disposed;
 
-        private IServiceResolver _resolver;
+        private readonly IServiceResolver _resolver;
 
-        private IServiceLifeScope _root;
+        private readonly IServiceLifeScope _root;
 
-        private List<object> _transientDisposeObjects;
+        private readonly List<object> _transientDisposeObjects;
 
         private Dictionary<Type, object> _scopedObjects;
 

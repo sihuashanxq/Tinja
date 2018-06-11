@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Executors
 {
     public interface IObjectMethodExecutorProvider
     {

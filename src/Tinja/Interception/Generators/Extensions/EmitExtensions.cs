@@ -2,17 +2,15 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Tinja.Extensions
+namespace Tinja.Interception.Generators.Extensions
 {
     internal static class EmitExtensions
     {
-        internal static readonly MethodInfo MethodGetMethodFromHandle = typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) });
+        internal static readonly MethodInfo MethodGetMethodFromHandle = typeof(MethodBase).GetMethod("GetMethodFromHandle", new [] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) });
 
         internal static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod("GetTypeFromHandle", new[] { typeof(RuntimeTypeHandle) });
 
         internal static readonly MethodInfo GetProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
-
-        internal static readonly MethodInfo MakeGenericMethod = typeof(MethodInfo).GetMethod("MakeGenericMethod", new[] { typeof(Type[]) });
 
         internal static ILGenerator Box(this ILGenerator il, Type boxType)
         {
@@ -93,7 +91,7 @@ namespace Tinja.Extensions
             {
                 case TypeCode.Decimal:
                     ilGen.Emit(OpCodes.Ldc_I4_0);
-                    ilGen.Emit(OpCodes.Newobj, valueType.GetConstructor(new Type[] { typeof(int) }));
+                    ilGen.Emit(OpCodes.Newobj, valueType.GetConstructor(new [] { typeof(int) }));
                     break;
                 case TypeCode.Double:
                     ilGen.Emit(OpCodes.Ldc_R8, default(Double));
@@ -221,9 +219,11 @@ namespace Tinja.Extensions
 
             for (var i = 0; i < parameters.Length; i++)
             {
+                var argIndex = i;
+
                 ilGen.SetArrayElement(
                     _ => ilGen.Emit(OpCodes.Dup),
-                    _ => ilGen.Emit(OpCodes.Ldarg, i + 1),
+                    _ => ilGen.Emit(OpCodes.Ldarg, argIndex + 1),
                     i,
                     parameters[i].ParameterType
                 );

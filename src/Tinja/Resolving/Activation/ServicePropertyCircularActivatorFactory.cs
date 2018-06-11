@@ -10,7 +10,7 @@ namespace Tinja.Resolving.Activation
 {
     public class ServicePropertyCircularActivatorFactory : IServiceActivatorFactory
     {
-        delegate object ApplyLifeStyleDelegate(
+        private delegate object ApplyLifeStyleDelegate(
             IServiceLifeScope scope,
             Type serviceType,
             ServiceLifeStyle lifeStyle,
@@ -18,17 +18,17 @@ namespace Tinja.Resolving.Activation
             Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object> factory
         );
 
-        static ParameterExpression ScopeParameter { get; }
+        private static ParameterExpression ScopeParameter { get; }
 
-        static ParameterExpression ResolverParameter { get; }
+        private static ParameterExpression ResolverParameter { get; }
 
-        static ConstantExpression ApplyLifeStyleFuncConstant { get; }
+        private static ConstantExpression ApplyLifeStyleFuncConstant { get; }
 
-        static ParameterExpression InjectionContextParameter { get; }
+        private static ParameterExpression InjectionContextParameter { get; }
 
-        static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
+        private static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
 
-        static Action<IServiceResolver, PropertyCircularInjectionContext> SetPropertyValueFunc { get; }
+        private static Action<IServiceResolver, PropertyCircularInjectionContext> SetPropertyValueFunc { get; }
 
         static ServicePropertyCircularActivatorFactory()
         {
@@ -97,7 +97,8 @@ namespace Tinja.Resolving.Activation
 
         protected static Expression BuildExpression(ServiceCallDependency chain)
         {
-            var func = null as Expression;
+            Expression func;
+
             if (chain.Constructor == null)
             {
                 func = BuildWithImplFactory(chain);
@@ -108,15 +109,10 @@ namespace Tinja.Resolving.Activation
             }
             else
             {
-                func = BuildWithConstructor(chain as ServiceCallDependency);
+                func = BuildWithConstructor(chain);
             }
 
-            if (func == null)
-            {
-                return null;
-            }
-
-            return WrapperWithLifeStyle(func, chain);
+            return func == null ? null : WrapperWithLifeStyle(func, chain);
         }
 
         protected static Expression BuildWithImplFactory(ServiceCallDependency chain)
@@ -145,13 +141,16 @@ namespace Tinja.Resolving.Activation
 
             for (var i = 0; i < parameterValues.Length; i++)
             {
-                var parameterValue = BuildExpression(node.Parameters[node.Constructor.Paramters[i]]);
-                if (!node.Constructor.Paramters[i].ParameterType.IsAssignableFrom(parameterValue.Type))
+                if (node.Parameters != null)
                 {
-                    parameterValue = Expression.Convert(parameterValue, node.Constructor.Paramters[i].ParameterType);
-                }
+                    var parameterValue = BuildExpression(node.Parameters[node.Constructor.Paramters[i]]);
+                    if (!node.Constructor.Paramters[i].ParameterType.IsAssignableFrom(parameterValue.Type))
+                    {
+                        parameterValue = Expression.Convert(parameterValue, node.Constructor.Paramters[i].ParameterType);
+                    }
 
-                parameterValues[i] = parameterValue;
+                    parameterValues[i] = parameterValue;
+                }
             }
 
             statements.Add(
@@ -227,7 +226,7 @@ namespace Tinja.Resolving.Activation
                     context.IsPropertyHandled(node.Constructor.ConstructorInfo.DeclaringType, item.Key))
                 {
                     continue;
-                };
+                }
 
                 var property = Expression.MakeMemberAccess(instance, item.Key);
                 var propertyVariable = Expression.Variable(item.Key.PropertyType);

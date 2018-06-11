@@ -3,10 +3,10 @@ using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using Tinja;
+using Tinja.Extensions;
 using Tinja.Interception;
 using Tinja.Interception.Executors;
 using Tinja.Interception.Generators;
-using Tinja.Interception.Internal;
 using Tinja.ServiceLife;
 
 namespace Sample
@@ -131,7 +131,7 @@ namespace Sample
         }
     }
 
-    public class Abc : IAbc
+    public class Abc
     {
         public event Action OnOk;
 
@@ -171,6 +171,8 @@ namespace Sample
         T M<T>() where T : class;
 
         int GetId(out int id);
+
+        event Action<int> OnAction;
     }
 
     [Interceptor(typeof(InterceptorTest3))]
@@ -189,6 +191,9 @@ namespace Sample
         }
 
         public abstract void SetOutId(out int id);
+
+        public abstract event Action<int> OnAction;
+
     }
 
     class Program
@@ -206,6 +211,7 @@ namespace Sample
             container.AddTransient<InterceptorTest2, InterceptorTest2>();
             container.AddTransient<InterceptorTest3, InterceptorTest3>();
 
+            container.AddTransient<IAbc, IAbc>();
             container.AddTransient<A2, A2>();
             var resolver = container.BuildResolver();
 
@@ -216,10 +222,15 @@ namespace Sample
             var z = 5;
             object o = null;
             var a2 = resolver.Resolve(typeof(A2)) as A2;
+            a2.OnAction += (nn) => Console.WriteLine(nn);
+            var n2 = resolver.Resolve<IAbc>();
+            n2.OnAction += (n3) => Console.WriteLine(n3);
+
             a2.SetId(ref z);
             a2.SetObj(ref o);
 
             a2.SetOutId(out z);
+
 
             watch.Reset();
             watch.Start();
@@ -258,6 +269,11 @@ namespace Sample
 
             Console.WriteLine("Hello World!");
             Console.ReadKey();
+        }
+
+        private static void A2_OnAction(int obj)
+        {
+            throw new NotImplementedException();
         }
 
         private static void ProxyService_OnOk()

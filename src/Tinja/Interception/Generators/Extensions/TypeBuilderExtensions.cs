@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Interception.Generators.Utils;
 
 namespace Tinja.Interception.Generators.Extensions
 {
@@ -42,7 +41,9 @@ namespace Tinja.Interception.Generators.Extensions
                 return builder;
             }
 
-            foreach (var customAttriute in typeInfo.CustomAttributes)
+            foreach (var customAttriute in typeInfo
+                .CustomAttributes
+                .Where(item => item.AttributeType != typeof(InterceptorAttribute)))
             {
                 var attributeBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
                 if (attributeBuilder != null)
@@ -64,10 +65,10 @@ namespace Tinja.Interception.Generators.Extensions
                     methodInfo.ReturnType,
                     methodInfo.GetParameters().Select(i => i.ParameterType).ToArray()
                  )
-                 .SetCustomAttributes(methodInfo)
+                 .DefineGenericParameters(methodInfo)
                  .DefineParameters(methodInfo)
                  .DefineReturnParameter(methodInfo)
-                 .DefineGenericParameters(methodInfo);
+                 .SetCustomAttributes(methodInfo);
         }
 
         private static MethodAttributes GetMethodAttributes(MethodInfo methodInfo)

@@ -145,7 +145,7 @@ namespace Tinja.Resolving
             var eles = BuildAllContext(elementType).Reverse().ToList();
             var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
 
-            return new ServiceEnumerableContext(
+            return new ServiceManyContext(
                 serviceType,
                 meta.Type,
                 component.LifeStyle,

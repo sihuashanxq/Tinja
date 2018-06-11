@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Reflection.Emit;
 using Tinja.Extensions;
+using Tinja.Interception.Generators.Extensions;
 
-namespace Tinja.Interception.Internal
+namespace Tinja.Interception.Executors.Internal
 {
     internal class ObjectMethodExecutor : IObjectMethodExecutor
     {
@@ -39,17 +40,7 @@ namespace Tinja.Interception.Internal
 
             var executor = Expression.Lambda(invocation, instance, parametersParameter).Compile();
 
-            return (obj, paramterValues) =>
-            {
-                try
-                {
-                    return Task.FromResult(((Func<object, object[], object>)executor)(obj, paramterValues));
-                }
-                catch (Exception e)
-                {
-                    throw;
-                }
-            };
+            return (obj, paramterValues) => Task.FromResult(((Func<object, object[], object>)executor)(obj, paramterValues));
         }
 
         private static Func<object, object[], Task<object>> CreateAsyncExecutor(MethodInfo methodInfo)

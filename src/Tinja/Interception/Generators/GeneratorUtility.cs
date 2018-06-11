@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Tinja.Interception.Generators.Utils
+namespace Tinja.Interception.Generators
 {
     public static class GeneratorUtility
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Generators
 {
     public interface IProxyTypeGenerator
     {

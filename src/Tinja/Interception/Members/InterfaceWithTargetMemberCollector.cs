@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Members
 {
@@ -62,7 +63,7 @@ namespace Tinja.Interception.Members
                     break;
             }
 
-            if (mapMembers != null || mapMembers.Length != 0)
+            if (mapMembers != null && mapMembers.Length != 0)
             {
                 ProxyMembers.Add(new ProxyMember
                 {
