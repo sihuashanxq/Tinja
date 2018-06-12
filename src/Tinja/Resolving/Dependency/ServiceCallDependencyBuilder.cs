@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tinja.Extensions;
+using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
@@ -10,19 +11,19 @@ namespace Tinja.Resolving.Dependency
     {
         protected ServiceCallDependencyScope CallDenpendencyScope { get; set; }
 
-        protected IServiceContextBuilder ContextBuilder { get; set; }
+        protected IServiceContextFactory ContextFactory { get; set; }
 
         private IServiceContext _startContext;
 
-        public ServiceCallDependencyBuilder(IServiceContextBuilder contextBuilder)
+        public ServiceCallDependencyBuilder(IServiceContextFactory ctxFactory)
         {
-            ContextBuilder = contextBuilder;
+            ContextFactory = ctxFactory;
             CallDenpendencyScope = new ServiceCallDependencyScope();
         }
 
-        public ServiceCallDependencyBuilder(ServiceCallDependencyScope callDenpendencyScope, IServiceContextBuilder contextBuilder)
+        public ServiceCallDependencyBuilder(ServiceCallDependencyScope callDenpendencyScope, IServiceContextFactory ctxFactory)
         {
-            ContextBuilder = contextBuilder;
+            ContextFactory = ctxFactory;
             CallDenpendencyScope = callDenpendencyScope;
         }
 
@@ -38,7 +39,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual ServiceCallDependency BuildCallDenpendency(IServiceContext ctx, ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None)
         {
-            if (ctx is ServiceFactoryContext)
+            if (ctx is ServiceDelegateContext)
             {
                 return CallDenpendencyScope.AddResolvedService(
                     ctx,
@@ -67,7 +68,7 @@ namespace Tinja.Resolving.Dependency
         {
             if (callDependency.Context == _startContext)
             {
-                return new ServiceCallDependencyPropertyBuilder(CallDenpendencyScope, ContextBuilder).BuildPropertyCallDependency(callDependency);
+                return new ServiceCallDependencyPropertyBuilder(CallDenpendencyScope, ContextFactory).BuildPropertyCallDependency(callDependency);
             }
 
             return callDependency;
@@ -96,7 +97,7 @@ namespace Tinja.Resolving.Dependency
             {
                 foreach (var item in constructor.Paramters)
                 {
-                    var context = ContextBuilder.BuildContext(item.ParameterType);
+                    var context = ContextFactory.CreateContext(item.ParameterType);
                     if (context == null)
                     {
                         callDependencies.Clear();
@@ -155,7 +156,7 @@ namespace Tinja.Resolving.Dependency
             {
                 foreach (var item in constructor.Paramters)
                 {
-                    var context = ContextBuilder.BuildContext(item.ParameterType);
+                    var context = ContextFactory.CreateContext(item.ParameterType);
                     if (context == null)
                     {
                         callDependencies.Clear();
@@ -236,7 +237,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual bool IsCircularDependency(IServiceContext ctx)
         {
-            if (ctx is ServiceFactoryContext)
+            if (ctx is ServiceDelegateContext)
             {
                 return false;
             }

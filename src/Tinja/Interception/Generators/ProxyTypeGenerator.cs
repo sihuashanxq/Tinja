@@ -22,7 +22,7 @@ namespace Tinja.Interception.Generators
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
-        protected IMemberInterceptionProvider InterceptionProvider { get; }
+        protected IMemberInterceptionCollector InterceptionProvider { get; }
 
         protected IEnumerable<MemberInterception> MemberInterceptions { get; }
 
@@ -57,7 +57,7 @@ namespace Tinja.Interception.Generators
             typeof(PropertyInfo)
         });
 
-        public ProxyTypeGenerator(Type serviceType, Type implemetionType, IMemberInterceptionProvider provider)
+        public ProxyTypeGenerator(Type serviceType, Type implemetionType, IMemberInterceptionCollector provider)
         {
             ServiceType = serviceType;
             ProxyTargetType = implemetionType;
@@ -67,7 +67,7 @@ namespace Tinja.Interception.Generators
                 .Create(serviceType, implemetionType)
                 .Collect();
 
-            MemberInterceptions = InterceptionProvider.GetInterceptions(serviceType, implemetionType);
+            MemberInterceptions = InterceptionProvider.Collect(serviceType, implemetionType);
             Fields = new Dictionary<string, FieldBuilder>();
         }
 

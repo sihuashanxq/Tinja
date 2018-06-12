@@ -6,6 +6,7 @@ using Tinja.Interception.Executors.Internal;
 using Tinja.Interception.Members;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
+using Tinja.Resolving.Context;
 using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
@@ -15,26 +16,25 @@ namespace Tinja.Extensions
     {
         public static IServiceResolver BuildResolver(this IContainer ioc)
         {
-            var interceptionProvider = new MemberInterceptionProvider(ioc.Configuration.Interception.Providers, MemberCollectorFactory.Default);
-            var builder = new ServiceContextBuilder(new TypeMetadataFactory(), interceptionProvider);
-
+            var provider = new MemberInterceptionCollector(ioc.Configuration.Interception.Providers, MemberCollectorFactory.Default);
+            var ctxFactory = new ServiceContextFactory(new TypeMetadataFactory(), provider);
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var serviceActivatorProvider = new ServiceActivatorProvider(builder);
+            var serviceActivatorProvider = new ServiceActivatorProvider(ctxFactory);
 
             ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
             ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
 
-            ioc.AddSingleton(typeof(IServiceContextBuilder), _ => builder);
+            ioc.AddSingleton(typeof(IServiceContextFactory), _ => ctxFactory);
             ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
             ioc.AddSingleton(typeof(IServiceActivatorProvider), _ => serviceActivatorProvider);
             ioc.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             ioc.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
-            ioc.AddSingleton(typeof(IMemberInterceptionProvider), _ => interceptionProvider);
+            ioc.AddSingleton(typeof(IMemberInterceptionCollector), _ => provider);
             ioc.AddSingleton(typeof(IMemberCollectorFactory), _ => MemberCollectorFactory.Default);
 
-            builder.Initialize(ioc.Components);
+            ctxFactory.Initialize(ioc.Components);
 
             return new ServiceResolver(serviceActivatorProvider, serviceLifeScopeFactory);
         }

@@ -16,7 +16,7 @@ namespace Tinja.Resolving.Metadata
 
             Constructors = type
                 .GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Select(i => new TypeConstructor(i, i.GetParameters()))
+                .Select(item => new TypeConstructor(item, item.GetParameters()))
                 .ToArray();
         }
     }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Context
 {
     public class ServiceManyContext : ServiceTypeContext
     {

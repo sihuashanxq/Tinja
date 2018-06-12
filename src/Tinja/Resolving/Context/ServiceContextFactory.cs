@@ -7,17 +7,17 @@ using Tinja.Interception.Generators;
 using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Context
 {
-    public class ServiceContextBuilder : IServiceContextBuilder
+    public class ServiceContextFactory : IServiceContextFactory
     {
         protected ConcurrentDictionary<Type, List<ServiceComponent>> Components { get; }
 
         protected ITypeMetadataFactory TypeFactory { get; }
 
-        internal IMemberInterceptionProvider InterceptionProvider { get; }
+        internal IMemberInterceptionCollector InterceptionProvider { get; }
 
-        internal ServiceContextBuilder(ITypeMetadataFactory typeFactory, IMemberInterceptionProvider provider)
+        internal ServiceContextFactory(ITypeMetadataFactory typeFactory, IMemberInterceptionCollector provider)
         {
             InterceptionProvider = provider;
             TypeFactory = typeFactory;
@@ -71,144 +71,19 @@ namespace Tinja.Resolving
             }
         }
 
-        public virtual IServiceContext BuildContext(Type serviceType)
+        public virtual IServiceContext CreateContext(Type serviceType)
         {
             return
-                BuildContextWithDirectly(serviceType) ??
-                BuildContextWithOpenGeneric(serviceType) ??
-                BuildContextWithEnumerable(serviceType);
-        }
-
-        protected virtual IServiceContext BuildContextWithDirectly(Type serviceType)
-        {
-            if (Components.TryGetValue(serviceType, out var components))
-            {
-                if (components == null)
-                {
-                    return null;
-                }
-
-                var component = components.LastOrDefault();
-                if (component == null)
-                {
-                    return null;
-                }
-
-                return CreateContext(serviceType, component);
-            }
-
-            return null;
-        }
-
-        protected virtual IServiceContext BuildContextWithOpenGeneric(Type serviceType)
-        {
-            if (!serviceType.IsConstructedGenericType)
-            {
-                return null;
-            }
-
-            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
-            {
-                if (components == null)
-                {
-                    return null;
-                }
-
-                var component = components.LastOrDefault();
-                if (component == null)
-                {
-                    return null;
-                }
-
-                return CreateContext(serviceType, component);
-            }
-
-            return null;
-        }
-
-        protected virtual IServiceContext BuildContextWithEnumerable(Type serviceType)
-        {
-            if (!serviceType.IsConstructedGenericType || serviceType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
-            {
-                return null;
-            }
-
-            var component = new ServiceComponent()
-            {
-                ServiceType = typeof(IEnumerable<>),
-                ImplementionType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
-                ImplementionFactory = null,
-                LifeStyle = ServiceLifeStyle.Scoped
-            };
-
-            var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
-            var eles = BuildAllContext(elementType).Reverse().ToList();
-            var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
-
-            return new ServiceManyContext(
-                serviceType,
-                meta.Type,
-                component.LifeStyle,
-                meta.Constructors,
-                eles
-            );
-        }
-
-        protected virtual IEnumerable<IServiceContext> BuildAllContext(Type serviceType)
-        {
-            var ctxs = new List<IServiceContext>();
-            var ctx = BuildContextWithEnumerable(serviceType);
-            if (ctx != null)
-            {
-                ctxs.Add(ctx);
-            }
-
-            ctxs.AddRange(BuildAllContextWithDirectly(serviceType));
-            ctxs.AddRange(BuildAllContextWithOpenGeneric(serviceType));
-
-            return ctxs;
-        }
-
-        protected virtual IEnumerable<IServiceContext> BuildAllContextWithDirectly(Type serviceType)
-        {
-            if (Components.TryGetValue(serviceType, out var components))
-            {
-                return components.Select(i => CreateContext(serviceType, i));
-            }
-
-            return new IServiceContext[0];
-        }
-
-        protected virtual IEnumerable<IServiceContext> BuildAllContextWithOpenGeneric(Type serviceType)
-        {
-            if (!serviceType.IsConstructedGenericType)
-            {
-                return new IServiceContext[0];
-            }
-
-            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
-            {
-                return components.Select(i => CreateContext(serviceType, i));
-            }
-
-            return new IServiceContext[0];
-        }
-
-        protected TypeMetadata MakeTypeMetadata(Type serviceType, Type implementionType)
-        {
-            if (implementionType.IsGenericTypeDefinition && serviceType.IsConstructedGenericType)
-            {
-                implementionType = implementionType.MakeGenericType(serviceType.GenericTypeArguments);
-            }
-
-            return TypeFactory.Create(implementionType);
+                CreateContextDirectly(serviceType) ??
+                CreateContextOpenGeneric(serviceType) ??
+                CreateContextEnumerable(serviceType);
         }
 
         protected IServiceContext CreateContext(Type serviceType, ServiceComponent component)
         {
             if (component.ImplementionFactory != null)
             {
-                return new ServiceFactoryContext(serviceType, component.LifeStyle, component.ImplementionFactory);
+                return new ServiceDelegateContext(serviceType, component.LifeStyle, component.ImplementionFactory);
             }
 
             var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
@@ -229,6 +104,123 @@ namespace Tinja.Resolving
             return new ServiceTypeContext(serviceType, meta.Type, component.LifeStyle, meta.Constructors);
         }
 
+        protected virtual IServiceContext CreateContextDirectly(Type serviceType)
+        {
+            if (Components.TryGetValue(serviceType, out var components))
+            {
+                if (components == null)
+                {
+                    return null;
+                }
+
+                var component = components.LastOrDefault();
+                if (component == null)
+                {
+                    return null;
+                }
+
+                return CreateContext(serviceType, component);
+            }
+
+            return null;
+        }
+
+        protected virtual IServiceContext CreateContextOpenGeneric(Type serviceType)
+        {
+            if (!serviceType.IsConstructedGenericType)
+            {
+                return null;
+            }
+
+            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
+            {
+                if (components == null)
+                {
+                    return null;
+                }
+
+                var component = components.LastOrDefault();
+                if (component != null)
+                {
+                    return CreateContext(serviceType, component);
+                }
+            }
+
+            return null;
+        }
+
+        protected virtual IServiceContext CreateContextEnumerable(Type serviceType)
+        {
+            if (!serviceType.IsConstructedGenericType || serviceType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
+            {
+                return null;
+            }
+
+            var component = new ServiceComponent()
+            {
+                ServiceType = typeof(IEnumerable<>),
+                ImplementionType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
+                ImplementionFactory = null,
+                LifeStyle = ServiceLifeStyle.Scoped
+            };
+
+            var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
+            var eles = CreateManyContext(elementType).Reverse().ToList();
+            var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
+
+            return new ServiceManyContext(
+                serviceType,
+                meta.Type,
+                component.LifeStyle,
+                meta.Constructors,
+                eles
+            );
+        }
+
+        protected virtual IEnumerable<IServiceContext> CreateManyContext(Type serviceType)
+        {
+            var ctxs = new List<IServiceContext>();
+            var ctx = CreateContextEnumerable(serviceType);
+            if (ctx != null)
+            {
+                ctxs.Add(ctx);
+            }
+
+            ctxs.AddRange(CreateManyContextDirectly(serviceType));
+            ctxs.AddRange(CreateManyContextOpenGeneric(serviceType));
+
+            return ctxs;
+        }
+
+        protected virtual IEnumerable<IServiceContext> CreateManyContextDirectly(Type serviceType)
+        {
+            return Components.TryGetValue(serviceType, out var components)
+                ? components.Select(i => CreateContext(serviceType, i))
+                : new IServiceContext[0];
+        }
+
+        protected virtual IEnumerable<IServiceContext> CreateManyContextOpenGeneric(Type serviceType)
+        {
+            if (!serviceType.IsConstructedGenericType)
+            {
+                return new IServiceContext[0];
+            }
+
+            return Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components)
+                ? components.Select(i => CreateContext(serviceType, i))
+                : new IServiceContext[0];
+        }
+
+        protected TypeMetadata MakeTypeMetadata(Type serviceType, Type implementionType)
+        {
+            if (implementionType.IsGenericTypeDefinition && serviceType.IsConstructedGenericType)
+            {
+                implementionType = implementionType.MakeGenericType(serviceType.GenericTypeArguments);
+            }
+
+            return TypeFactory.Create(implementionType);
+        }
+
         private bool ShouldCreateProxyType(ServiceComponent component)
         {
             if (component == null)
@@ -236,17 +228,7 @@ namespace Tinja.Resolving
                 return false;
             }
 
-            if (component.ImplementionFactory != null)
-            {
-                return false;
-            }
-
-            if (InterceptionProvider.GetInterceptions(component.ServiceType, component.ImplementionType, false).Any())
-            {
-                return true;
-            }
-
-            return false;
+            return component.ImplementionFactory == null && InterceptionProvider.Collect(component.ServiceType, component.ImplementionType, false).Any();
         }
     }
 }

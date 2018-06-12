@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Extensions;
+using Tinja.Resolving.Context;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Dependency
@@ -25,7 +26,7 @@ namespace Tinja.Resolving.Dependency
 
         public ServiceCallDependency AddResolvedService(IServiceContext target, ServiceCallDependency chain)
         {
-            if(target is ServiceFactoryContext)
+            if(target is ServiceDelegateContext)
             {
                 return chain;
             }

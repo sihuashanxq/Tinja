@@ -25,7 +25,7 @@ namespace Tinja
 
     public interface IInterceptionConfiguration
     {
-        List<IMemberAddtionalInterceptionProvider> Providers { get; }
+        List<IMemberInterceptionProvider> Providers { get; }
     }
 
     public class ServiceCongfiguration : IServiceConfiguration
@@ -40,11 +40,11 @@ namespace Tinja
 
     public class InterceptionConfiguration : IInterceptionConfiguration
     {
-        public List<IMemberAddtionalInterceptionProvider> Providers { get; }
+        public List<IMemberInterceptionProvider> Providers { get; }
 
         public InterceptionConfiguration()
         {
-            Providers = new List<IMemberAddtionalInterceptionProvider>();
+            Providers = new List<IMemberInterceptionProvider>();
         }
     }
 }

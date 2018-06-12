@@ -1,9 +1,9 @@
 ﻿using System;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Context
 {
-    public class ServiceFactoryContext : IServiceContext
+    public class ServiceDelegateContext : IServiceContext
     {
         public Type ServiceType { get; }
 
@@ -11,7 +11,7 @@ namespace Tinja.Resolving
 
         public Func<IServiceResolver, object> ImplementionFactory { get; }
 
-        public ServiceFactoryContext(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
+        public ServiceDelegateContext(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
         {
             LifeStyle = lifeStyle;
             ServiceType = serviceType;

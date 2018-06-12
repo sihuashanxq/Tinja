@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {

@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Reflection;
 
 namespace Tinja.Interception
 {
     public interface IMemberInterceptionProvider
     {
-        IEnumerable<MemberInterception> GetInterceptions(Type serviceType, Type implementionType, bool caching = true);
+        IEnumerable<MemberInterception> GetInterceptions(MemberInfo memberInfo);
     }
 }

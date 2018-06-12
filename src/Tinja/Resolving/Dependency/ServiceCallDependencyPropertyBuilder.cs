@@ -3,13 +3,14 @@ using System.Linq;
 using System.Reflection;
 using Tinja.ServiceLife;
 using Tinja.Extensions;
+using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
     public class ServiceCallDependencyPropertyBuilder : ServiceCallDependencyBuilder
     {
-        public ServiceCallDependencyPropertyBuilder(ServiceCallDependencyScope scope, IServiceContextBuilder resolvingContextBuilder)
-            : base(scope, resolvingContextBuilder)
+        public ServiceCallDependencyPropertyBuilder(ServiceCallDependencyScope scope, IServiceContextFactory ctxFactory)
+            : base(scope, ctxFactory)
         {
 
         }
@@ -53,7 +54,7 @@ namespace Tinja.Resolving.Dependency
                 .Where(i => i.CanRead && i.CanWrite && i.IsDefined(typeof(InjectAttribute)))
                 .ToArray();
 
-            if (properties == null || properties.Length == 0)
+            if (properties.Length == 0)
             {
                 return;
             }
@@ -62,7 +63,7 @@ namespace Tinja.Resolving.Dependency
 
             foreach (var item in properties)
             {
-                var context = ContextBuilder.BuildContext(item.PropertyType);
+                var context = ContextFactory.CreateContext(item.PropertyType);
                 if (context == null)
                 {
                     continue;

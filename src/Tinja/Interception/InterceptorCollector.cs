@@ -1,39 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using Tinja.Resolving;
 
 namespace Tinja.Interception
 {
     public class InterceptorCollector : IInterceptorCollector
     {
-        private IServiceResolver _resolver;
+        private readonly IServiceResolver _resolver;
 
-        private IMemberInterceptionProvider _targetProvider;
+        private readonly IMemberInterceptionCollector _provider;
 
-        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionProvider targetProvider)
+        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionCollector provider)
         {
             _resolver = resolver;
-            _targetProvider = targetProvider;
+            _provider = provider;
         }
 
         public IEnumerable<MemberInterceptionBinding> Collect(Type serviceType, Type implementionType)
         {
-            var targets = _targetProvider.GetInterceptions(serviceType, implementionType);
-            if (targets == null)
+            foreach (var item in _provider.Collect(serviceType, implementionType) ?? new MemberInterception[0])
             {
-                targets = new MemberInterception[0];
-            }
-
-            foreach (var target in targets)
-            {
-                var interceptor = _resolver.Resolve(target.Interceptor) as IInterceptor;
-                if (interceptor == null)
+                var interceptor = (IInterceptor)_resolver.Resolve(item.Interceptor);
+                if (interceptor != null)
                 {
-                    throw new NotSupportedException($"can not resolve the interceptor with type:{target.Interceptor.FullName}");
+                    yield return new MemberInterceptionBinding(interceptor, item);
                 }
 
-                yield return new MemberInterceptionBinding(interceptor, target);
+                throw new InvalidOperationException($"can not resolve the interceptor with type:{item.Interceptor.FullName}");
             }
         }
     }

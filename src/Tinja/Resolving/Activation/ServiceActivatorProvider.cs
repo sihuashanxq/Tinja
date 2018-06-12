@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
 using Tinja.ServiceLife;
 
@@ -7,15 +8,15 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorProvider : IServiceActivatorProvider
     {
-        private static Func<IServiceResolver, IServiceLifeScope, object> EmptyFactory = (resolver, scope) => null;
+        private static readonly Func<IServiceResolver, IServiceLifeScope, object> Default = (resolver, scope) => null;
 
-        private readonly IServiceContextBuilder _builder;
+        private readonly IServiceContextFactory _contextFactory;
 
-        private ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
+        private readonly ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>> _activators;
 
-        public ServiceActivatorProvider(IServiceContextBuilder builder)
+        public ServiceActivatorProvider(IServiceContextFactory ctxFactory)
         {
-            _builder = builder;
+            _contextFactory = ctxFactory;
             _activators = new ConcurrentDictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
         }
 
@@ -23,13 +24,13 @@ namespace Tinja.Resolving.Activation
         {
             return _activators.GetOrAdd(serviceType, type =>
             {
-                var context = _builder.BuildContext(type);
+                var context = _contextFactory.CreateContext(type);
                 if (context == null)
                 {
-                    return EmptyFactory;
+                    return Default;
                 }
 
-                if (context is ServiceFactoryContext factoryContext)
+                if (context is ServiceDelegateContext factoryContext)
                 {
                     return (resolver, scope) =>
                          scope.ApplyServiceLifeStyle(
@@ -38,29 +39,24 @@ namespace Tinja.Resolving.Activation
                          );
                 }
 
-                var chain = GetDependencyChain(context);
-                if (chain == null)
+                var callDependency = CreateCallDependency(context);
+                if (callDependency != null)
                 {
-                    return EmptyFactory;
+                    return GetActivator(callDependency);
                 }
 
-                return Get(chain);
+                return Default;
             });
         }
 
-        protected virtual Func<IServiceResolver, IServiceLifeScope, object> Get(ServiceCallDependency chain)
+        protected virtual Func<IServiceResolver, IServiceLifeScope, object> GetActivator(ServiceCallDependency callDependency)
         {
-            if (chain.ContainsPropertyCircularDependencies())
-            {
-                return new ServicePropertyCircularActivatorFactory().Create(chain);
-            }
-
-            return new ServiceActivatorFactory().Create(chain);
+            return callDependency.ContainsPropertyCircularDependencies() ? new ServicePropertyCircularDependencyActivatorFactory().Create(callDependency) : new ServiceActivatorFactory().Create(callDependency);
         }
 
-        protected virtual ServiceCallDependency GetDependencyChain(IServiceContext context)
+        protected virtual ServiceCallDependency CreateCallDependency(IServiceContext context)
         {
-            return new ServiceCallDependencyBuilder(_builder).Build(context);
+            return new ServiceCallDependencyBuilder(_contextFactory).Build(context);
         }
     }
 }

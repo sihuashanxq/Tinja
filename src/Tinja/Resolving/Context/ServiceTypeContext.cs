@@ -1,7 +1,7 @@
 ﻿using System;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Context
 {
     public class ServiceTypeContext : IServiceContext
     {

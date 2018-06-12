@@ -1,5 +1,6 @@
 ﻿using System;
 using Tinja.Resolving;
+using Tinja.Resolving.Context;
 
 namespace Tinja.Extensions
 {
@@ -7,7 +8,7 @@ namespace Tinja.Extensions
     {
         public static Func<IServiceResolver, object> GetImplementionFactory(this IServiceContext ctx)
         {
-            if (ctx is ServiceFactoryContext factoryContext)
+            if (ctx is ServiceDelegateContext factoryContext)
             {
                 return factoryContext.ImplementionFactory;
             }

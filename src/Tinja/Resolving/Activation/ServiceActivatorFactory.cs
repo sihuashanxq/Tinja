@@ -10,7 +10,7 @@ namespace Tinja.Resolving.Activation
 {
     public class ServiceActivatorFactory : IServiceActivatorFactory
     {
-        delegate object ApplyLifeStyleDelegate(
+        private delegate object ApplyLifeStyleDelegate(
             IServiceLifeScope lifeScope,
             Type serviceType,
             ServiceLifeStyle lifeStyle,
@@ -34,9 +34,9 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency chain)
+        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency callDependency)
         {
-            var factory = CreateActivatorCore(chain);
+            var factory = CreateActivatorCore(callDependency);
             if (factory == null)
             {
                 return (resolver, scope) => null;
@@ -45,11 +45,11 @@ namespace Tinja.Resolving.Activation
             return factory;
         }
 
-        public Expression BuildPropertyInfo(Expression instance, ServiceCallDependency node)
+        public Expression BuildPropertyInfo(Expression instance, ServiceCallDependency callDependency)
         {
-            if (instance.Type != node.Constructor.ConstructorInfo.DeclaringType)
+            if (instance.Type != callDependency.Constructor.ConstructorInfo.DeclaringType)
             {
-                instance = Expression.Convert(instance, node.Constructor.ConstructorInfo.DeclaringType);
+                instance = Expression.Convert(instance, callDependency.Constructor.ConstructorInfo.DeclaringType);
             }
 
             var label = Expression.Label(instance.Type);
@@ -68,7 +68,7 @@ namespace Tinja.Resolving.Activation
                 )
             };
 
-            foreach (var item in node.Properties)
+            foreach (var item in callDependency.Properties)
             {
                 var property = Expression.MakeMemberAccess(instanceVariable, item.Key);
                 var propertyVariable = Expression.Variable(item.Key.PropertyType, item.Key.Name);
@@ -98,9 +98,9 @@ namespace Tinja.Resolving.Activation
 
         protected virtual
             Func<IServiceResolver, IServiceLifeScope, object>
-            CreateActivatorCore(ServiceCallDependency chain)
+            CreateActivatorCore(ServiceCallDependency callDependency)
         {
-            var lambdaBody = BuildExpression(chain);
+            var lambdaBody = BuildExpression(callDependency);
             if (lambdaBody == null)
             {
                 throw new NullReferenceException(nameof(lambdaBody));
@@ -117,22 +117,22 @@ namespace Tinja.Resolving.Activation
                 .Compile();
         }
 
-        protected Expression BuildExpression(ServiceCallDependency chain)
+        protected Expression BuildExpression(ServiceCallDependency callDependency)
         {
-            if (chain.Constructor == null)
+            if (callDependency.Constructor == null)
             {
-                return BuildWithImplFactory(chain);
+                return BuildWithImplFactory(callDependency);
             }
 
             Expression instance;
 
-            if (chain is ServiceManyCallDependency enumerable)
+            if (callDependency is ServiceManyCallDependency enumerable)
             {
                 instance = BuildWithEnumerable(enumerable);
             }
             else
             {
-                instance = BuildWithConstructor(chain);
+                instance = BuildWithConstructor(callDependency);
             }
 
             if (instance == null)
@@ -140,75 +140,75 @@ namespace Tinja.Resolving.Activation
                 return null;
             }
 
-            if (chain.Properties == null || chain.Properties.Count == 0)
+            if (callDependency.Properties == null || callDependency.Properties.Count == 0)
             {
-                return WrapperWithLifeStyle(instance, chain);
+                return WrapperWithLifeStyle(instance, callDependency);
             }
 
-            var wInstance = BuildPropertyInfo(instance, chain);
+            var wInstance = BuildPropertyInfo(instance, callDependency);
             if (wInstance == null)
             {
                 return null;
             }
 
-            return WrapperWithLifeStyle(wInstance, chain);
+            return WrapperWithLifeStyle(wInstance, callDependency);
         }
 
-        protected virtual Expression BuildWithImplFactory(ServiceCallDependency chain)
+        protected virtual Expression BuildWithImplFactory(ServiceCallDependency callDependency)
         {
             return
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
-                    Expression.Constant(chain.Context.ServiceType),
-                    Expression.Constant(chain.Context.LifeStyle),
-                    Expression.Constant(chain.Context.GetImplementionFactory())
+                    Expression.Constant(callDependency.Context.ServiceType),
+                    Expression.Constant(callDependency.Context.LifeStyle),
+                    Expression.Constant(callDependency.Context.GetImplementionFactory())
                 );
         }
 
-        protected virtual Expression BuildWithConstructor(ServiceCallDependency node)
+        protected virtual Expression BuildWithConstructor(ServiceCallDependency callDependency)
         {
-            var parameterValues = new Expression[node.Parameters?.Count ?? 0];
+            var parameterValues = new Expression[callDependency.Parameters?.Count ?? 0];
 
             for (var i = 0; i < parameterValues.Length; i++)
             {
-                if (node.Parameters != null)
+                if (callDependency.Parameters != null)
                 {
-                    var parameterValue = BuildExpression(node.Parameters[node.Constructor.Paramters[i]]);
-                    if (!node.Constructor.Paramters[i].ParameterType.IsAssignableFrom(parameterValue.Type))
+                    var parameterValue = BuildExpression(callDependency.Parameters[callDependency.Constructor.Paramters[i]]);
+                    if (!callDependency.Constructor.Paramters[i].ParameterType.IsAssignableFrom(parameterValue.Type))
                     {
-                        parameterValue = Expression.Convert(parameterValue, node.Constructor.Paramters[i].ParameterType);
+                        parameterValue = Expression.Convert(parameterValue, callDependency.Constructor.Paramters[i].ParameterType);
                     }
 
                     parameterValues[i] = parameterValue;
                 }
             }
 
-            return Expression.New(node.Constructor.ConstructorInfo, parameterValues);
+            return Expression.New(callDependency.Constructor.ConstructorInfo, parameterValues);
         }
 
-        protected virtual Expression BuildWithEnumerable(ServiceManyCallDependency node)
+        protected virtual Expression BuildWithEnumerable(ServiceManyCallDependency callDependency)
         {
-            var elementInits = new ElementInit[node.Elements.Length];
-            var addElement = node.Context.GetImplementionType().GetMethod("Add");
+            var elementInits = new ElementInit[callDependency.Elements.Length];
+            var addElement = callDependency.Context.GetImplementionType().GetMethod("Add");
 
             for (var i = 0; i < elementInits.Length; i++)
             {
                 elementInits[i] = Expression.ElementInit(
                     addElement,
                     Expression.Convert(
-                        BuildExpression(node.Elements[i]),
-                        node.Elements[i].Context.ServiceType
+                        BuildExpression(callDependency.Elements[i]),
+                        callDependency.Elements[i].Context.ServiceType
                     )
                 );
             }
 
-            return Expression.ListInit(Expression.New(node.Constructor.ConstructorInfo), elementInits);
+            return Expression.ListInit(Expression.New(callDependency.Constructor.ConstructorInfo), elementInits);
         }
 
-        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceCallDependency chain)
+        protected virtual Expression WrapperWithLifeStyle(Expression instance, ServiceCallDependency callDependency)
         {
-            if (!chain.ShouldHoldServiceLife())
+            if (!callDependency.ShouldHoldServiceLife())
             {
                 return instance;
             }
@@ -226,8 +226,8 @@ namespace Tinja.Resolving.Activation
                 Expression.Invoke(
                     ApplyLifeStyleFuncConstant,
                     ScopeParameter,
-                    Expression.Constant(chain.Context.ServiceType),
-                    Expression.Constant(chain.Context.LifeStyle),
+                    Expression.Constant(callDependency.Context.ServiceType),
+                    Expression.Constant(callDependency.Context.LifeStyle),
                     Expression.Constant(factory)
                 );
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Resolving;
+using Tinja.Resolving.Context;
 
 namespace Tinja.ServiceLife
 {

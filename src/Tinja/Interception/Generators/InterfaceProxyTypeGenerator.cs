@@ -8,7 +8,7 @@ namespace Tinja.Interception.Generators
 {
     public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
-        public InterfaceProxyTypeGenerator(Type interfaceType, IMemberInterceptionProvider provider)
+        public InterfaceProxyTypeGenerator(Type interfaceType, IMemberInterceptionCollector provider)
             : base(interfaceType, interfaceType, provider)
         {
 
