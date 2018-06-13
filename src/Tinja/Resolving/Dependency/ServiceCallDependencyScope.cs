@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tinja.Extensions;
 using Tinja.Resolving.Context;
 using Tinja.ServiceLife;
 
@@ -24,23 +23,23 @@ namespace Tinja.Resolving.Dependency
             return ServiceDependStack.Any(i => i.ServiceType == serviceType);
         }
 
-        public ServiceCallDependency AddResolvedService(IServiceContext target, ServiceCallDependency chain)
+        public ServiceCallDependency AddResolvedService(ServiceContext ctx, ServiceCallDependency callDependency)
         {
-            if(target is ServiceDelegateContext)
+            if (ctx.ImplementionFactory != null)
             {
-                return chain;
+                return callDependency;
             }
 
-            if (target.LifeStyle != ServiceLifeStyle.Transient)
+            if (ctx.LifeStyle != ServiceLifeStyle.Transient)
             {
-                ResolvedServices[target.GetImplementionType()] = chain;
+                ResolvedServices[ctx.ImplementionType] = callDependency;
             }
 
-            return chain;
+            return callDependency;
         }
 
         public ScopeEntryDisposableWrapper BeginScope(
-            IServiceContext target,
+            ServiceContext target,
             Type servieType,
             ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None
         )

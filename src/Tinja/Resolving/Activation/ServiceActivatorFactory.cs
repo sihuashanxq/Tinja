@@ -4,7 +4,6 @@ using System.Linq.Expressions;
 
 using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
-using Tinja.Extensions;
 
 namespace Tinja.Resolving.Activation
 {
@@ -121,18 +120,18 @@ namespace Tinja.Resolving.Activation
         {
             if (callDependency.Constructor == null)
             {
-                return BuildWithImplFactory(callDependency);
+                return BuildDelegateImplemention(callDependency);
             }
 
             Expression instance;
 
             if (callDependency is ServiceManyCallDependency enumerable)
             {
-                instance = BuildWithEnumerable(enumerable);
+                instance = BuildManyImplemention(enumerable);
             }
             else
             {
-                instance = BuildWithConstructor(callDependency);
+                instance = BuildTypeImplemention(callDependency);
             }
 
             if (instance == null)
@@ -154,7 +153,7 @@ namespace Tinja.Resolving.Activation
             return WrapperWithLifeStyle(wInstance, callDependency);
         }
 
-        protected virtual Expression BuildWithImplFactory(ServiceCallDependency callDependency)
+        protected virtual Expression BuildDelegateImplemention(ServiceCallDependency callDependency)
         {
             return
                 Expression.Invoke(
@@ -162,11 +161,11 @@ namespace Tinja.Resolving.Activation
                     ScopeParameter,
                     Expression.Constant(callDependency.Context.ServiceType),
                     Expression.Constant(callDependency.Context.LifeStyle),
-                    Expression.Constant(callDependency.Context.GetImplementionFactory())
+                    Expression.Constant(callDependency.Context.ImplementionFactory)
                 );
         }
 
-        protected virtual Expression BuildWithConstructor(ServiceCallDependency callDependency)
+        protected virtual Expression BuildTypeImplemention(ServiceCallDependency callDependency)
         {
             var parameterValues = new Expression[callDependency.Parameters?.Count ?? 0];
 
@@ -187,10 +186,10 @@ namespace Tinja.Resolving.Activation
             return Expression.New(callDependency.Constructor.ConstructorInfo, parameterValues);
         }
 
-        protected virtual Expression BuildWithEnumerable(ServiceManyCallDependency callDependency)
+        protected virtual Expression BuildManyImplemention(ServiceManyCallDependency callDependency)
         {
             var elementInits = new ElementInit[callDependency.Elements.Length];
-            var addElement = callDependency.Context.GetImplementionType().GetMethod("Add");
+            var addElement = callDependency.Context.ImplementionType.GetMethod("Add");
 
             for (var i = 0; i < elementInits.Length; i++)
             {

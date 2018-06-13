@@ -4,6 +4,6 @@ namespace Tinja.Resolving.Context
 {
     public interface IServiceContextFactory
     {
-        IServiceContext CreateContext(Type serviceType);
+        ServiceContext CreateContext(Type serviceType);
     }
 }

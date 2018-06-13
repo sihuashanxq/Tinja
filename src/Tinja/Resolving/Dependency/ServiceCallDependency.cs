@@ -9,7 +9,7 @@ namespace Tinja.Resolving.Dependency
 {
     public class ServiceCallDependency
     {
-        public IServiceContext Context { get; set; }
+        public ServiceContext Context { get; set; }
 
         public TypeConstructor Constructor { get; set; }
 

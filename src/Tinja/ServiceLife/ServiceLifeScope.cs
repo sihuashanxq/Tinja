@@ -36,7 +36,7 @@ namespace Tinja.ServiceLife
             _scopedObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyServiceLifeStyle(IServiceContext context, Func<IServiceResolver, object> factory)
+        public object ApplyServiceLifeStyle(ServiceContext context, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {

@@ -30,12 +30,12 @@ namespace Tinja.Resolving.Activation
                     return Default;
                 }
 
-                if (context is ServiceDelegateContext factoryContext)
+                if (context.ImplementionFactory != null)
                 {
                     return (resolver, scope) =>
                          scope.ApplyServiceLifeStyle(
                             context,
-                            scopeResolver => factoryContext.ImplementionFactory(scopeResolver)
+                            scopeResolver => context.ImplementionFactory(scopeResolver)
                          );
                 }
 
@@ -54,7 +54,7 @@ namespace Tinja.Resolving.Activation
             return callDependency.ContainsPropertyCircularDependencies() ? new ServicePropertyCircularDependencyActivatorFactory().Create(callDependency) : new ServiceActivatorFactory().Create(callDependency);
         }
 
-        protected virtual ServiceCallDependency CreateCallDependency(IServiceContext context)
+        protected virtual ServiceCallDependency CreateCallDependency(ServiceContext context)
         {
             return new ServiceCallDependencyBuilder(_contextFactory).Build(context);
         }

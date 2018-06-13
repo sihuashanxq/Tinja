@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Extensions;
 using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
@@ -13,7 +12,7 @@ namespace Tinja.Resolving.Dependency
 
         protected IServiceContextFactory ContextFactory { get; set; }
 
-        private IServiceContext _startContext;
+        private ServiceContext _startContext;
 
         public ServiceCallDependencyBuilder(IServiceContextFactory ctxFactory)
         {
@@ -27,7 +26,7 @@ namespace Tinja.Resolving.Dependency
             CallDenpendencyScope = callDenpendencyScope;
         }
 
-        public virtual ServiceCallDependency Build(IServiceContext ctx)
+        public virtual ServiceCallDependency Build(ServiceContext ctx)
         {
             if (_startContext == null)
             {
@@ -37,9 +36,9 @@ namespace Tinja.Resolving.Dependency
             return BuildCallDenpendency(ctx);
         }
 
-        protected virtual ServiceCallDependency BuildCallDenpendency(IServiceContext ctx, ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None)
+        protected virtual ServiceCallDependency BuildCallDenpendency(ServiceContext ctx, ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None)
         {
-            if (ctx is ServiceDelegateContext)
+            if (ctx.ImplementionFactory != null)
             {
                 return CallDenpendencyScope.AddResolvedService(
                     ctx,
@@ -51,9 +50,9 @@ namespace Tinja.Resolving.Dependency
                 );
             }
 
-            using (CallDenpendencyScope.BeginScope(ctx, ctx.GetImplementionType(), scopeType))
+            using (CallDenpendencyScope.BeginScope(ctx, ctx.ImplementionType, scopeType))
             {
-                var callDependency = BuildTypeImplemention(ctx);
+                var callDependency = BuildImplemention(ctx);
                 if (callDependency != null)
                 {
                     CallDenpendencyScope.AddResolvedService(ctx, callDependency);
@@ -74,26 +73,26 @@ namespace Tinja.Resolving.Dependency
             return callDependency;
         }
 
-        protected virtual ServiceCallDependency BuildTypeImplemention(IServiceContext ctx)
+        protected virtual ServiceCallDependency BuildImplemention(ServiceContext ctx)
         {
             switch (ctx)
             {
-                case ServiceProxyContext serviceProxy:
-                    return BuildProxyImplemention(serviceProxy);
-                case ServiceManyContext serviceEnumerable:
-                    return BuildManyImplemention(serviceEnumerable);
-                case ServiceTypeContext context:
-                    return BuildNormalImplemention(context);
+                case ServiceProxyContext proxyCtx:
+                    return BuildProxyImplemention(proxyCtx);
+                case ServiceManyContext mayCtx:
+                    return BuildManyImplemention(mayCtx);
+                case ServiceContext typeCtx:
+                    return BuildTypeImplemention(typeCtx);
                 default:
                     throw new InvalidOperationException();
             }
         }
 
-        protected virtual ServiceCallDependency BuildNormalImplemention(ServiceTypeContext ctx)
+        protected virtual ServiceCallDependency BuildTypeImplemention(ServiceContext ctx)
         {
             var callDependencies = new Dictionary<ParameterInfo, ServiceCallDependency>();
 
-            foreach (var constructor in ctx.GetConstructors().OrderByDescending(i => i.Paramters.Length))
+            foreach (var constructor in ctx.Constrcutors.OrderByDescending(i => i.Paramters.Length))
             {
                 foreach (var item in constructor.Paramters)
                 {
@@ -112,7 +111,8 @@ namespace Tinja.Resolving.Dependency
                             callDependencies.Clear();
                             break;
                         }
-                        else if (result.CallDependency != null)
+
+                        if (result.CallDependency != null)
                         {
                             callDependencies[item] = result.CallDependency;
                         }
@@ -147,7 +147,13 @@ namespace Tinja.Resolving.Dependency
             //Override
             if (ctx.ImplementionType.IsAssignableFrom(ctx.ProxyType))
             {
-                return BuildNormalImplemention(new ServiceTypeContext(ctx.ServiceType, ctx.ProxyType, ctx.LifeStyle, ctx.ProxyConstructors));
+                return BuildTypeImplemention(new ServiceContext()
+                {
+                    ServiceType = ctx.ServiceType,
+                    ImplementionType = ctx.ProxyType,
+                    LifeStyle = ctx.LifeStyle,
+                    Constrcutors = ctx.ProxyConstructors
+                });
             }
 
             var callDependencies = new Dictionary<ParameterInfo, ServiceCallDependency>();
@@ -165,7 +171,14 @@ namespace Tinja.Resolving.Dependency
 
                     if (item.ParameterType == ctx.ImplementionType)
                     {
-                        context = new ServiceTypeContext(context.ServiceType, context.GetImplementionType(), context.LifeStyle, context.GetConstructors());
+                        context = new ServiceContext()
+                        {
+                            ServiceType = context.ServiceType,
+                            ImplementionType = context.ImplementionType,
+                            LifeStyle = context.LifeStyle,
+                            Constrcutors = context.Constrcutors ?? new TypeConstructor[0],
+                            ImplementionFactory = context.ImplementionFactory
+                        };
                     }
 
                     if (IsCircularDependency(context))
@@ -211,9 +224,9 @@ namespace Tinja.Resolving.Dependency
         {
             var eles = new List<ServiceCallDependency>();
 
-            for (var i = 0; i < ctx.ElementContexts.Count; i++)
+            for (var i = 0; i < ctx.Elements.Count; i++)
             {
-                var ele = BuildTypeImplemention(ctx.ElementContexts[i]);
+                var ele = BuildImplemention(ctx.Elements[i]);
                 if (ele == null)
                 {
                     continue;
@@ -230,19 +243,14 @@ namespace Tinja.Resolving.Dependency
             };
         }
 
-        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(IServiceContext instance, IServiceContext constrcutorParameter)
+        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext instance, ServiceContext constrcutorParameter)
         {
-            throw new ServiceCallCircularExpcetion(constrcutorParameter.GetImplementionType(), $"Circulard ependencies at type:{constrcutorParameter.GetImplementionType().FullName}");
+            throw new ServiceCallCircularExpcetion(constrcutorParameter.ImplementionType, $"Circulard ependencies at type:{constrcutorParameter.ImplementionType.FullName}");
         }
 
-        protected virtual bool IsCircularDependency(IServiceContext ctx)
+        protected virtual bool IsCircularDependency(ServiceContext ctx)
         {
-            if (ctx is ServiceDelegateContext)
-            {
-                return false;
-            }
-
-            return CallDenpendencyScope.Constains(ctx.GetImplementionType());
+            return ctx.ImplementionFactory == null && CallDenpendencyScope.Constains(ctx.ImplementionType);
         }
 
         protected class CircularDependencyResolveResult

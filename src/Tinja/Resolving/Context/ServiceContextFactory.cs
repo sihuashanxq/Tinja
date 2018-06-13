@@ -71,7 +71,7 @@ namespace Tinja.Resolving.Context
             }
         }
 
-        public virtual IServiceContext CreateContext(Type serviceType)
+        public virtual ServiceContext CreateContext(Type serviceType)
         {
             return
                 CreateContextDirectly(serviceType) ??
@@ -79,11 +79,17 @@ namespace Tinja.Resolving.Context
                 CreateContextEnumerable(serviceType);
         }
 
-        protected IServiceContext CreateContext(Type serviceType, ServiceComponent component)
+        protected ServiceContext CreateContext(Type serviceType, ServiceComponent component)
         {
             if (component.ImplementionFactory != null)
             {
-                return new ServiceDelegateContext(serviceType, component.LifeStyle, component.ImplementionFactory);
+                return new ServiceContext()
+                {
+                     ServiceType = serviceType,
+                    ImplementionType = null,
+                    Constrcutors = null,
+                    ImplementionFactory = component.ImplementionFactory
+                };
             }
 
             var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
@@ -97,14 +103,30 @@ namespace Tinja.Resolving.Context
                 var proxyMeta = MakeTypeMetadata(serviceType, component.ProxyType);
                 if (proxyMeta != null)
                 {
-                    return new ServiceProxyContext(serviceType, proxyMeta.Type, meta.Type, component.LifeStyle, meta.Constructors, proxyMeta.Constructors);
+                    return new ServiceProxyContext()
+                    {
+                        ServiceType = serviceType,
+                        LifeStyle = component.LifeStyle,
+                        Constrcutors = meta.Constructors,
+                        ImplementionType = meta.Type,
+                        ImplementionFactory = component.ImplementionFactory,
+                        ProxyType = proxyMeta.Type,
+                        ProxyConstructors = proxyMeta.Constructors
+                    };
                 }
             }
 
-            return new ServiceTypeContext(serviceType, meta.Type, component.LifeStyle, meta.Constructors);
+            return new ServiceContext()
+            {
+                ServiceType = serviceType,
+                LifeStyle = component.LifeStyle,
+                Constrcutors = meta.Constructors,
+                ImplementionType = meta.Type,
+                ImplementionFactory = component.ImplementionFactory
+            };
         }
 
-        protected virtual IServiceContext CreateContextDirectly(Type serviceType)
+        protected virtual ServiceContext CreateContextDirectly(Type serviceType)
         {
             if (Components.TryGetValue(serviceType, out var components))
             {
@@ -125,7 +147,7 @@ namespace Tinja.Resolving.Context
             return null;
         }
 
-        protected virtual IServiceContext CreateContextOpenGeneric(Type serviceType)
+        protected virtual ServiceContext CreateContextOpenGeneric(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType)
             {
@@ -149,7 +171,7 @@ namespace Tinja.Resolving.Context
             return null;
         }
 
-        protected virtual IServiceContext CreateContextEnumerable(Type serviceType)
+        protected virtual ServiceContext CreateContextEnumerable(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType || serviceType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
             {
@@ -165,21 +187,22 @@ namespace Tinja.Resolving.Context
             };
 
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
-            var eles = CreateManyContext(elementType).Reverse().ToList();
+            var elements = CreateManyContext(elementType).Reverse().ToList();
             var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
 
-            return new ServiceManyContext(
-                serviceType,
-                meta.Type,
-                component.LifeStyle,
-                meta.Constructors,
-                eles
-            );
+            return new ServiceManyContext()
+            {
+                ServiceType = serviceType,
+                ImplementionType = meta.Type,
+                LifeStyle = component.LifeStyle,
+                Constrcutors = meta.Constructors,
+                Elements = elements
+            };
         }
 
-        protected virtual IEnumerable<IServiceContext> CreateManyContext(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateManyContext(Type serviceType)
         {
-            var ctxs = new List<IServiceContext>();
+            var ctxs = new List<ServiceContext>();
             var ctx = CreateContextEnumerable(serviceType);
             if (ctx != null)
             {
@@ -192,23 +215,23 @@ namespace Tinja.Resolving.Context
             return ctxs;
         }
 
-        protected virtual IEnumerable<IServiceContext> CreateManyContextDirectly(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateManyContextDirectly(Type serviceType)
         {
             return Components.TryGetValue(serviceType, out var components)
                 ? components.Select(i => CreateContext(serviceType, i))
-                : new IServiceContext[0];
+                : new ServiceContext[0];
         }
 
-        protected virtual IEnumerable<IServiceContext> CreateManyContextOpenGeneric(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateManyContextOpenGeneric(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType)
             {
-                return new IServiceContext[0];
+                return new ServiceContext[0];
             }
 
             return Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components)
                 ? components.Select(i => CreateContext(serviceType, i))
-                : new IServiceContext[0];
+                : new ServiceContext[0];
         }
 
         protected TypeMetadata MakeTypeMetadata(Type serviceType, Type implementionType)

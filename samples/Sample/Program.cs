@@ -1,12 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Reflection;
+﻿using System;
 using System.Threading.Tasks;
 using Tinja;
 using Tinja.Extensions;
 using Tinja.Interception;
-using Tinja.Interception.Executors;
-using Tinja.Interception.Generators;
 using Tinja.ServiceLife;
 
 namespace Sample

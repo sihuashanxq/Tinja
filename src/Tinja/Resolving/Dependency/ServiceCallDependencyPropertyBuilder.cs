@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Reflection;
 using Tinja.ServiceLife;
-using Tinja.Extensions;
 using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
@@ -49,7 +48,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual void BuildPropertyCallDependencyCore(ServiceCallDependency callDependency)
         {
-            var properties = callDependency.Context.GetImplementionType()
+            var properties = callDependency.Context.ImplementionType
                 .GetProperties()
                 .Where(i => i.CanRead && i.CanWrite && i.IsDefined(typeof(InjectAttribute)))
                 .ToArray();
@@ -94,7 +93,7 @@ namespace Tinja.Resolving.Dependency
             callDependency.Properties = callDependencies;
         }
 
-        protected CircularDependencyResolveResult ResolvePropertyCircularDependency(IServiceContext context)
+        protected CircularDependencyResolveResult ResolvePropertyCircularDependency(ServiceContext context)
         {
             if (!CallDenpendencyScope
                 .ServiceDependStack
@@ -109,7 +108,7 @@ namespace Tinja.Resolving.Dependency
             var result = new CircularDependencyResolveResult()
             {
                 Break = false,
-                CallDependency = CallDenpendencyScope.ResolvedServices.GetValueOrDefault(context.GetImplementionType())
+                CallDependency = CallDenpendencyScope.ResolvedServices.GetValueOrDefault(context.ImplementionType)
             };
 
             if (result.CallDependency != null)
@@ -120,7 +119,7 @@ namespace Tinja.Resolving.Dependency
             return result;
         }
 
-        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(IServiceContext target, IServiceContext parameter)
+        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext target, ServiceContext parameter)
         {
             if (target.LifeStyle == ServiceLifeStyle.Transient)
             {
@@ -133,7 +132,7 @@ namespace Tinja.Resolving.Dependency
                 return new CircularDependencyResolveResult()
                 {
                     Break = false,
-                    CallDependency = CallDenpendencyScope.ResolvedServices.GetValueOrDefault(parameter.GetImplementionType())
+                    CallDependency = CallDenpendencyScope.ResolvedServices.GetValueOrDefault(parameter.ImplementionType)
                 };
             }
 

@@ -7,7 +7,7 @@ namespace Tinja.Resolving.Dependency
     {
         public Type ServiceType { get; set; }
 
-        public IServiceContext Context { get; set; }
+        public ServiceContext Context { get; set; }
 
         public ServiceCallDependencyScopeType ScopeType { get; set; }
 

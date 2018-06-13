@@ -8,6 +8,6 @@ namespace Tinja.ServiceLife
     {
         object ApplyServiceLifeStyle(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory);
 
-        object ApplyServiceLifeStyle(IServiceContext context, Func<IServiceResolver, object> factory);
+        object ApplyServiceLifeStyle(ServiceContext context, Func<IServiceResolver, object> factory);
     }
 }

@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
-using Tinja.Extensions;
+
 namespace Tinja.Resolving.Activation
 {
     public class ServicePropertyCircularDependencyActivatorFactory : IServiceActivatorFactory
@@ -99,27 +99,27 @@ namespace Tinja.Resolving.Activation
 
             if (callDependency.Constructor == null)
             {
-                func = BuildWithImplFactory(callDependency);
+                func = BuildDelegateImplemention(callDependency);
             }
             else if (callDependency is ServiceManyCallDependency enumerable)
             {
-                func = BuildWithEnumerable(enumerable);
+                func = BuildManyImplemention(enumerable);
             }
             else
             {
-                func = BuildWithConstructor(callDependency);
+                func = BuildTypeImplemention(callDependency);
             }
 
             return func == null ? null : WrapperWithLifeStyle(func, callDependency);
         }
 
-        protected static Expression BuildWithImplFactory(ServiceCallDependency callDependency)
+        protected static Expression BuildDelegateImplemention(ServiceCallDependency callDependency)
         {
             var factory = (Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object>)
                 Expression
                 .Lambda(
                     Expression.Invoke(
-                        Expression.Constant(callDependency.Context.GetImplementionFactory()),
+                        Expression.Constant(callDependency.Context.ImplementionFactory),
                         ResolverParameter
                     ),
                     ScopeParameter,
@@ -130,7 +130,7 @@ namespace Tinja.Resolving.Activation
             return Expression.Constant(factory);
         }
 
-        protected static Expression BuildWithConstructor(ServiceCallDependency callDependency)
+        protected static Expression BuildTypeImplemention(ServiceCallDependency callDependency)
         {
             var parameterValues = new Expression[callDependency.Parameters?.Count ?? 0];
             var varible = Expression.Variable(callDependency.Constructor.ConstructorInfo.DeclaringType);
@@ -185,10 +185,10 @@ namespace Tinja.Resolving.Activation
             return Expression.Constant(factory);
         }
 
-        protected static Expression BuildWithEnumerable(ServiceManyCallDependency callDependency)
+        protected static Expression BuildManyImplemention(ServiceManyCallDependency callDependency)
         {
             var elementInits = new ElementInit[callDependency.Elements.Length];
-            var addElement = callDependency.Context.GetImplementionType().GetMethod("Add");
+            var addElement = callDependency.Context.ImplementionType.GetMethod("Add");
 
             for (var i = 0; i < elementInits.Length; i++)
             {
