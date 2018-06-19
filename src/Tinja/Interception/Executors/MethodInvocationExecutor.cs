@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Tinja.Extensions;
 
@@ -35,22 +36,31 @@ namespace Tinja.Interception.Executors
                 return inv.ResultValue;
             }
 
-            return GetAsyncReturnValue(task, new TaskCompletionSource<object>(), inv);
+            return GetAsyncReturnValue(task, inv);
         }
 
-        private static object GetAsyncReturnValue(Task task, TaskCompletionSource<object> taskCompletion, IMethodInvocation inv)
+        private static object GetAsyncReturnValue(Task task, IMethodInvocation inv)
         {
-            task.GetAwaiter().OnCompleted(() =>
-            {
-                taskCompletion.SetResult(inv.ResultValue);
-            });
+            var taskCompletionSource = new TaskCompletionSource<int>();
 
             if (inv.TargetMethod.ReturnType.IsValueTask())
             {
-                return Activator.CreateInstance(typeof(ValueTask<>).MakeGenericType(inv.TargetMethod.ReturnType.GetGenericArguments()), taskCompletion.Task);
+                task.GetAwaiter().OnCompleted(() =>
+                {
+                    var t = task;
+                    taskCompletionSource.SetResult((int)inv.ResultValue);
+                });
+
+                return new ValueTask<int>(taskCompletionSource.Task);
             }
 
-            return taskCompletion.Task;
+            task.GetAwaiter().OnCompleted(() =>
+            {
+                var t = task;
+                taskCompletionSource.SetResult((int)inv.ResultValue);
+            });
+
+            return taskCompletionSource.Task;
         }
     }
 }

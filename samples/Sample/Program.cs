@@ -190,10 +190,32 @@ namespace Sample
 
         public abstract event Action<int> OnAction;
 
+        public virtual ValueTask<int> GetIdAsync()
+        {
+            return new ValueTask<int>(Task<int>.Run(() =>
+            {
+                System.Threading.Thread.Sleep(5000);
+                return 5;
+            }));
+        }
+
+        public virtual Task<int> GetIdAsync2()
+        {
+            return Task<int>.Run(() =>
+           {
+               System.Threading.Thread.Sleep(5000);
+               return 5;
+           });
+        }
     }
 
     class Program
     {
+        static async ValueTask<int> M2(A2 a2)
+        {
+            return await a2.GetIdAsync();
+        }
+
         static void Main(string[] args)
         {
             var watch = new System.Diagnostics.Stopwatch();
@@ -218,16 +240,9 @@ namespace Sample
             var z = 5;
             object o = null;
             var a2 = resolver.Resolve(typeof(A2)) as A2;
-            a2.OnAction += (nn) => Console.WriteLine(nn);
-            var n2 = resolver.Resolve<IAbc>();
-            n2.OnAction += (n3) => Console.WriteLine(n3);
 
-            a2.SetId(ref z);
-            a2.SetObj(ref o);
-
-            a2.SetOutId(out z);
-
-
+            var m = a2.GetIdAsync().Result;
+            //var n2 = a2.GetIdAsync2().Result;
             watch.Reset();
             watch.Start();
             for (var i = 0; i < 1000000; i++)

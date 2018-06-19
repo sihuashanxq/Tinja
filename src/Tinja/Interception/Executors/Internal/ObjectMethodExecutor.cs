@@ -20,9 +20,20 @@ namespace Tinja.Interception.Executors.Internal
         public ObjectMethodExecutor(MethodInfo methodInfo)
         {
             MethodInfo = methodInfo;
-            MethodExecutor = typeof(Task).IsAssignableFrom(methodInfo.ReturnType)
-                ? CreateAsyncExecutor(MethodInfo)
-                : CreateAsyncExecutorWrapper(MethodInfo);
+
+            if (methodInfo.ReturnType.IsValueTask())
+            {
+                MethodExecutor = CreateValueTaskAsyncExecutor(methodInfo);
+                return;
+            }
+
+            if (methodInfo.ReturnType.IsTask())
+            {
+                MethodExecutor = CreateTaskAsyncExecutor(methodInfo);
+                return;
+            }
+
+            MethodExecutor = CreateAsyncExecutorWrapper(MethodInfo);
         }
 
         public Task<object> ExecuteAsync(object instance, object[] paramterValues)
@@ -43,7 +54,7 @@ namespace Tinja.Interception.Executors.Internal
             return (obj, paramterValues) => Task.FromResult(((Func<object, object[], object>)executor)(obj, paramterValues));
         }
 
-        private static Func<object, object[], Task<object>> CreateAsyncExecutor(MethodInfo methodInfo)
+        private static Func<object, object[], Task<object>> CreateTaskAsyncExecutor(MethodInfo methodInfo)
         {
             var instance = Expression.Parameter(typeof(object), "instance");
             var taskCompletionSourceType = typeof(TaskCompletionSource<object>);
@@ -65,7 +76,7 @@ namespace Tinja.Interception.Executors.Internal
 
             var lambdaBody = Expression.Block(
                 new[] { task, awaiter },
-                Expression.Assign(task, methodInvocation),
+                Expression.Assign(task, Expression.Convert(methodInvocation, task.Type)),
                 Expression.Assign(awaiter, getAwaiter),
                 Expression.Call(
                     awaiter,
@@ -75,7 +86,7 @@ namespace Tinja.Interception.Executors.Internal
                             Expression.NotEqual(getException, Expression.Constant(null)),
                             Expression.Call(
                                 tcs,
-                                taskCompletionSourceType.GetMethod("SetResult"),
+                                taskCompletionSourceType.GetMethod("SetException", new[] { typeof(Exception) }),
                                 getException
                             ),
                             Expression.Call(
@@ -83,7 +94,68 @@ namespace Tinja.Interception.Executors.Internal
                                 taskCompletionSourceType.GetMethod("SetResult"),
                                 isVoidMethod
                                     ? (Expression)Expression.Constant(null)
-                                    : Expression.Call(awaiter, awaiterType.GetMethod("GetResult"))
+                                    : Expression.Convert(Expression.Call(awaiter, awaiterType.GetMethod("GetResult")), typeof(object))
+                            )
+                        )
+                    )
+                ),
+                Expression.Label(Expression.Label())
+            );
+
+            var lambda = Expression.Lambda(lambdaBody, instance, parametersParameter, tcs);
+            var executor = (Action<object, object[], TaskCompletionSource<object>>)lambda.Compile();
+
+            return (obj, args) =>
+            {
+                var taskCompletionSource = new TaskCompletionSource<object>();
+
+                executor(obj, args, taskCompletionSource);
+
+                return taskCompletionSource.Task;
+            };
+        }
+
+        public static void M(object o)
+        {
+
+        }
+
+        private static Func<object, object[], Task<object>> CreateValueTaskAsyncExecutor(MethodInfo methodInfo)
+        {
+            var instance = Expression.Parameter(typeof(object), "instance");
+            var taskCompletionSourceType = typeof(TaskCompletionSource<object>);
+            var tcs = Expression.Parameter(taskCompletionSourceType, "tcs");
+            var parametersParameter = Expression.Parameter(typeof(object[]), "parameters");
+
+            var invoker = CreateMethodInvoker(methodInfo);
+            var methodInvocation = Expression.Invoke(Expression.Constant(invoker), instance, parametersParameter);
+
+            var awaiterType = typeof(TaskAwaiter<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments());
+            var task = Expression.Variable(typeof(Task<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments()), "task");
+            var awaiter = Expression.Variable(awaiterType, "awaiter");
+            var getAwaiter = Expression.Call(task, task.Type.GetMethod("GetAwaiter"));
+            var getException = Expression.MakeMemberAccess(task, task.Type.GetProperty("Exception"));
+
+            var lambdaBody = Expression.Block(
+                new[] { task, awaiter },
+                Expression.Assign(task, Expression.Convert(methodInvocation, task.Type)),
+                Expression.Assign(awaiter, getAwaiter),
+
+                Expression.Call(
+                    awaiter,
+                    awaiterType.GetMethod("OnCompleted"),
+                    Expression.Lambda<Action>(
+                         Expression.IfThenElse(
+                            Expression.NotEqual(getException, Expression.Constant(null)),
+                            Expression.Call(
+                                tcs,
+                                taskCompletionSourceType.GetMethod("SetException", new[] { typeof(Exception) }),
+                                getException
+                            ),
+                            Expression.Call(
+                                tcs,
+                                taskCompletionSourceType.GetMethod("SetResult"),
+                                Expression.Convert(Expression.Call(awaiter, awaiterType.GetMethod("GetResult")), typeof(object))
                             )
                         )
                     )
@@ -113,10 +185,10 @@ namespace Tinja.Interception.Executors.Internal
             var ilGen = dynamicMethod.GetILGenerator();
             var methodReturnValue = methodInfo.IsVoidMethod()
                 ? ilGen.DeclareLocal(typeof(object))
-                : ilGen.DeclareLocal(methodInfo.ReturnType);
+                : ilGen.DeclareLocal(typeof(Task<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments()));
 
+            ilGen.Emit(OpCodes.Ldnull);
             ilGen.LoadArgument(0);
-
             for (var i = 0; i < parameterInfos.Length; i++)
             {
                 var parameterInfo = parameterInfos[i];
@@ -134,8 +206,17 @@ namespace Tinja.Interception.Executors.Internal
             }
 
             ilGen.Call(methodInfo);
+            ilGen.Box()
+            ilGen.Call(typeof(ObjectMethodExecutor).GetMethod("M"));
 
-            if (methodInfo.IsVoidMethod()) ilGen.Emit(OpCodes.Ldnull);
+            if (methodInfo.IsVoidMethod())
+            {
+                ilGen.Emit(OpCodes.Ldnull);
+            }
+            else
+            {
+                ilGen.Call(methodInfo.ReturnType.GetMethod("AsTask"));
+            }
 
             ilGen.SetVariableValue(methodReturnValue);
 

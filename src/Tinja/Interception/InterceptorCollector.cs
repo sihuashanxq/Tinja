@@ -25,8 +25,10 @@ namespace Tinja.Interception
                 {
                     yield return new MemberInterceptionBinding(interceptor, item);
                 }
-
-                throw new InvalidOperationException($"can not resolve the interceptor with type:{item.Interceptor.FullName}");
+                else
+                {
+                    throw new InvalidOperationException($"can not resolve the interceptor with type:{item.Interceptor.FullName}");
+                }
             }
         }
     }
