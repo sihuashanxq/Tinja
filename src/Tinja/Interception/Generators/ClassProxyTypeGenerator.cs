@@ -67,7 +67,8 @@ namespace Tinja.Interception.Generators
 
             ilGen.Call(MemberInterceptorFilter);
             ilGen.New(NewMethodInvocation);
-            ilGen.CallVirt(MethodInvocationExecute);
+
+            ilGen.InvokeMethodInvocation(methodInfo);
 
             ilGen.SetVariableValue(methodReturnValue);
 
@@ -139,7 +140,7 @@ namespace Tinja.Interception.Generators
             ilGen.LoadStaticField(GetField(property));
 
             ilGen.New(NewPropertyMethodInvocation);
-            ilGen.CallVirt(MethodInvocationExecute);
+            ilGen.InvokeMethodInvocation(methodInfo);
 
             ilGen.SetVariableValue(methodReturnValue);
 

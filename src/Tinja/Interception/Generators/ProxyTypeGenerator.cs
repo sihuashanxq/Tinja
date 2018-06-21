@@ -32,8 +32,6 @@ namespace Tinja.Interception.Generators
             typeof(IMethodInvocationExecutor)
         };
 
-        protected static MethodInfo MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
-
         protected static MethodInfo MemberInterceptorFilter = typeof(MemberInterceptorFilter).GetMethod("Filter");
 
         protected static ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]

@@ -115,11 +115,6 @@ namespace Tinja.Interception.Executors.Internal
             };
         }
 
-        public static void M(object o)
-        {
-
-        }
-
         private static Func<object, object[], Task<object>> CreateValueTaskAsyncExecutor(MethodInfo methodInfo)
         {
             var instance = Expression.Parameter(typeof(object), "instance");
@@ -180,14 +175,10 @@ namespace Tinja.Interception.Executors.Internal
         {
             var dynamicMethod = new DynamicMethod(methodInfo.Name, typeof(object), new[] { typeof(object), typeof(object[]) });
             var parameterInfos = methodInfo.GetParameters();
-
             var map = new Dictionary<int, LocalBuilder>();
             var ilGen = dynamicMethod.GetILGenerator();
-            var methodReturnValue = methodInfo.IsVoidMethod()
-                ? ilGen.DeclareLocal(typeof(object))
-                : ilGen.DeclareLocal(typeof(Task<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments()));
+            var resultValue = CreateResultValueVariable(ilGen, methodInfo);
 
-            ilGen.Emit(OpCodes.Ldnull);
             ilGen.LoadArgument(0);
             for (var i = 0; i < parameterInfos.Length; i++)
             {
@@ -206,19 +197,9 @@ namespace Tinja.Interception.Executors.Internal
             }
 
             ilGen.Call(methodInfo);
-            ilGen.Box()
-            ilGen.Call(typeof(ObjectMethodExecutor).GetMethod("M"));
+            ilGen.Emit(methodInfo.ReturnType.IsVoid() ? OpCodes.Ldnull : OpCodes.Nop);
 
-            if (methodInfo.IsVoidMethod())
-            {
-                ilGen.Emit(OpCodes.Ldnull);
-            }
-            else
-            {
-                ilGen.Call(methodInfo.ReturnType.GetMethod("AsTask"));
-            }
-
-            ilGen.SetVariableValue(methodReturnValue);
+            ilGen.SetVariableValue(resultValue);
 
             foreach (var kv in map)
             {
@@ -230,10 +211,29 @@ namespace Tinja.Interception.Executors.Internal
                 );
             }
 
-            ilGen.LoadVariable(methodReturnValue);
+            if (methodInfo.ReturnType.IsValueTask())
+            {
+                ilGen.LoadVariableRef(resultValue);
+                ilGen.Call(methodInfo.ReturnType.GetMethod("AsTask"));
+            }
+            else
+            {
+                ilGen.LoadVariable(resultValue);
+            }
+
             ilGen.Return();
 
             return (Func<object, object[], object>)dynamicMethod.CreateDelegate(typeof(Func<object, object[], object>));
+        }
+
+        private static LocalBuilder CreateResultValueVariable(ILGenerator ilGen, MethodInfo methodInfo)
+        {
+            if (methodInfo.IsVoidMethod())
+            {
+                return ilGen.DeclareLocal(typeof(object));
+            }
+
+            return ilGen.DeclareLocal(methodInfo.ReturnType);
         }
     }
 }

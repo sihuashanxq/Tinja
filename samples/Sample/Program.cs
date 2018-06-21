@@ -190,12 +190,13 @@ namespace Sample
 
         public abstract event Action<int> OnAction;
 
-        public virtual ValueTask<int> GetIdAsync()
+        public virtual ValueTask<T> GetIdAsync<T>()
         {
-            return new ValueTask<int>(Task<int>.Run(() =>
+            return new ValueTask<T>(Task<T>.Run(() =>
             {
                 System.Threading.Thread.Sleep(5000);
-                return 5;
+
+                return (T)Convert.ChangeType(5, typeof(T));
             }));
         }
 
@@ -211,11 +212,6 @@ namespace Sample
 
     class Program
     {
-        static async ValueTask<int> M2(A2 a2)
-        {
-            return await a2.GetIdAsync();
-        }
-
         static void Main(string[] args)
         {
             var watch = new System.Diagnostics.Stopwatch();
@@ -241,7 +237,7 @@ namespace Sample
             object o = null;
             var a2 = resolver.Resolve(typeof(A2)) as A2;
 
-            var m = a2.GetIdAsync().Result;
+            var m = a2.GetIdAsync<int>().Result;
             //var n2 = a2.GetIdAsync2().Result;
             watch.Reset();
             watch.Start();

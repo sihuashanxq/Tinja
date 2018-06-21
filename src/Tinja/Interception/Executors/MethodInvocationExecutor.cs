@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Tinja.Extensions;
 
@@ -14,7 +13,32 @@ namespace Tinja.Interception.Executors
             Builder = builder;
         }
 
-        public object Execute(IMethodInvocation inv)
+        public virtual TResult Execute<TResult>(IMethodInvocation inv)
+        {
+            ExecuteCore(inv).Wait();
+            return (TResult)inv.ResultValue;
+        }
+
+        public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation inv)
+        {
+            return new ValueTask<TResult>(ExecuteAsync<TResult>(inv));
+        }
+
+        public virtual Task<TResult> ExecuteAsync<TResult>(IMethodInvocation inv)
+        {
+            var task = ExecuteCore(inv);
+            var taskCompletionSource = new TaskCompletionSource<TResult>();
+
+            task.GetAwaiter().OnCompleted(() =>
+            {
+                taskCompletionSource.SetResult((TResult)inv.ResultValue);
+            });
+
+            return taskCompletionSource.Task;
+        }
+
+
+        protected Task ExecuteCore(IMethodInvocation inv)
         {
             var invoker = Builder.Build(inv.TargetMethod);
             if (invoker == null)
@@ -28,39 +52,7 @@ namespace Tinja.Interception.Executors
                 throw new NullReferenceException(nameof(task));
             }
 
-            if (!inv.TargetMethod.ReturnType.IsTask() &&
-                !inv.TargetMethod.ReturnType.IsValueTask())
-            {
-                task.Wait();
-
-                return inv.ResultValue;
-            }
-
-            return GetAsyncReturnValue(task, inv);
-        }
-
-        private static object GetAsyncReturnValue(Task task, IMethodInvocation inv)
-        {
-            var taskCompletionSource = new TaskCompletionSource<int>();
-
-            if (inv.TargetMethod.ReturnType.IsValueTask())
-            {
-                task.GetAwaiter().OnCompleted(() =>
-                {
-                    var t = task;
-                    taskCompletionSource.SetResult((int)inv.ResultValue);
-                });
-
-                return new ValueTask<int>(taskCompletionSource.Task);
-            }
-
-            task.GetAwaiter().OnCompleted(() =>
-            {
-                var t = task;
-                taskCompletionSource.SetResult((int)inv.ResultValue);
-            });
-
-            return taskCompletionSource.Task;
+            return task;
         }
     }
 }

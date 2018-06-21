@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading.Tasks;
+using Tinja.Extensions;
+using Tinja.Interception.Executors;
 
 namespace Tinja.Interception.Generators.Extensions
 {
     internal static class EmitExtensions
     {
-        internal static readonly MethodInfo MethodGetMethodFromHandle = typeof(MethodBase).GetMethod("GetMethodFromHandle", new [] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) });
+        internal static readonly MethodInfo MethodGetMethodFromHandle = typeof(MethodBase).GetMethod("GetMethodFromHandle", new[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) });
 
         internal static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod("GetTypeFromHandle", new[] { typeof(RuntimeTypeHandle) });
 
@@ -91,7 +95,7 @@ namespace Tinja.Interception.Generators.Extensions
             {
                 case TypeCode.Decimal:
                     ilGen.Emit(OpCodes.Ldc_I4_0);
-                    ilGen.Emit(OpCodes.Newobj, valueType.GetConstructor(new [] { typeof(int) }));
+                    ilGen.Emit(OpCodes.Newobj, valueType.GetConstructor(new[] { typeof(int) }));
                     break;
                 case TypeCode.Double:
                     ilGen.Emit(OpCodes.Ldc_R8, default(Double));
@@ -483,6 +487,34 @@ namespace Tinja.Interception.Generators.Extensions
         internal static ILGenerator TypeOf(this ILGenerator ilGen, Type type)
         {
             ilGen.Emit(OpCodes.Ldtoken, type);
+
+            return ilGen;
+        }
+
+        internal static MethodInfo MethodInvocationExecute = typeof(IMethodInvocationExecutor).GetMethod("Execute");
+
+        internal static MethodInfo MethodInvocationAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsync");
+
+        internal static MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteValueTaskAsync");
+
+        internal static ILGenerator InvokeMethodInvocation(this ILGenerator ilGen, MethodInfo methodInfo)
+        {
+            if (methodInfo.ReturnType.IsValueTask())
+            {
+                ilGen.CallVirt(MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
+            }
+            else if (methodInfo.ReturnType.IsTask())
+            {
+                ilGen.CallVirt(MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
+            }
+            else if (methodInfo.ReturnType.IsVoid())
+            {
+                ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(typeof(object)));
+            }
+            else
+            {
+                ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(methodInfo.ReturnType));
+            }
 
             return ilGen;
         }

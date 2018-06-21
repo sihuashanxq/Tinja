@@ -1,7 +1,13 @@
-﻿namespace Tinja.Interception.Executors
+﻿using System.Threading.Tasks;
+
+namespace Tinja.Interception.Executors
 {
     public interface IMethodInvocationExecutor
     {
-        object Execute(IMethodInvocation invocation);
+        TResult Execute<TResult>(IMethodInvocation invocation);
+
+        Task<TResult> ExecuteAsync<TResult>(IMethodInvocation invocation);
+
+        ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation invocation);
     }
 }
