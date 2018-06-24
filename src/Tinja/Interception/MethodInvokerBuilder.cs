@@ -29,8 +29,8 @@ namespace Tinja.Interception
             async Task ExecuteCore(IMethodInvocation invocation)
             {
                 invocation.ResultValue = await ObjectMethodExecutorProvider
-                    .GetExecutor(invocation.TargetMethod)
-                    .ExecuteAsync(invocation.Target, invocation.ParameterValues);
+                    .GetExecutor(invocation.Method)
+                    .ExecuteAsync(invocation.Object, invocation.ParameterValues);
             }
 
             Stack<Func<IMethodInvocation, Task>> CreateCallStack()

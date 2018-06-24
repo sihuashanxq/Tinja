@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Tinja;
 using Tinja.Extensions;
-using Tinja.Interception;
 using Tinja.ServiceLife;
 
-namespace Sample
+namespace ConsoleApp
 {
     public interface IServiceA
     {
@@ -16,7 +14,7 @@ namespace Sample
     {
         public ServiceA()
         {
-            //Console.WriteLine("A" + GetHashCode());
+
         }
     }
 
@@ -46,19 +44,19 @@ namespace Sample
         void Give();
     }
 
-    public interface IServiceXX<T>
+    public interface IServiceGeneric<T>
     {
 
     }
 
-    public class ServiceXX<T> : IServiceXX<T>
+    public class ServiceGeneric<T> : IServiceGeneric<T>
     {
         [Inject]
-        public IServiceXX<T> Instance { get; set; }
+        public IServiceGeneric<T> Instance { get; set; }
 
         public T t;
 
-        public ServiceXX(T t)
+        public ServiceGeneric(T t)
         {
             this.t = t;
         }
@@ -68,10 +66,7 @@ namespace Sample
     {
         public Service(IServiceA b)
         {
-            //B = b;
-            //Console.WriteLine("A" + b.GetHashCode());
-            ////Console.WriteLine("A" + serviceA.GetHashCode());
-            //Console.WriteLine(GetHashCode());
+
         }
 
         public void Dispose()
@@ -85,131 +80,6 @@ namespace Sample
         }
     }
 
-    public class A
-    {
-        [Inject]
-        public A A2 { get; set; }
-    }
-
-    public class InterceptorTest : IInterceptor
-    {
-        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
-        {
-            return next(invocation);
-            Console.WriteLine("brefore InterceptorTest             ");
-            var task = next(invocation);
-            Console.WriteLine("after InterceptorTest");
-            return task;
-        }
-    }
-
-    public class InterceptorTest2 : IInterceptor
-    {
-        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
-        {
-            invocation.ResultValue = 10000;
-            //Console.WriteLine("brefore InterceptorTest2222222222222222");
-            var task = next(invocation);
-            //Console.WriteLine("after InterceptorTest222222222222222222");
-            return task;
-        }
-    }
-
-    public class InterceptorTest3 : IInterceptor
-    {
-        public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
-        {
-            return next(invocation);
-            Console.WriteLine("brefore InterceptorTest2222222222222222");
-            var task = next(invocation);
-            Console.WriteLine("after InterceptorTest222222222222222222");
-            return task;
-        }
-    }
-
-    public class Abc
-    {
-        public event Action OnOk;
-
-        [Interceptor(typeof(InterceptorTest))]
-        public virtual T M<T>() where T : class
-        {
-            return default(T);
-        }
-
-        public void M2()
-        {
-
-        }
-
-        public int GetId(out int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        [Interceptor(typeof(InterceptorTest))]
-        public virtual object Id { get; set; }
-    }
-
-    [Interceptor(typeof(InterceptorTest3))]
-    public class Abc2 : Abc
-    {
-        //public override object M()
-        //{
-        //    Console.WriteLine("方法执行 执行");
-        //    return 6;
-        //}
-    }
-
-    public interface IAbc
-    {
-        [Interceptor(typeof(InterceptorTest3))]
-        T M<T>() where T : class;
-
-        int GetId(out int id);
-
-        event Action<int> OnAction;
-    }
-
-    [Interceptor(typeof(InterceptorTest3))]
-    public abstract class A2
-    {
-        public abstract string M();
-
-        public virtual void SetId(ref int id)
-        {
-            id = 2;
-        }
-
-        public virtual void SetObj(ref object obj)
-        {
-            obj = new { Id = 2 };
-        }
-
-        public abstract void SetOutId(out int id);
-
-        public abstract event Action<int> OnAction;
-
-        public virtual ValueTask<T> GetIdAsync<T>()
-        {
-            return new ValueTask<T>(Task<T>.Run(() =>
-            {
-                System.Threading.Thread.Sleep(5000);
-
-                return (T)Convert.ChangeType(5, typeof(T));
-            }));
-        }
-
-        public virtual Task<int> GetIdAsync2()
-        {
-            return Task<int>.Run(() =>
-           {
-               System.Threading.Thread.Sleep(5000);
-               return 5;
-           });
-        }
-    }
-
     class Program
     {
         static void Main(string[] args)
@@ -217,75 +87,18 @@ namespace Sample
             var watch = new System.Diagnostics.Stopwatch();
             var container = new Container();
 
-            container.AddService(typeof(IServiceA), _ => new ServiceA(), ServiceLifeStyle.Transient);
-            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Scoped);
-            container.AddService(typeof(IServiceXX<>), typeof(ServiceXX<>), ServiceLifeStyle.Scoped);
-            container.AddTransient<InterceptorTest, InterceptorTest>();
-            container.AddTransient<InterceptorTest2, InterceptorTest2>();
-            container.AddTransient<InterceptorTest3, InterceptorTest3>();
+            container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceB), typeof(ServiceB), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IService), typeof(Service), ServiceLifeStyle.Transient);
+            container.AddService(typeof(IServiceGeneric<>), typeof(ServiceGeneric<>), ServiceLifeStyle.Scoped);
 
-            container.AddTransient<IAbc, IAbc>();
-            container.AddTransient<A2, A2>();
             var resolver = container.BuildResolver();
+            resolver.Resolve(typeof(IService));
+            resolver.Resolve<IService>();
+            resolver.ResolveRequired(typeof(IService));
+            resolver.ResolveRequired<IService>();
 
-            watch.Reset();
-            watch.Start();
-            watch.Stop();
-            Console.WriteLine(watch.ElapsedMilliseconds);
-            var z = 5;
-            object o = null;
-            var a2 = resolver.Resolve(typeof(A2)) as A2;
-
-            var m = a2.GetIdAsync<int>().Result;
-            //var n2 = a2.GetIdAsync2().Result;
-            watch.Reset();
-            watch.Start();
-            for (var i = 0; i < 1000000; i++)
-            {
-                resolver.Resolve(typeof(A2));
-            }
-
-            watch.Start();
-            Console.WriteLine("Inter:" + watch.ElapsedMilliseconds);
-            watch.Reset();
-            var xxxxxx = new Abc();
-            watch.Start();
-            for (var i = 0; i < 10000000; i++)
-            {
-                xxxxxx.M2();
-            }
-
-            watch.Start();
-            Console.WriteLine("Inter2:" + watch.ElapsedMilliseconds);
-
-            var y = resolver.Resolve(typeof(IServiceA));
-            var b = resolver.Resolve(typeof(IServiceB));
-            var service = resolver.Resolve(typeof(IService));
-
-            watch.Reset();
-            watch.Start();
-
-            for (var i = 0; i < 10000_000; i++)
-            {
-                service = resolver.Resolve(typeof(IService));
-            }
-
-            watch.Stop();
-            Console.WriteLine(watch.ElapsedMilliseconds);
-
-            Console.WriteLine("Hello World!");
             Console.ReadKey();
-        }
-
-        private static void A2_OnAction(int obj)
-        {
-            throw new NotImplementedException();
-        }
-
-        private static void ProxyService_OnOk()
-        {
-
         }
     }
 }

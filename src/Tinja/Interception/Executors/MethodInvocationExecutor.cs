@@ -37,10 +37,9 @@ namespace Tinja.Interception.Executors
             return taskCompletionSource.Task;
         }
 
-
         protected Task ExecuteCore(IMethodInvocation inv)
         {
-            var invoker = Builder.Build(inv.TargetMethod);
+            var invoker = Builder.Build(inv.Method);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));

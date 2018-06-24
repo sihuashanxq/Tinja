@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Extensions.Dependency
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspnetCore", "samples\AspnetCore\AspnetCore.csproj", "{DC88E3A9-75A7-4D5B-ADD6-1FB42E9722DC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample", "samples\Sample\Sample.csproj", "{00AC7E13-581C-40D1-92F3-3BB4B65F9B12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp", "samples\Sample\ConsoleApp.csproj", "{00AC7E13-581C-40D1-92F3-3BB4B65F9B12}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
