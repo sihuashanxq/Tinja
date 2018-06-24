@@ -85,7 +85,8 @@ namespace Tinja.Resolving.Context
             {
                 return new ServiceContext()
                 {
-                     ServiceType = serviceType,
+                    LifeStyle = component.LifeStyle,
+                    ServiceType = serviceType,
                     ImplementionType = null,
                     Constrcutors = null,
                     ImplementionFactory = component.ImplementionFactory
