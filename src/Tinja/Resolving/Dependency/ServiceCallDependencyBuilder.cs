@@ -245,7 +245,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext instance, ServiceContext constrcutorParameter)
         {
-            throw new ServiceCallCircularExpcetion(constrcutorParameter.ImplementionType, $"Circulard ependencies at type:{constrcutorParameter.ImplementionType.FullName}");
+            throw new ServiceCallCircularException(constrcutorParameter.ImplementionType, $"Circulard ependencies at type:{constrcutorParameter.ImplementionType.FullName}");
         }
 
         protected virtual bool IsCircularDependency(ServiceContext ctx)
