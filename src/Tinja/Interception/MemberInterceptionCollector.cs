@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Configuration;
 using Tinja.Extensions;
 using Tinja.Interception.Members;
 
@@ -10,22 +11,29 @@ namespace Tinja.Interception
 {
     internal class MemberInterceptionCollector : IMemberInterceptionCollector
     {
-        private readonly ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>> _caches;
+        protected InterceptionConfiguration Configuration { get; }
 
         protected IMemberCollectorFactory MemberCollectorFactory { get; }
 
-        protected IEnumerable<IMemberInterceptionProvider> Providers { get; }
+        protected IEnumerable<IMemberInterceptionProvider> Providers => Configuration.Providers;
 
-        public MemberInterceptionCollector(IEnumerable<IMemberInterceptionProvider> providers, IMemberCollectorFactory memberCollectorFactory)
+        protected ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>> Caches { get; }
+
+        public MemberInterceptionCollector(InterceptionConfiguration configuration, IMemberCollectorFactory memberCollectorFactory)
         {
-            _caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>>();
-            Providers = providers;
+            Configuration = configuration;
             MemberCollectorFactory = memberCollectorFactory;
+            Caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>>();
         }
 
         public IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType, bool caching = true)
         {
-            return caching ? _caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectFromType(serviceType, implementionType)) : CollectFromType(serviceType, implementionType);
+            if (!Configuration.InterceptionEnabled)
+            {
+                return new MemberInterception[0];
+            }
+
+            return caching ? Caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectFromType(serviceType, implementionType)) : CollectFromType(serviceType, implementionType);
         }
 
         protected virtual IEnumerable<MemberInterception> CollectFromType(Type serviceType, Type implementionType)

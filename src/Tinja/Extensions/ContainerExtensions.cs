@@ -26,7 +26,7 @@ namespace Tinja.Extensions
             var configuration = ioc.BuildConfiguration();
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
             var memberInterceptionCollector = new MemberInterceptionCollector(
-                configuration.InterceptionProviders,
+                configuration.Interception,
                 MemberCollectorFactory.Default
             );
 

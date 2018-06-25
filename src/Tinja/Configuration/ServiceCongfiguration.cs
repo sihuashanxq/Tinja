@@ -7,12 +7,12 @@ namespace Tinja.Configuration
     {
         public InjectionConfiguration Injection { get; }
 
-        public List<IMemberInterceptionProvider> InterceptionProviders { get; }
+        public InterceptionConfiguration Interception { get; }
 
         public ServiceCongfiguration()
         {
             Injection = new InjectionConfiguration();
-            InterceptionProviders = new List<IMemberInterceptionProvider>();
+            Interception = new InterceptionConfiguration();
         }
     }
 }
