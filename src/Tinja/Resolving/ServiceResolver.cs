@@ -13,14 +13,11 @@ namespace Tinja.Resolving
         public IServiceLifeScope ServiceLifeScope { get; }
 
         /// <summary>
-        /// <see cref="IServiceActivatorProvider"/>
+        /// <see cref="IActivatorProvider"/>
         /// </summary>
-        protected IServiceActivatorProvider ServiceActivatorProvider { get; }
+        protected IActivatorProvider ServiceActivatorProvider { get; }
 
-        public ServiceResolver(
-            IServiceActivatorProvider serviceActivatorProvider,
-            IServiceLifeScopeFactory serviceLifeScopeFactory
-        )
+        public ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
         {
             ServiceLifeScope = serviceLifeScopeFactory.Create(this);
             ServiceActivatorProvider = serviceActivatorProvider;
@@ -29,7 +26,7 @@ namespace Tinja.Resolving
         internal ServiceResolver(IServiceResolver root)
         {
             ServiceLifeScope = root.Resolve<IServiceLifeScopeFactory>().Create(this, root.ServiceLifeScope);
-            ServiceActivatorProvider = root.Resolve<IServiceActivatorProvider>();
+            ServiceActivatorProvider = root.Resolve<IActivatorProvider>();
         }
 
         public object Resolve(Type serviceType)

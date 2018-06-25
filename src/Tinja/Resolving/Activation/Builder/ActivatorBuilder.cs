@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-
 using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
-    public class ServiceActivatorFactory : IServiceActivatorFactory
+    public class ActivatorBuilder : IActivatorBuilder
     {
         private delegate object ApplyLifeStyleDelegate(
             IServiceLifeScope lifeScope,
@@ -15,6 +14,8 @@ namespace Tinja.Resolving.Activation
             ServiceLifeStyle lifeStyle,
             Func<IServiceResolver, object> factory
         );
+
+        public static readonly IActivatorBuilder Default = new ActivatorBuilder();
 
         private static ParameterExpression ScopeParameter { get; }
 
@@ -24,7 +25,7 @@ namespace Tinja.Resolving.Activation
 
         private static ApplyLifeStyleDelegate ApplyLifeStyleFunc { get; }
 
-        static ServiceActivatorFactory()
+        static ActivatorBuilder()
         {
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
@@ -33,7 +34,7 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        public Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency callDependency)
+        public Func<IServiceResolver, IServiceLifeScope, object> Build(ServiceCallDependency callDependency)
         {
             var factory = CreateActivatorCore(callDependency);
             if (factory == null)

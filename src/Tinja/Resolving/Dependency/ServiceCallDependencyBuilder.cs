@@ -2,36 +2,48 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Configuration;
 using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceCallDependencyBuilder
+    public class ServiceCallDependencyBuilder : IServiceCallDependencyBuilder
     {
-        protected ServiceCallDependencyScope CallDenpendencyScope { get; set; }
+        private ServiceContext _startContext;
+
+        protected IServiceConfiguration Configuration { get; }
 
         protected IServiceContextFactory ContextFactory { get; set; }
 
-        private ServiceContext _startContext;
+        protected ServiceCallDependencyScope CallDenpendencyScope { get; set; }
 
-        public ServiceCallDependencyBuilder(IServiceContextFactory ctxFactory)
+        public ServiceCallDependencyBuilder(IServiceContextFactory contextFactory, IServiceConfiguration configuration)
         {
-            ContextFactory = ctxFactory;
+            Configuration = configuration;
+            ContextFactory = contextFactory;
             CallDenpendencyScope = new ServiceCallDependencyScope();
         }
 
-        public ServiceCallDependencyBuilder(ServiceCallDependencyScope callDenpendencyScope, IServiceContextFactory ctxFactory)
+        public ServiceCallDependencyBuilder(
+            ServiceCallDependencyScope callDenpendencyScope,
+            IServiceContextFactory contextFactory,
+            IServiceConfiguration configuration
+        )
         {
-            ContextFactory = ctxFactory;
+            Configuration = configuration;
+            ContextFactory = contextFactory;
             CallDenpendencyScope = callDenpendencyScope;
         }
 
-        public virtual ServiceCallDependency Build(ServiceContext ctx)
+        public virtual ServiceCallDependency Build(Type serviceType)
         {
-            if (_startContext == null)
+            var ctx = ContextFactory.CreateContext(serviceType);
+            if (ctx == null)
             {
-                _startContext = ctx;
+                return null;
             }
+
+            _startContext = ctx;
 
             return BuildCallDenpendency(ctx);
         }
@@ -40,14 +52,11 @@ namespace Tinja.Resolving.Dependency
         {
             if (ctx.ImplementionFactory != null)
             {
-                return CallDenpendencyScope.AddResolvedService(
-                    ctx,
-                    new ServiceCallDependency
-                    {
-                        Constructor = null,
-                        Context = ctx
-                    }
-                );
+                return new ServiceCallDependency()
+                {
+                    Context = ctx,
+                    Constructor = null
+                };
             }
 
             using (CallDenpendencyScope.BeginScope(ctx, ctx.ImplementionType, scopeType))
@@ -65,9 +74,18 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual ServiceCallDependency BuildPropertyCallDependency(ServiceCallDependency callDependency)
         {
+            if (!Configuration.Injection.PropertyInjectionEnabled)
+            {
+                return callDependency;
+            }
+
             if (callDependency.Context == _startContext)
             {
-                return new ServiceCallDependencyPropertyBuilder(CallDenpendencyScope, ContextFactory).BuildPropertyCallDependency(callDependency);
+                return new ServiceCallDependencyPropertyBuilder(
+                    CallDenpendencyScope,
+                    ContextFactory,
+                    Configuration
+                ).BuildPropertyCallDependency(callDependency);
             }
 
             return callDependency;

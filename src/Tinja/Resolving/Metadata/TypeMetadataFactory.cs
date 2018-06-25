@@ -5,16 +5,16 @@ namespace Tinja.Resolving.Metadata
 {
     public class TypeMetadataFactory : ITypeMetadataFactory
     {
-        private ConcurrentDictionary<Type, TypeMetadata> _metas;
+        private readonly ConcurrentDictionary<Type, TypeMetadata> _caches;
 
         public TypeMetadataFactory()
         {
-            _metas = new ConcurrentDictionary<Type, TypeMetadata>();
+            _caches = new ConcurrentDictionary<Type, TypeMetadata>();
         }
 
         public TypeMetadata Create(Type serviceType)
         {
-            return _metas.GetOrAdd(serviceType, (_) => new TypeMetadata(serviceType));
+            return _caches.GetOrAdd(serviceType, _ => new TypeMetadata(serviceType));
         }
     }
 }

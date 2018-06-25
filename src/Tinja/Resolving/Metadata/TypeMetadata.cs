@@ -13,7 +13,6 @@ namespace Tinja.Resolving.Metadata
         public TypeMetadata(Type type)
         {
             Type = type;
-
             Constructors = type
                 .GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Select(item => new TypeConstructor(item, item.GetParameters()))

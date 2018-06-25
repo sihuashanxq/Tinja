@@ -28,7 +28,7 @@ namespace Tinja.Resolving.Dependency
             Parameters = new Dictionary<ParameterInfo, ServiceCallDependency>();
         }
 
-        public virtual bool ContainsPropertyCircularDependencies()
+        public virtual bool ContainsPropertyCircular()
         {
             if (IsPropertyCircularDependencies)
             {
@@ -39,7 +39,7 @@ namespace Tinja.Resolving.Dependency
             {
                 foreach (var property in Properties)
                 {
-                    if (property.Value.ContainsPropertyCircularDependencies())
+                    if (property.Value.ContainsPropertyCircular())
                     {
                         return true;
                     }
@@ -48,7 +48,7 @@ namespace Tinja.Resolving.Dependency
 
             foreach (var parameter in Parameters)
             {
-                if (parameter.Value.ContainsPropertyCircularDependencies())
+                if (parameter.Value.ContainsPropertyCircular())
                 {
                     return true;
                 }

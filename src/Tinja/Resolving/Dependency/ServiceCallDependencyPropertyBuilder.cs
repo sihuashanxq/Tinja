@@ -3,13 +3,14 @@ using System.Linq;
 using System.Reflection;
 using Tinja.ServiceLife;
 using Tinja.Resolving.Context;
+using Tinja.Configuration;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceCallDependencyPropertyBuilder : ServiceCallDependencyBuilder
+    internal class ServiceCallDependencyPropertyBuilder : ServiceCallDependencyBuilder
     {
-        public ServiceCallDependencyPropertyBuilder(ServiceCallDependencyScope scope, IServiceContextFactory ctxFactory)
-            : base(scope, ctxFactory)
+        internal ServiceCallDependencyPropertyBuilder(ServiceCallDependencyScope scope, IServiceContextFactory ctxFactory, IServiceConfiguration configuration)
+            : base(scope, ctxFactory, configuration)
         {
 
         }
@@ -83,10 +84,10 @@ namespace Tinja.Resolving.Dependency
                     }
                 }
 
-                var propertyChain = BuildCallDenpendency(context, ServiceCallDependencyScopeType.Property);
-                if (propertyChain != null)
+                var propCallDependency = BuildCallDenpendency(context, ServiceCallDependencyScopeType.Property);
+                if (propCallDependency != null)
                 {
-                    callDependencies[item] = propertyChain;
+                    callDependencies[item] = propCallDependency;
                 }
             }
 
@@ -158,10 +159,10 @@ namespace Tinja.Resolving.Dependency
                 };
             }
 
-            //twice to circle
+            //circle depth
             return new CircularDependencyResolveResult()
             {
-                Break = scopes.Where(i => i.Context.ServiceType == parameter.ServiceType).Count() > 1,
+                Break = scopes.Where(i => i.Context.ServiceType == parameter.ServiceType).Count() >= Configuration.Injection.PropertyInjectionCircularDepth,
                 CallDependency = null
             };
         }

@@ -84,7 +84,6 @@ namespace ConsoleApp
     {
         static void Main(string[] args)
         {
-            var watch = new System.Diagnostics.Stopwatch();
             var container = new Container();
 
             container.AddService(typeof(IServiceA), typeof(ServiceA), ServiceLifeStyle.Transient);
@@ -94,7 +93,7 @@ namespace ConsoleApp
 
             var resolver = container.BuildResolver();
             resolver.Resolve(typeof(IService));
-            resolver.Resolve<IService>();
+            resolver.Resolve<IServiceB>();
             resolver.ResolveRequired(typeof(IService));
             resolver.ResolveRequired<IService>();
 

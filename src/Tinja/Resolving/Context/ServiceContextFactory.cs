@@ -11,7 +11,7 @@ namespace Tinja.Resolving.Context
 {
     public class ServiceContextFactory : IServiceContextFactory
     {
-        protected ConcurrentDictionary<Type, List<ServiceComponent>> Components { get; }
+        protected ConcurrentDictionary<Type, List<Component>> Components { get; }
 
         protected ITypeMetadataFactory TypeFactory { get; }
 
@@ -21,10 +21,10 @@ namespace Tinja.Resolving.Context
         {
             InterceptionProvider = provider;
             TypeFactory = typeFactory;
-            Components = new ConcurrentDictionary<Type, List<ServiceComponent>>();
+            Components = new ConcurrentDictionary<Type, List<Component>>();
         }
 
-        public virtual void Initialize(ConcurrentDictionary<Type, List<ServiceComponent>> components)
+        public virtual void Initialize(ConcurrentDictionary<Type, List<Component>> components)
         {
             foreach (var kv in components)
             {
@@ -51,7 +51,7 @@ namespace Tinja.Resolving.Context
             }
         }
 
-        protected virtual void InitializeProxyType(ServiceComponent component)
+        protected virtual void InitializeProxyType(Component component)
         {
             if (component.ImplementionType.IsInterface)
             {
@@ -79,7 +79,7 @@ namespace Tinja.Resolving.Context
                 CreateContextEnumerable(serviceType);
         }
 
-        protected ServiceContext CreateContext(Type serviceType, ServiceComponent component)
+        protected ServiceContext CreateContext(Type serviceType, Component component)
         {
             if (component.ImplementionFactory != null)
             {
@@ -179,7 +179,7 @@ namespace Tinja.Resolving.Context
                 return null;
             }
 
-            var component = new ServiceComponent()
+            var component = new Component()
             {
                 ServiceType = typeof(IEnumerable<>),
                 ImplementionType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
@@ -245,7 +245,7 @@ namespace Tinja.Resolving.Context
             return TypeFactory.Create(implementionType);
         }
 
-        private bool ShouldCreateProxyType(ServiceComponent component)
+        private bool ShouldCreateProxyType(Component component)
         {
             if (component == null)
             {

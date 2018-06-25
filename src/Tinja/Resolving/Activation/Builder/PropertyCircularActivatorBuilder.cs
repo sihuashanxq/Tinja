@@ -8,8 +8,10 @@ using Tinja.Resolving.Dependency;
 
 namespace Tinja.Resolving.Activation
 {
-    public class ServicePropertyCircularDependencyActivatorFactory : IServiceActivatorFactory
+    public class PropertyCircularActivatorBuilder : IActivatorBuilder
     {
+        public static IActivatorBuilder Default = new PropertyCircularActivatorBuilder();
+
         private delegate object ApplyLifeStyleDelegate(
             IServiceLifeScope scope,
             Type serviceType,
@@ -30,7 +32,7 @@ namespace Tinja.Resolving.Activation
 
         private static Action<IServiceResolver, PropertyCircularInjectionContext> SetPropertyValueFunc { get; }
 
-        static ServicePropertyCircularDependencyActivatorFactory()
+        static PropertyCircularActivatorBuilder()
         {
             ScopeParameter = Expression.Parameter(typeof(IServiceLifeScope));
             ResolverParameter = Expression.Parameter(typeof(IServiceResolver));
@@ -40,7 +42,7 @@ namespace Tinja.Resolving.Activation
             ApplyLifeStyleFuncConstant = Expression.Constant(ApplyLifeStyleFunc, typeof(ApplyLifeStyleDelegate));
         }
 
-        public virtual Func<IServiceResolver, IServiceLifeScope, object> Create(ServiceCallDependency callDependency)
+        public virtual Func<IServiceResolver, IServiceLifeScope, object> Build(ServiceCallDependency callDependency)
         {
             var factory = CreateActivatorCore(callDependency);
             if (factory == null)

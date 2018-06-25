@@ -4,7 +4,7 @@ using Tinja.ServiceLife;
 
 namespace Tinja
 {
-    public class ServiceComponent
+    public class Component
     {
         public Type ProxyType { get; set; }
 
@@ -35,7 +35,7 @@ namespace Tinja
                 return true;
             }
 
-            if (obj is ServiceComponent component)
+            if (obj is Component component)
             {
                 return
                     LifeStyle == component.LifeStyle &&
@@ -48,7 +48,7 @@ namespace Tinja
             return false;
         }
 
-        public static bool operator ==(ServiceComponent left, ServiceComponent right)
+        public static bool operator ==(Component left, Component right)
         {
             if (!(left is null))
             {
@@ -63,14 +63,14 @@ namespace Tinja
             return true;
         }
 
-        public static bool operator !=(ServiceComponent left, ServiceComponent right)
+        public static bool operator !=(Component left, Component right)
         {
             return !(left == right);
         }
 
-        public ServiceComponent Clone()
+        public Component Clone()
         {
-            return new ServiceComponent()
+            return new Component()
             {
                 ProxyType = ProxyType,
                 ImplementionFactory = ImplementionFactory,

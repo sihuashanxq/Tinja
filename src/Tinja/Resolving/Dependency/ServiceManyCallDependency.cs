@@ -9,11 +9,11 @@
             Elements = new ServiceCallDependency[0];
         }
 
-        public override bool ContainsPropertyCircularDependencies()
+        public override bool ContainsPropertyCircular()
         {
             foreach (var item in Elements)
             {
-                if (item.ContainsPropertyCircularDependencies())
+                if (item.ContainsPropertyCircular())
                 {
                     return true;
                 }
