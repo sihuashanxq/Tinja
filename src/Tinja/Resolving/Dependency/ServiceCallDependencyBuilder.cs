@@ -226,7 +226,7 @@ namespace Tinja.Resolving.Dependency
 
             for (var i = 0; i < ctx.Elements.Count; i++)
             {
-                var ele = BuildImplemention(ctx.Elements[i]);
+                var ele = BuildCallDenpendency(ctx.Elements[i]);
                 if (ele == null)
                 {
                     continue;
