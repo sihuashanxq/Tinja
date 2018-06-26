@@ -5,7 +5,7 @@ namespace Tinja.Configuration
 {
     public class InterceptionConfiguration
     {
-        public bool InterceptionEnabled { get; set; } = true;
+        public bool EnableInterception { get; set; } = true;
 
         public List<IMemberInterceptionProvider> Providers { get; }
 

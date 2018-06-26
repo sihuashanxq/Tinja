@@ -52,29 +52,27 @@ namespace Tinja.Resolving.Dependency
         {
             if (ctx.ImplementionFactory != null)
             {
-                return new ServiceCallDependency()
-                {
-                    Context = ctx,
-                    Constructor = null
-                };
+                return new ServiceCallDependency(ctx);
             }
 
             using (CallDenpendencyScope.BeginScope(ctx, ctx.ImplementionType, scopeType))
             {
-                var callDependency = BuildImplemention(ctx);
-                if (callDependency != null)
+                var callDependency = ResolveCallDependency(ctx);
+                if (callDependency == null)
                 {
-                    CallDenpendencyScope.AddResolvedService(ctx, callDependency);
-                    return BuildPropertyCallDependency(callDependency);
+                    return null;
                 }
 
-                return null;
+                AddResolvedService(ctx, callDependency);
+                ResolvePropertyCallDependency(callDependency);
+
+                return callDependency;
             }
         }
 
-        protected virtual ServiceCallDependency BuildPropertyCallDependency(ServiceCallDependency callDependency)
+        protected virtual ServiceCallDependency ResolvePropertyCallDependency(ServiceCallDependency callDependency)
         {
-            if (!Configuration.Injection.PropertyInjectionEnabled)
+            if (!Configuration.Injection.EnablePropertyInjection)
             {
                 return callDependency;
             }
@@ -85,28 +83,26 @@ namespace Tinja.Resolving.Dependency
                     CallDenpendencyScope,
                     ContextFactory,
                     Configuration
-                ).BuildPropertyCallDependency(callDependency);
+                ).ResolvePropertyCallDependency(callDependency);
             }
 
             return callDependency;
         }
 
-        protected virtual ServiceCallDependency BuildImplemention(ServiceContext ctx)
+        protected virtual ServiceCallDependency ResolveCallDependency(ServiceContext ctx)
         {
             switch (ctx)
             {
-                case ServiceProxyContext proxyCtx:
-                    return BuildProxyImplemention(proxyCtx);
-                case ServiceManyContext mayCtx:
-                    return BuildManyImplemention(mayCtx);
-                case ServiceContext typeCtx:
-                    return BuildTypeImplemention(typeCtx);
+                case ServiceManyContext many:
+                    return ResolveManyCallDependency(many);
+                case ServiceProxyContext proxy:
+                    return ResolveProxyCallDependency(proxy);
                 default:
-                    throw new InvalidOperationException();
+                    return ResolveDefaultCallDependency(ctx);
             }
         }
 
-        protected virtual ServiceCallDependency BuildTypeImplemention(ServiceContext ctx)
+        protected virtual ServiceCallDependency ResolveDefaultCallDependency(ServiceContext ctx)
         {
             var callDependencies = new Dictionary<ParameterInfo, ServiceCallDependency>();
 
@@ -114,65 +110,67 @@ namespace Tinja.Resolving.Dependency
             {
                 foreach (var item in constructor.Paramters)
                 {
-                    var context = ContextFactory.CreateContext(item.ParameterType);
-                    if (context == null)
+                    if (ResolveConstrucotrParameter(ctx, item, callDependencies))
                     {
-                        callDependencies.Clear();
                         break;
                     }
-
-                    if (IsCircularDependency(context))
-                    {
-                        var result = ResolveParameterCircularDependency(ctx, context);
-                        if (result.Break)
-                        {
-                            callDependencies.Clear();
-                            break;
-                        }
-
-                        if (result.CallDependency != null)
-                        {
-                            callDependencies[item] = result.CallDependency;
-                        }
-                    }
-
-                    var callDependency = BuildCallDenpendency(context, ServiceCallDependencyScopeType.Parameter);
-                    if (callDependency == null)
-                    {
-                        callDependencies.Clear();
-                        break;
-                    }
-
-                    callDependencies[item] = callDependency;
                 }
 
                 if (callDependencies.Count == constructor.Paramters.Length)
                 {
-                    return new ServiceCallDependency()
-                    {
-                        Constructor = constructor,
-                        Context = ctx,
-                        Parameters = callDependencies
-                    };
+                    return new ServiceCallDependency(ctx, constructor, callDependencies);
                 }
             }
 
             return null;
         }
 
-        protected virtual ServiceCallDependency BuildProxyImplemention(ServiceProxyContext ctx)
+        protected bool ResolveConstrucotrParameter(
+            ServiceContext ctx,
+            ParameterInfo item,
+            Dictionary<ParameterInfo, ServiceCallDependency> callDependencies
+        )
         {
-            //Override
-            if (ctx.ImplementionType.IsAssignableFrom(ctx.ProxyType))
+            var context = ContextFactory.CreateContext(item.ParameterType);
+            if (context == null)
             {
-                return BuildTypeImplemention(new ServiceContext()
-                {
-                    ServiceType = ctx.ServiceType,
-                    ImplementionType = ctx.ProxyType,
-                    LifeStyle = ctx.LifeStyle,
-                    Constrcutors = ctx.ProxyConstructors
-                });
+                callDependencies.Clear();
+                return true;
             }
+
+            if (IsCircularDependency(context))
+            {
+                var result = ResolveParameterCircularDependency(context, ctx);
+                if (result.Break)
+                {
+                    callDependencies.Clear();
+                    return true;
+                }
+
+                if (result.CallDependency != null)
+                {
+                    callDependencies[item] = result.CallDependency;
+                }
+            }
+
+            var callDependency = BuildCallDenpendency(context, ServiceCallDependencyScopeType.Parameter);
+            if (callDependency == null)
+            {
+                callDependencies.Clear();
+                return true;
+            }
+
+            callDependencies[item] = callDependency;
+            return false;
+        }
+
+        protected void AddResolvedService(ServiceContext ctx, ServiceCallDependency callDependency)
+        {
+            CallDenpendencyScope.AddResolvedService(ctx, callDependency);
+        }
+
+        protected virtual ServiceCallDependency ResolveProxyCallDependency(ServiceProxyContext ctx)
+        {
 
             var callDependencies = new Dictionary<ParameterInfo, ServiceCallDependency>();
 
@@ -180,71 +178,50 @@ namespace Tinja.Resolving.Dependency
             {
                 foreach (var item in constructor.Paramters)
                 {
-                    var context = ContextFactory.CreateContext(item.ParameterType);
-                    if (context == null)
-                    {
-                        callDependencies.Clear();
-                        break;
-                    }
-
                     if (item.ParameterType == ctx.ImplementionType)
                     {
-                        context = new ServiceContext()
+                        var proxyContext = new ServiceContext()
                         {
-                            ServiceType = context.ServiceType,
-                            ImplementionType = context.ImplementionType,
-                            LifeStyle = context.LifeStyle,
-                            Constrcutors = context.Constrcutors ?? new TypeConstructor[0],
-                            ImplementionFactory = context.ImplementionFactory
+                            ServiceType = ctx.ServiceType,
+                            ImplementionType = ctx.ImplementionType,
+                            LifeStyle = ctx.LifeStyle,
+                            Constrcutors = ctx.Constrcutors ?? new TypeConstructor[0],
+                            ImplementionFactory = ctx.ImplementionFactory
                         };
-                    }
 
-                    if (IsCircularDependency(context))
-                    {
-                        var result = ResolveParameterCircularDependency(ctx, context);
-                        if (result.Break)
+                        var callProxyDependency = BuildCallDenpendency(proxyContext, ServiceCallDependencyScopeType.Parameter);
+                        if (callProxyDependency == null)
                         {
                             callDependencies.Clear();
                             break;
                         }
 
-                        if (result.CallDependency != null)
-                        {
-                            callDependencies[item] = result.CallDependency;
-                        }
+                        callDependencies[item] = callProxyDependency;
+                        continue;
                     }
 
-                    var callDependency = BuildCallDenpendency(context, ServiceCallDependencyScopeType.Parameter);
-                    if (callDependency == null)
+                    if (ResolveConstrucotrParameter(ctx, item, callDependencies))
                     {
-                        callDependencies.Clear();
                         break;
                     }
-
-                    callDependencies[item] = callDependency;
                 }
 
                 if (callDependencies.Count == constructor.Paramters.Length)
                 {
-                    return new ServiceCallDependency()
-                    {
-                        Constructor = constructor,
-                        Context = ctx,
-                        Parameters = callDependencies
-                    };
+                    return new ServiceCallDependency(ctx, constructor, callDependencies);
                 }
             }
 
             return null;
         }
 
-        protected virtual ServiceCallDependency BuildManyImplemention(ServiceManyContext ctx)
+        protected virtual ServiceCallDependency ResolveManyCallDependency(ServiceManyContext ctx)
         {
             var eles = new List<ServiceCallDependency>();
 
-            for (var i = 0; i < ctx.Elements.Count; i++)
+            foreach (var item in ctx.Elements)
             {
-                var ele = BuildCallDenpendency(ctx.Elements[i]);
+                var ele = BuildCallDenpendency(item);
                 if (ele == null)
                 {
                     continue;
@@ -253,17 +230,15 @@ namespace Tinja.Resolving.Dependency
                 eles.Add(ele);
             }
 
-            return new ServiceManyCallDependency()
-            {
-                Context = ctx,
-                Constructor = ctx.Constrcutors.FirstOrDefault(i => i.Paramters.Length == 0),
-                Elements = eles.ToArray()
-            };
+            return new ServiceManyCallDependency(ctx, ctx.Constrcutors.FirstOrDefault(i => i.Paramters.Length == 0), eles.ToArray());
         }
 
-        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext instance, ServiceContext constrcutorParameter)
+        protected virtual CircularDependencyResolveResult ResolveParameterCircularDependency(
+            ServiceContext parameter,
+            ServiceContext instance
+        )
         {
-            throw new ServiceCallCircularException(constrcutorParameter.ImplementionType, $"Circulard ependencies at type:{constrcutorParameter.ImplementionType.FullName}");
+            throw new ServiceCallCircularException(parameter.ImplementionType, $"Circulard ependencies at type:{parameter.ImplementionType.FullName}");
         }
 
         protected virtual bool IsCircularDependency(ServiceContext ctx)

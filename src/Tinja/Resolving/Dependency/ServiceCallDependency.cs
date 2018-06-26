@@ -22,10 +22,12 @@ namespace Tinja.Resolving.Dependency
         /// </summary>
         public bool IsPropertyCircularDependencies { get; internal set; }
 
-        public ServiceCallDependency()
+        public ServiceCallDependency(ServiceContext ctx, TypeConstructor constructor = null, Dictionary<ParameterInfo, ServiceCallDependency> parameters = null)
         {
+            Context = ctx;
+            Constructor = constructor;
+            Parameters = parameters ?? new Dictionary<ParameterInfo, ServiceCallDependency>();
             Properties = new Dictionary<PropertyInfo, ServiceCallDependency>();
-            Parameters = new Dictionary<ParameterInfo, ServiceCallDependency>();
         }
 
         public virtual bool ContainsPropertyCircular()

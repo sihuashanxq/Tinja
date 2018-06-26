@@ -28,7 +28,7 @@ namespace Tinja.Interception
 
         public IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType, bool caching = true)
         {
-            if (!Configuration.InterceptionEnabled)
+            if (!Configuration.EnableInterception)
             {
                 return new MemberInterception[0];
             }

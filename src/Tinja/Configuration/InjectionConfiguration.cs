@@ -2,8 +2,8 @@
 {
     public class InjectionConfiguration
     {
-        public bool PropertyInjectionEnabled { get; set; } = true;
+        public bool EnablePropertyInjection { get; set; } = true;
 
-        public uint PropertyInjectionCircularDepth { get; set; } = 2;
+        public uint PropertyCircularDepth { get; set; } = 2;
     }
 }

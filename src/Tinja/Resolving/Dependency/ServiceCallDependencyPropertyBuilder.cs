@@ -15,41 +15,39 @@ namespace Tinja.Resolving.Dependency
 
         }
 
-        protected override ServiceCallDependency BuildPropertyCallDependency(ServiceCallDependency callDependency)
+        protected override ServiceCallDependency ResolvePropertyCallDependency(ServiceCallDependency callDependency)
         {
             if (callDependency is ServiceManyCallDependency manyCallDependency)
             {
-                foreach (var item in manyCallDependency
-                    .Elements
-                    .Where(i => i.Constructor != null))
+                foreach (var item in manyCallDependency.Elements.Where(i => i.Constructor != null))
                 {
-                    BuildPropertyCallDependencyCore(item);
+                    ResolvePropertyCallDependencyCore(item);
                 }
 
                 return callDependency;
             }
 
-            if (callDependency != null && callDependency.Constructor != null)
-            {
-                BuildPropertyCallDependencyCore(callDependency);
+            ResolvePropertyCallDependencyCore(callDependency);
 
-                if (callDependency.Parameters != null)
-                {
-                    foreach (var item in callDependency
-                        .Parameters
-                        .Where(i => i.Value.Constructor != null))
-                    {
-                        BuildPropertyCallDependency(item.Value);
-                    }
-                }
+            foreach (var item in callDependency.Parameters.Where(i => i.Value.Constructor != null))
+            {
+                ResolvePropertyCallDependency(item.Value);
             }
 
             return callDependency;
         }
 
-        protected virtual void BuildPropertyCallDependencyCore(ServiceCallDependency callDependency)
+        protected virtual void ResolvePropertyCallDependencyCore(ServiceCallDependency callDependency)
         {
-            var properties = callDependency.Context.ImplementionType
+            if (callDependency.Context.ImplementionType == null ||
+                callDependency.Context is ServiceProxyContext)
+            {
+                return;
+            }
+
+            var properties = callDependency
+                .Context
+                .ImplementionType
                 .GetProperties()
                 .Where(i => i.CanRead && i.CanWrite && i.IsDefined(typeof(InjectAttribute)))
                 .ToArray();
@@ -94,11 +92,66 @@ namespace Tinja.Resolving.Dependency
             callDependency.Properties = callDependencies;
         }
 
+        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext parameter, ServiceContext instance)
+        {
+            if (instance.LifeStyle == ServiceLifeStyle.Transient)
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            //singleton /scope
+            if (parameter.LifeStyle != ServiceLifeStyle.Transient)
+            {
+                return new CircularDependencyResolveResult()
+                {
+                    Break = false,
+                    CallDependency = CallDenpendencyScope
+                        .ResolvedServices
+                        .GetValueOrDefault(parameter.ImplementionType)
+                };
+            }
+
+            //parameter->property->parameter?
+            var startIndex = CallDenpendencyScope
+                .ServiceDependStack
+                .ToList()
+                .FindIndex(i => i.Context.ServiceType == parameter.ServiceType);
+
+            if (startIndex < 0)
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            var scopes = CallDenpendencyScope
+                .ServiceDependStack
+                .Skip(startIndex)
+                .ToList();
+
+            if (scopes.Any(i => i.ScopeType == ServiceCallDependencyScopeType.Parameter))
+            {
+                return CircularDependencyResolveResult.BreakResult;
+            }
+
+            if (scopes.Any(i => i.Context.LifeStyle != ServiceLifeStyle.Transient))
+            {
+                return new CircularDependencyResolveResult()
+                {
+                    Break = false,
+                    CallDependency = null
+                };
+            }
+
+            //circle depth
+            return new CircularDependencyResolveResult()
+            {
+                Break = scopes.Count(i => i.Context.ServiceType == parameter.ServiceType) >= Configuration.Injection.PropertyCircularDepth,
+                CallDependency = null
+            };
+        }
+
         protected CircularDependencyResolveResult ResolvePropertyCircularDependency(ServiceContext context)
         {
-            if (!CallDenpendencyScope
-                .ServiceDependStack
-                .Any(i => i.Context.LifeStyle != ServiceLifeStyle.Transient))
+            if (CallDenpendencyScope.ServiceDependStack.All(i => i.Context.LifeStyle == ServiceLifeStyle.Transient))
             {
                 return new CircularDependencyResolveResult()
                 {
@@ -118,53 +171,6 @@ namespace Tinja.Resolving.Dependency
             }
 
             return result;
-        }
-
-        protected override CircularDependencyResolveResult ResolveParameterCircularDependency(ServiceContext target, ServiceContext parameter)
-        {
-            if (target.LifeStyle == ServiceLifeStyle.Transient)
-            {
-                return CircularDependencyResolveResult.BreakResult;
-            }
-
-            //singleton /scope
-            if (parameter.LifeStyle != ServiceLifeStyle.Transient)
-            {
-                return new CircularDependencyResolveResult()
-                {
-                    Break = false,
-                    CallDependency = CallDenpendencyScope.ResolvedServices.GetValueOrDefault(parameter.ImplementionType)
-                };
-            }
-
-            //parameter->property->parameter?
-            var startIndex = CallDenpendencyScope.ServiceDependStack.ToList().FindIndex(i => i.Context.ServiceType == parameter.ServiceType);
-            if (startIndex < 0)
-            {
-                return CircularDependencyResolveResult.BreakResult;
-            }
-
-            var scopes = CallDenpendencyScope.ServiceDependStack.Skip(startIndex).ToList();
-            if (scopes.Any(i => i.ScopeType == ServiceCallDependencyScopeType.Parameter))
-            {
-                return CircularDependencyResolveResult.BreakResult;
-            }
-
-            if (scopes.Any(i => i.Context.LifeStyle != ServiceLifeStyle.Transient))
-            {
-                return new CircularDependencyResolveResult()
-                {
-                    Break = false,
-                    CallDependency = null
-                };
-            }
-
-            //circle depth
-            return new CircularDependencyResolveResult()
-            {
-                Break = scopes.Where(i => i.Context.ServiceType == parameter.ServiceType).Count() >= Configuration.Injection.PropertyInjectionCircularDepth,
-                CallDependency = null
-            };
         }
     }
 }

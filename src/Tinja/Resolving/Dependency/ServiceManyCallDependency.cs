@@ -1,12 +1,16 @@
-﻿namespace Tinja.Resolving.Dependency
+﻿using System.Collections.Generic;
+using System.Reflection;
+using Tinja.Resolving.Context;
+
+namespace Tinja.Resolving.Dependency
 {
     public class ServiceManyCallDependency : ServiceCallDependency
     {
         public ServiceCallDependency[] Elements { get; set; }
 
-        public ServiceManyCallDependency()
+        public ServiceManyCallDependency(ServiceContext ctx, TypeConstructor constructor, ServiceCallDependency[] elements, Dictionary<ParameterInfo, ServiceCallDependency> parameters = null) : base(ctx, constructor, parameters)
         {
-            Elements = new ServiceCallDependency[0];
+            Elements = elements;
         }
 
         public override bool ContainsPropertyCircular()

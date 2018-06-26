@@ -22,6 +22,26 @@ namespace Tinja.Interception.Generators
             };
         }
 
+
+        protected override void DefineTypeBuilder()
+        {
+            if (ProxyTargetType.IsValueType)
+            {
+                throw new NotSupportedException($"implemention type:{ProxyTargetType.FullName} must not be value type");
+            }
+
+            TypeBuilder = GeneratorUtility
+                .ModuleBuilder
+                .DefineType(
+                    GeneratorUtility.GetProxyTypeName(ProxyTargetType),
+                    TypeAttributes.Class | TypeAttributes.Public,
+                    typeof(object),
+                    new[] { ServiceType }
+                )
+                .DefineGenericParameters(ProxyTargetType)
+                .SetCustomAttributes(ProxyTargetType);
+        }
+
         #region Method
 
         protected override MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
@@ -145,15 +165,9 @@ namespace Tinja.Interception.Generators
             );
 
             ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(3));
-            ilGen.SetThisField(GetField("__executor"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
+            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
 
             ilGen.Return();
-        }
-
-        protected override void DefineTypeConstrcutors()
-        {
-            DefineTypeStaticConstrcutor();
-            DefineTypeDefaultConstructor();
         }
     }
 }
