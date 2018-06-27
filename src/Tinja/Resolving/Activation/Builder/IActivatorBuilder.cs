@@ -2,7 +2,7 @@
 using Tinja.Resolving.Dependency;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving.Activation
+namespace Tinja.Resolving.Activation.Builder
 {
     public interface IActivatorBuilder
     {

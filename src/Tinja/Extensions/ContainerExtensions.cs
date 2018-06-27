@@ -7,6 +7,7 @@ using Tinja.Interception.Executors.Internal;
 using Tinja.Interception.Members;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
+using Tinja.Resolving.Activation.Builder;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
 using Tinja.Resolving.Metadata;
@@ -14,16 +15,24 @@ using Tinja.ServiceLife;
 
 namespace Tinja.Extensions
 {
+    /// <summary>
+    /// IContainer Extension Methods
+    /// </summary>
     public static class ContainerExtensions
     {
-        public static IServiceResolver BuildResolver(this IContainer ioc)
+        /// <summary>
+        /// Build IServiceResolver
+        /// </summary>
+        /// <param name="container"></param>
+        /// <returns></returns>
+        public static IServiceResolver BuildResolver(this IContainer container)
         {
-            if (ioc == null)
+            if (container == null)
             {
-                throw new NullReferenceException(nameof(ioc));
+                throw new NullReferenceException(nameof(container));
             }
 
-            var configuration = ioc.BuildConfiguration();
+            var configuration = container.BuildConfiguration();
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
             var memberInterceptionCollector = new MemberInterceptionCollector(
                 configuration.Interception,
@@ -43,32 +52,38 @@ namespace Tinja.Extensions
             var activatorFacotry = new ActivatorFactory(callDependencyBuilderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
 
-            ioc.AddScoped(typeof(IServiceResolver), resolver => resolver);
-            ioc.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
+            container.AddScoped<IServiceResolver>(resolver => resolver);
+            container.AddScoped<IServiceLifeScope>(resolver => resolver.ServiceLifeScope);
 
-            ioc.AddSingleton(typeof(IActivatorBuilder), _ => activatorFacotry);
-            ioc.AddSingleton(typeof(IServiceCallDependencyBuilderFactory), _ => callDependencyBuilderFactory);
-            ioc.AddSingleton(typeof(IServiceConfiguration), _ => configuration);
-            ioc.AddSingleton(typeof(IServiceContextFactory), _ => serviceContextFactory);
-            ioc.AddSingleton(typeof(IServiceLifeScopeFactory), _ => serviceLifeScopeFactory);
-            ioc.AddSingleton(typeof(IActivatorProvider), _ => activatorProvider);
-            ioc.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
-            ioc.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
-            ioc.AddSingleton<IInterceptorCollector, InterceptorCollector>();
-            ioc.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
-            ioc.AddSingleton(typeof(IMemberInterceptionCollector), _ => memberInterceptionCollector);
-            ioc.AddSingleton(typeof(IMemberCollectorFactory), _ => MemberCollectorFactory.Default);
+            container.AddSingleton<IActivatorBuilder>(activatorFacotry);
+            container.AddSingleton<IServiceConfiguration>(configuration);
+            container.AddSingleton<IActivatorProvider>(activatorProvider);
+            container.AddSingleton<IServiceContextFactory>(serviceContextFactory);
+            container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
+            container.AddSingleton<IMemberCollectorFactory>(MemberCollectorFactory.Default);
+            container.AddSingleton<IMemberInterceptionCollector>(memberInterceptionCollector);
+            container.AddSingleton<IServiceCallDependencyBuilderFactory>(callDependencyBuilderFactory);
+            container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
+            container.AddSingleton<IInterceptorCollector, InterceptorCollector>();
+            container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
+            container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
 
-            serviceContextFactory.Initialize(ioc.Components);
+            serviceContextFactory.Initialize(container.Components);
 
             return new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
         }
 
-        public static IContainer Configure(this IContainer ioc, Action<IServiceConfiguration> configurator)
+        /// <summary>
+        /// Configure Service
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="configurator">Service Configurator</param>
+        /// <returns></returns>
+        public static IContainer Configure(this IContainer container, Action<IServiceConfiguration> configurator)
         {
-            if (ioc == null)
+            if (container == null)
             {
-                throw new NullReferenceException(nameof(ioc));
+                throw new NullReferenceException(nameof(container));
             }
 
             if (configurator == null)
@@ -76,101 +91,354 @@ namespace Tinja.Extensions
                 throw new NullReferenceException(nameof(configurator));
             }
 
-            ioc.Configurators.Add(configurator);
+            container.Configurators.Add(configurator);
 
-            return ioc;
+            return container;
         }
 
-        internal static IServiceConfiguration BuildConfiguration(this IContainer ioc)
+        /// <summary>
+        /// Build IServiceConfiguration
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        internal static IServiceConfiguration BuildConfiguration(this IContainer container)
         {
             var configuration = new ServiceCongfiguration();
 
-            foreach (var configurator in ioc.Configurators)
+            foreach (var configurator in container.Configurators)
             {
-                if (configuration != null)
-                {
-                    configurator(configuration);
-                }
+                configurator?.Invoke(configuration);
             }
 
             return configuration;
         }
 
-        public static IContainer AddService(this IContainer ioc, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle)
+        public static IContainer AddService(this IContainer container, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            ioc.AddComponent(new Component()
+            container.AddComponent(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
                 ImplementionType = implementionType
             });
 
-            return ioc;
+            return container;
         }
 
-        public static IContainer AddService(this IContainer ioc, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle)
+        /// <summary>
+        /// Add Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
+        /// <returns></returns>
+        public static IContainer AddService<TType, TImpl>(this IContainer container, ServiceLifeStyle lifeStyle)
         {
-            ioc.AddComponent(new Component()
+            return container.AddService(typeof(TType), typeof(TImpl), lifeStyle);
+        }
+
+        /// <summary>
+        /// Add Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
+        /// <returns></returns>
+        public static IContainer AddService(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
+        {
+            container.AddComponent(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
                 ImplementionFactory = factory
             });
 
-            return ioc;
+            return container;
         }
 
-        public static IContainer AddService<TType, TImpl>(this IContainer ioc, ServiceLifeStyle lifeStyle)
+        /// <summary>
+        /// Add Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
+        /// <returns></returns>
+        public static IContainer AddService<TType>(this IContainer container, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            return ioc.AddService(typeof(TType), typeof(TImpl), lifeStyle);
+            return container.AddService(typeof(TType), factory, lifeStyle);
         }
 
-        public static IContainer AddSingleton(this IContainer ioc, Type serviceType, Type implementionType)
+        /// <summary>
+        /// Add Service Definition 
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="instance">ImplementionInstance</param>
+        /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
+        /// <returns></returns>
+        private static IContainer AddService(this IContainer container, Type serviceType, object instance, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            return ioc.AddService(serviceType, implementionType, ServiceLifeStyle.Singleton);
+            container.AddComponent(new Component()
+            {
+                LifeStyle = lifeStyle,
+                ServiceType = serviceType,
+                ImplementionInstance = instance
+            });
+
+            return container;
         }
 
-        public static IContainer AddSingleton<TType, TImpl>(this IContainer ioc)
+        /// <summary>
+        /// Add Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="instance">ImplementionType</param>
+        /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
+        /// <returns></returns>
+        private static IContainer AddService<TType>(this IContainer container, object instance, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            return ioc.AddService(typeof(TType), typeof(TImpl), ServiceLifeStyle.Singleton);
+            return container.AddService(typeof(TType), instance, lifeStyle);
         }
 
-        public static IContainer AddSingleton(this IContainer ioc, Type serviceType, Func<IServiceResolver, object> factory)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="implementionType">ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton(this IContainer container, Type serviceType, Type implementionType)
         {
-            return ioc.AddService(serviceType, factory, ServiceLifeStyle.Singleton);
+            return container.AddService(serviceType, implementionType, ServiceLifeStyle.Singleton);
         }
 
-        public static IContainer AddTransient(this IContainer ioc, Type serviceType, Type implementionType)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton(this IContainer container, Type serviceType)
         {
-            return ioc.AddService(serviceType, implementionType, ServiceLifeStyle.Transient);
+            return container.AddSingleton(serviceType, serviceType);
         }
 
-        public static IContainer AddTransient<TType, TImpl>(this IContainer ioc)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton<TType, TImpl>(this IContainer container)
         {
-            return ioc.AddService(typeof(TType), typeof(TImpl), ServiceLifeStyle.Transient);
+            return container.AddSingleton(typeof(TType), typeof(TImpl));
         }
 
-        public static IContainer AddTransient(this IContainer ioc, Type serviceType, Func<IServiceResolver, object> factory)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton<TType>(this IContainer container)
         {
-            return ioc.AddService(serviceType, factory, ServiceLifeStyle.Transient);
+            return container.AddSingleton(typeof(TType), typeof(TType));
         }
 
-        public static IContainer AddScoped(this IContainer ioc, Type serviceType, Type implementionType)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
         {
-            return ioc.AddService(serviceType, implementionType, ServiceLifeStyle.Scoped);
+            return container.AddService(serviceType, factory, ServiceLifeStyle.Singleton);
         }
 
-        public static IContainer AddScoped<TType, TImpl>(this IContainer ioc)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton<TType>(this IContainer container, Func<IServiceResolver, object> factory)
         {
-            return ioc.AddService(typeof(TType), typeof(TImpl), ServiceLifeStyle.Scoped);
+            return container.AddSingleton(typeof(TType), factory);
         }
 
-        public static IContainer AddScoped(this IContainer ioc, Type serviceType, Func<IServiceResolver, object> factory)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="instance">ImplementionInstance</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton(this IContainer container, Type serviceType, object instance)
         {
-            return ioc.AddService(serviceType, factory, ServiceLifeStyle.Scoped);
+            return container.AddService(serviceType, instance, ServiceLifeStyle.Singleton);
         }
 
-        internal static void AddComponent(this IContainer ioc, Component component)
+        /// <summary>
+        /// Add Singleton Service Defintion
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="instance">ImplementionInstance</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton<TType>(this IContainer container, object instance)
+        {
+            return container.AddSingleton(typeof(TType), instance);
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="implementionType">ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddTransient(this IContainer container, Type serviceType, Type implementionType)
+        {
+            return container.AddService(serviceType, implementionType);
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddTransient(this IContainer container, Type serviceType)
+        {
+            return container.AddTransient(serviceType, serviceType);
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddTransient<TType, TImpl>(this IContainer container)
+        {
+            return container.AddTransient(typeof(TType), typeof(TImpl));
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddTransient<TType>(this IContainer container)
+        {
+            return container.AddTransient(typeof(TType), typeof(TType));
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddTransient(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
+        {
+            return container.AddService(serviceType, factory);
+        }
+
+        /// <summary>
+        /// Add Transient Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddTransient<TType>(this IContainer container, Func<IServiceResolver, object> factory)
+        {
+            return container.AddTransient(typeof(TType), factory);
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="implementionType">ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddScoped(this IContainer container, Type serviceType, Type implementionType)
+        {
+            return container.AddService(serviceType, implementionType, ServiceLifeStyle.Scoped);
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <returns></returns>
+        public static IContainer AddScoped(this IContainer container, Type serviceType)
+        {
+            return container.AddScoped(serviceType, serviceType);
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddScoped<TType, TImpl>(this IContainer container)
+        {
+            return container.AddScoped(typeof(TType), typeof(TImpl));
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <returns></returns>
+        public static IContainer AddScoped<TType>(this IContainer container)
+        {
+            return container.AddScoped(typeof(TType), typeof(TType));
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <param name="container">Container</param>
+        /// <param name="serviceType">ServiceType</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddScoped(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
+        {
+            return container.AddService(serviceType, factory, ServiceLifeStyle.Scoped);
+        }
+
+        /// <summary>
+        /// Add Scoped Service Definition
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddScoped<TType>(this IContainer container, Func<IServiceResolver, object> factory)
+        {
+            return container.AddScoped(typeof(TType), factory);
+        }
+
+        internal static void AddComponent(this IContainer container, Component component)
         {
             if (component == null)
             {
@@ -179,15 +447,23 @@ namespace Tinja.Extensions
 
             if (component.ServiceType == null)
             {
-                throw new InvalidOperationException("ServiceType is null!");
+                throw new InvalidOperationException(nameof(component.ServiceType));
             }
 
-            if (component.ImplementionFactory == null && component.ImplementionType == null)
+            if (component.LifeStyle != ServiceLifeStyle.Singleton &&
+                component.ImplementionInstance != null)
             {
-                throw new InvalidOperationException($"Type:{component.ServiceType.FullName} ImplementionType and ImplementionFactory is null!");
+                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} ServiceLifeStyle must be Singleton when registered with and implemention instance");
             }
 
-            ioc.Components.AddOrUpdate(
+            if (component.ImplementionFactory == null &&
+                component.ImplementionType == null &&
+                component.ImplementionInstance == null)
+            {
+                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} have not an implemention!");
+            }
+
+            container.Components.AddOrUpdate(
                 component.ServiceType,
                  new List<Component>() { component },
                 (k, v) =>
@@ -197,7 +473,7 @@ namespace Tinja.Extensions
                         return v;
                     }
 
-                    lock (ioc.Components)
+                    lock (container.Components)
                     {
                         if (v.Contains(component))
                         {

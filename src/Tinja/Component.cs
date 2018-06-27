@@ -10,9 +10,11 @@ namespace Tinja
 
         public Type ServiceType { get; set; }
 
+        public ServiceLifeStyle LifeStyle { get; set; }
+
         public Type ImplementionType { get; set; }
 
-        public ServiceLifeStyle LifeStyle { get; set; }
+        public object ImplementionInstance { get; set; }
 
         public Func<IServiceResolver, object> ImplementionFactory { get; set; }
 
@@ -21,6 +23,7 @@ namespace Tinja
             var hashCode = ServiceType.GetHashCode();
 
             hashCode += (hashCode * 31) ^ (ImplementionType?.GetHashCode() ?? 0);
+            hashCode += (hashCode * 31) ^ (ImplementionInstance?.GetHashCode() ?? 0);
             hashCode += (hashCode * 31) ^ (ImplementionFactory?.GetHashCode() ?? 0);
             hashCode += (hashCode * 31) ^ LifeStyle.GetHashCode();
             hashCode += (hashCode * 31) ^ (ProxyType?.GetHashCode() ?? 0);
@@ -42,6 +45,7 @@ namespace Tinja
                     ServiceType == component.ServiceType &&
                     ImplementionType == component.ImplementionType &&
                     ImplementionFactory == component.ImplementionFactory &&
+                    ImplementionInstance == component.ImplementionInstance &&
                     ProxyType == component.ProxyType;
             }
 
@@ -57,7 +61,7 @@ namespace Tinja
 
             if (!(right is null))
             {
-                return right.Equals(left);
+                return right.Equals((Component)null);
             }
 
             return true;
@@ -76,7 +80,8 @@ namespace Tinja
                 ImplementionFactory = ImplementionFactory,
                 LifeStyle = LifeStyle,
                 ImplementionType = ImplementionType,
-                ServiceType = ServiceType
+                ServiceType = ServiceType,
+                ImplementionInstance = ImplementionInstance
             };
         }
     }

@@ -3,10 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
-using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
+using Tinja.ServiceLife;
 
-namespace Tinja.Resolving.Activation
+namespace Tinja.Resolving.Activation.Builder
 {
     public class PropertyCircularActivatorBuilder : IActivatorBuilder
     {
@@ -99,9 +99,13 @@ namespace Tinja.Resolving.Activation
         {
             Expression func;
 
-            if (callDependency.Constructor == null)
+            if (callDependency.Context.ImplementionFactory != null)
             {
                 func = BuildDelegateImplemention(callDependency);
+            }
+            else if (callDependency.Context.ImplementionInstance != null)
+            {
+                func = BuildInstanceImplemention(callDependency);
             }
             else if (callDependency is ServiceManyCallDependency enumerable)
             {
@@ -128,6 +132,20 @@ namespace Tinja.Resolving.Activation
                     ResolverParameter,
                     InjectionContextParameter)
                 .Compile();
+
+            return Expression.Constant(factory);
+        }
+
+        protected static Expression BuildInstanceImplemention(ServiceCallDependency callDependency)
+        {
+            var factory = (Func<IServiceLifeScope, IServiceResolver, PropertyCircularInjectionContext, object>)
+                Expression
+                    .Lambda(
+                        Expression.Constant(callDependency.Context.ImplementionInstance),
+                        ScopeParameter,
+                        ResolverParameter,
+                        InjectionContextParameter)
+                    .Compile();
 
             return Expression.Constant(factory);
         }

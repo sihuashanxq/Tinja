@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Tinja.Configuration;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Metadata;
 
 namespace Tinja.Resolving.Dependency
 {
@@ -50,7 +51,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual ServiceCallDependency BuildCallDenpendency(ServiceContext ctx, ServiceCallDependencyScopeType scopeType = ServiceCallDependencyScopeType.None)
         {
-            if (ctx.ImplementionFactory != null)
+            if (ctx.ImplementionFactory != null || ctx.ImplementionInstance != null)
             {
                 return new ServiceCallDependency(ctx);
             }
@@ -243,7 +244,7 @@ namespace Tinja.Resolving.Dependency
 
         protected virtual bool IsCircularDependency(ServiceContext ctx)
         {
-            return ctx.ImplementionFactory == null && CallDenpendencyScope.Constains(ctx.ImplementionType);
+            return ctx.ImplementionFactory == null && ctx.ImplementionInstance == null && CallDenpendencyScope.Constains(ctx.ImplementionType);
         }
 
         protected class CircularDependencyResolveResult

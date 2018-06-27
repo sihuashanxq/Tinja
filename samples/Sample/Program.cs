@@ -11,7 +11,6 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             var container = new Container();
-
             container.AddTransient<IUserService, UserService1>();
             container.AddTransient<IUserService, UserService>();
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));

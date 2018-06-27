@@ -15,7 +15,7 @@ namespace Tinja.ServiceLife
 
         private readonly List<object> _transientDisposeObjects;
 
-        private Dictionary<Type, object> _scopedObjects;
+        private readonly Dictionary<Type, object> _scopedObjects;
 
         internal ServiceLifeScope(IServiceResolver resolver, IServiceLifeScope root) : this(resolver)
         {

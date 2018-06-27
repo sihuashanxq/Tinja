@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using Tinja.ServiceLife;
 using Tinja.Resolving.Dependency;
+using Tinja.ServiceLife;
 
-namespace Tinja.Resolving.Activation
+namespace Tinja.Resolving.Activation.Builder
 {
     public class ActivatorBuilder : IActivatorBuilder
     {
@@ -119,9 +119,14 @@ namespace Tinja.Resolving.Activation
 
         protected Expression BuildExpression(ServiceCallDependency callDependency)
         {
-            if (callDependency.Constructor == null)
+            if (callDependency.Context.ImplementionFactory != null)
             {
                 return BuildDelegateImplemention(callDependency);
+            }
+
+            if (callDependency.Context.ImplementionInstance != null)
+            {
+                return BuildInstanceImplemention(callDependency);
             }
 
             Expression instance;
@@ -163,6 +168,18 @@ namespace Tinja.Resolving.Activation
                     Expression.Constant(callDependency.Context.ServiceType),
                     Expression.Constant(callDependency.Context.LifeStyle),
                     Expression.Constant(callDependency.Context.ImplementionFactory)
+                );
+        }
+
+        protected virtual Expression BuildInstanceImplemention(ServiceCallDependency callDependency)
+        {
+            return
+                Expression.Invoke(
+                    ApplyLifeStyleFuncConstant,
+                    ScopeParameter,
+                    Expression.Constant(callDependency.Context.ServiceType),
+                    Expression.Constant(callDependency.Context.LifeStyle),
+                    Expression.Constant((Func<IServiceResolver,object>)(_=>callDependency.Context.ImplementionInstance))
                 );
         }
 

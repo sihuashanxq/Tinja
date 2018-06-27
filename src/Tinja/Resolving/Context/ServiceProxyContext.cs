@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Resolving.Metadata;
 
 namespace Tinja.Resolving.Context
 {

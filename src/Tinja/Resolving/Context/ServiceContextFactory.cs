@@ -81,49 +81,52 @@ namespace Tinja.Resolving.Context
 
         protected ServiceContext CreateContext(Type serviceType, Component component)
         {
-            if (component.ImplementionFactory != null)
+            if (component.ImplementionFactory != null || component.ImplementionInstance != null)
             {
                 return new ServiceContext()
                 {
                     LifeStyle = component.LifeStyle,
                     ServiceType = serviceType,
-                    ImplementionType = null,
-                    Constrcutors = null,
-                    ImplementionFactory = component.ImplementionFactory
+                    ImplementionFactory = component.ImplementionFactory,
+                    ImplementionInstance = component.ImplementionInstance
                 };
             }
 
             var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
             if (meta == null)
             {
-                throw new InvalidOperationException($"Create TypeMetada failed!Service Type:${serviceType.FullName}");
+                throw new InvalidOperationException(
+                    $"Create ImplementionType metadata failed!Service Type:${serviceType.FullName}");
             }
 
-            if (component.ProxyType != null)
+            if (component.ProxyType == null)
             {
-                var proxyMeta = MakeTypeMetadata(serviceType, component.ProxyType);
-                if (proxyMeta != null)
+                return new ServiceContext()
                 {
-                    return new ServiceProxyContext()
-                    {
-                        ServiceType = serviceType,
-                        LifeStyle = component.LifeStyle,
-                        Constrcutors = meta.Constructors,
-                        ImplementionType = meta.Type,
-                        ImplementionFactory = component.ImplementionFactory,
-                        ProxyType = proxyMeta.Type,
-                        ProxyConstructors = proxyMeta.Constructors
-                    };
-                }
+                    ServiceType = serviceType,
+                    LifeStyle = component.LifeStyle,
+                    Constrcutors = meta.Constructors,
+                    ImplementionType = meta.Type,
+                    ImplementionFactory = component.ImplementionFactory
+                };
             }
 
-            return new ServiceContext()
+            var proxyMeta = MakeTypeMetadata(serviceType, component.ProxyType);
+            if (proxyMeta == null)
+            {
+
+                throw new InvalidOperationException($"Create ProxyImplementionType metadata failed!Service Type:${serviceType.FullName}");
+            }
+
+            return new ServiceProxyContext()
             {
                 ServiceType = serviceType,
                 LifeStyle = component.LifeStyle,
                 Constrcutors = meta.Constructors,
                 ImplementionType = meta.Type,
-                ImplementionFactory = component.ImplementionFactory
+                ImplementionFactory = component.ImplementionFactory,
+                ProxyType = proxyMeta.Type,
+                ProxyConstructors = proxyMeta.Constructors
             };
         }
 
@@ -252,7 +255,9 @@ namespace Tinja.Resolving.Context
                 return false;
             }
 
-            return component.ImplementionFactory == null && InterceptionProvider.Collect(component.ServiceType, component.ImplementionType, false).Any();
+            return component.ImplementionFactory == null && 
+                   component.ImplementionInstance == null && 
+                   InterceptionProvider.Collect(component.ServiceType, component.ImplementionType, false).Any();
         }
     }
 }

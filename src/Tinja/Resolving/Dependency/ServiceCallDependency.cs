@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Tinja.Extensions;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Dependency

@@ -25,7 +25,7 @@ namespace Tinja.Resolving.Dependency
 
         public ServiceCallDependency AddResolvedService(ServiceContext ctx, ServiceCallDependency callDependency)
         {
-            if (ctx.ImplementionFactory != null)
+            if (ctx.ImplementionFactory != null || ctx.ImplementionInstance != null)
             {
                 return callDependency;
             }
