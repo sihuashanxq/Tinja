@@ -2,6 +2,6 @@
 {
     public interface IServiceCallDependencyBuilderFactory
     {
-        IServiceCallDependencyBuilder CreateBuilder();
+        IServiceCallDependencyElement CreateBuilder();
     }
 }

@@ -15,7 +15,7 @@ namespace Tinja.Resolving.Dependency
             _serviceContextFactory = serviceContextFactory;
         }
 
-        public IServiceCallDependencyBuilder CreateBuilder()
+        public IServiceCallDependencyElement CreateBuilder()
         {
             return new ServiceCallDependencyBuilder(_serviceContextFactory, _configuration);
         }

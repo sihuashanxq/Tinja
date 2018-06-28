@@ -8,7 +8,7 @@ using Tinja.Resolving.Metadata;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceCallDependencyBuilder : IServiceCallDependencyBuilder
+    public class ServiceCallDependencyBuilder : IServiceCallDependencyElement
     {
         private ServiceContext _startContext;
 

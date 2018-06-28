@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using Tinja;
 using Tinja.Extensions;
+using Tinja.Resolving;
+using Tinja.Resolving.Activation.Builder;
+using Tinja.Resolving.Dependency;
+using Tinja.ServiceLife;
 
 namespace ConsoleApp
 {
@@ -34,6 +39,32 @@ namespace ConsoleApp
             {
                 var repository = resolver.Resolve<IRepository<IUserService>>();
             }
+
+            var builder = new ExpressionActivatorBuilder();
+            var element = new ConstructorCallDependencyElement()
+            {
+                ServiceType = typeof(IRepository<>).MakeGenericType(typeof(IUserRepository)),
+                ConstructorInfo = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)).GetConstructors()[0],
+                ImplementionType = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)),
+                LifeStyle = ServiceLifeStyle.Scoped
+            };
+
+            element.Parameters = new Dictionary<ParameterInfo, CallDepenencyElement>()
+            {
+                [element.ConstructorInfo.GetParameters()[0]] = new ConstructorCallDependencyElement()
+                {
+                    ServiceType = typeof(IUserRepository),
+                    ConstructorInfo = typeof(UserRepository).GetConstructor(Type.EmptyTypes),
+                    ImplementionType = typeof(UserRepository),
+                    LifeStyle = ServiceLifeStyle.Transient,
+                    Parameters = new Dictionary<ParameterInfo, CallDepenencyElement>()
+                }
+            };
+
+            var func = builder.Build(element);
+            var resp = func(resolver, resolver.ServiceLifeScope);
+            var resp1 = func(resolver, resolver.ServiceLifeScope);
+            var isEqual = resp == resp1;
 
             Console.ReadKey();
         }
