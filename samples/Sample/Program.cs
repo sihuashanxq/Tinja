@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using Tinja;
 using Tinja.Extensions;
@@ -46,7 +47,7 @@ namespace ConsoleApp
                 ServiceType = typeof(IRepository<>).MakeGenericType(typeof(IUserRepository)),
                 ConstructorInfo = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)).GetConstructors()[0],
                 ImplementionType = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)),
-                LifeStyle = ServiceLifeStyle.Scoped
+                LifeStyle = ServiceLifeStyle.Transient
             };
 
             element.Parameters = new Dictionary<ParameterInfo, CallDepenencyElement>()
@@ -63,8 +64,6 @@ namespace ConsoleApp
 
             var func = builder.Build(element);
             var resp = func(resolver, resolver.ServiceLifeScope);
-            var resp1 = func(resolver, resolver.ServiceLifeScope);
-            var isEqual = resp == resp1;
 
             Console.ReadKey();
         }

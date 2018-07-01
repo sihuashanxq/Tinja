@@ -12,9 +12,9 @@ namespace Tinja.Resolving.Context
 
         public ServiceLifeStyle LifeStyle { get; set; }
 
-        public TypeConstructor[] Constrcutors { get; set; }
-
         public object ImplementionInstance { get; set; }
+
+        public TypeConstructor[] Constrcutors { get; set; }
 
         public Func<IServiceResolver, object> ImplementionFactory { get; set; }
     }
