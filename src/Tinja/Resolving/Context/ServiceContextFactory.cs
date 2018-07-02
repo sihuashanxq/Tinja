@@ -255,8 +255,8 @@ namespace Tinja.Resolving.Context
                 return false;
             }
 
-            return component.ImplementionFactory == null && 
-                   component.ImplementionInstance == null && 
+            return component.ImplementionFactory == null &&
+                   component.ImplementionInstance == null &&
                    InterceptionProvider.Collect(component.ServiceType, component.ImplementionType, false).Any();
         }
     }

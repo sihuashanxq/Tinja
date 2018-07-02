@@ -4,10 +4,11 @@ using System.Linq;
 using System.Reflection;
 using Tinja.Configuration;
 using Tinja.Resolving.Context;
+using Tinja.Resolving.Dependency.Elements;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class CallDependencyElementBuilder
+    public class CallDependencyElementBuilder : ICallDependencyElementBuilder
     {
         protected IServiceConfiguration Configuration { get; }
 
@@ -25,12 +26,12 @@ namespace Tinja.Resolving.Dependency
         public virtual CallDepenencyElement Build(Type serviceType)
         {
             var ctx = ContextFactory.CreateContext(serviceType);
-            if (ctx == null)
+            if (ctx != null)
             {
-                return null;
+                return Build(ctx);
             }
 
-            return Build(ctx);
+            return null;
         }
 
         protected virtual CallDepenencyElement Build(ServiceContext ctx)
@@ -158,6 +159,7 @@ namespace Tinja.Resolving.Dependency
                 Elements = elements.ToArray(),
                 LifeStyle = ctx.LifeStyle,
                 ServiceType = ctx.ServiceType,
+                ImplementionType = ctx.ImplementionType,
                 ConstructorInfo = ctx.Constrcutors.FirstOrDefault()?.ConstructorInfo
             };
         }
@@ -268,7 +270,7 @@ namespace Tinja.Resolving.Dependency
 
             if (DenpendencyScope.Contains(implementionType))
             {
-                throw new ServiceCallCircularException(implementionType, string.Empty);
+                throw new CallCircularException(implementionType, string.Empty);
             }
         }
     }

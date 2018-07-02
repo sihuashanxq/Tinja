@@ -5,16 +5,16 @@ namespace Tinja.Resolving.Dependency
 {
     public class CallDependencyElementScope
     {
-        protected Stack<Type> DependencyStack { get; }
+        protected Stack<Type> Stack { get; }
 
         public CallDependencyElementScope()
         {
-            DependencyStack = new Stack<Type>();
+            Stack = new Stack<Type>();
         }
 
         public bool Contains(Type typeInfo)
         {
-            return DependencyStack.Contains(typeInfo);
+            return Stack.Contains(typeInfo);
         }
 
         public IDisposable Begin(Type typeInfo)
@@ -24,12 +24,12 @@ namespace Tinja.Resolving.Dependency
                 return DisposableActionWrapper.Empty;
             }
 
-            DependencyStack.Push(typeInfo);
+            Stack.Push(typeInfo);
 
-            return new DisposableActionWrapper(() => DependencyStack.Pop());
+            return new DisposableActionWrapper(() => Stack.Pop());
         }
 
-        protected class DisposableActionWrapper : IDisposable
+        private class DisposableActionWrapper : IDisposable
         {
             public static readonly IDisposable Empty = new DisposableActionWrapper(() => { });
 

@@ -17,10 +17,11 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             var container = new Container();
+            var s = new UserRepository();
             container.AddTransient<IUserService, UserService1>();
             container.AddTransient<IUserService, UserService>();
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
-            container.AddTransient(typeof(IUserRepository), _ => new UserRepository());
+            container.AddSingleton<IUserRepository>(s);
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
             container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
 
@@ -41,30 +42,17 @@ namespace ConsoleApp
                 var repository = resolver.Resolve<IRepository<IUserService>>();
             }
 
-            var builder = new ExpressionActivatorBuilder();
-            var element = new ConstructorCallDependencyElement()
+            var stopWatch = new Stopwatch();
+            var type = typeof(IUserRepository);
+            stopWatch.Start();
+
+            for (var i = 0; i < 100000000; i++)
             {
-                ServiceType = typeof(IRepository<>).MakeGenericType(typeof(IUserRepository)),
-                ConstructorInfo = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)).GetConstructors()[0],
-                ImplementionType = typeof(Repository<>).MakeGenericType(typeof(IUserRepository)),
-                LifeStyle = ServiceLifeStyle.Transient
-            };
+                resolver.Resolve(type);
+            }
 
-            element.Parameters = new Dictionary<ParameterInfo, CallDepenencyElement>()
-            {
-                [element.ConstructorInfo.GetParameters()[0]] = new ConstructorCallDependencyElement()
-                {
-                    ServiceType = typeof(IUserRepository),
-                    ConstructorInfo = typeof(UserRepository).GetConstructor(Type.EmptyTypes),
-                    ImplementionType = typeof(UserRepository),
-                    LifeStyle = ServiceLifeStyle.Transient,
-                    Parameters = new Dictionary<ParameterInfo, CallDepenencyElement>()
-                }
-            };
-
-            var func = builder.Build(element);
-            var resp = func(resolver, resolver.ServiceLifeScope);
-
+            stopWatch.Stop();
+            Console.WriteLine(stopWatch.ElapsedMilliseconds);
             Console.ReadKey();
         }
     }

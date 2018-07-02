@@ -1,7 +1,7 @@
 ﻿using System;
 using Tinja.ServiceLife;
 
-namespace Tinja.Resolving
+namespace Tinja.Resolving.Dependency.Elements
 {
     /// <summary>
     /// an element that representing an dependency point

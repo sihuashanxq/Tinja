@@ -1,10 +1,7 @@
-﻿using System;
-using Tinja.Resolving.Dependency;
-
-namespace Tinja.Resolving
+﻿namespace Tinja.Resolving.Dependency.Elements
 {
     /// <summary>
-    /// a visitor/translator for <see cref="CallDependencyElement"/>
+    /// a visitor/translator for <see cref="CallDepenencyElement"/>
     /// </summary>
     /// <typeparam name="TVisitResult">the type for transalted result</typeparam>
     public abstract class CallDependencyElementVisitor<TVisitResult>

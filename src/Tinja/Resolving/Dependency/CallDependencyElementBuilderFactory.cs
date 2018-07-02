@@ -3,21 +3,21 @@ using Tinja.Resolving.Context;
 
 namespace Tinja.Resolving.Dependency
 {
-    public class ServiceCallDependencyBuilderFactory : IServiceCallDependencyBuilderFactory
+    public class CallDependencyElementBuilderFactory : ICallDependencyElementBuilderFactory
     {
         private readonly IServiceConfiguration _configuration;
 
         private readonly IServiceContextFactory _serviceContextFactory;
 
-        public ServiceCallDependencyBuilderFactory(IServiceContextFactory serviceContextFactory, IServiceConfiguration configuration)
+        public CallDependencyElementBuilderFactory(IServiceContextFactory serviceContextFactory, IServiceConfiguration configuration)
         {
             _configuration = configuration;
             _serviceContextFactory = serviceContextFactory;
         }
 
-        public IServiceCallDependencyElement CreateBuilder()
+        public ICallDependencyElementBuilder CreateBuilder()
         {
-            return new ServiceCallDependencyBuilder(_serviceContextFactory, _configuration);
+            return new CallDependencyElementBuilder(_serviceContextFactory, _configuration);
         }
     }
 }

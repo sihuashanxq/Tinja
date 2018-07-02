@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Tinja.Resolving.Dependency
+namespace Tinja.Resolving.Dependency.Elements
 {
     /// AddSingleton(typeof(Serice),typeof(Service));
     public class ConstructorCallDependencyElement : CallDepenencyElement
@@ -14,6 +14,11 @@ namespace Tinja.Resolving.Dependency
         public Dictionary<PropertyInfo, CallDepenencyElement> Properties { get; set; }
 
         public Dictionary<ParameterInfo, CallDepenencyElement> Parameters { get; set; }
+
+        public ConstructorCallDependencyElement()
+        {
+            Properties = new Dictionary<PropertyInfo, CallDepenencyElement>();
+        }
 
         protected internal override TVisitResult Accept<TVisitResult>(CallDependencyElementVisitor<TVisitResult> visitor)
         {

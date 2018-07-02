@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Tinja.Extensions;
-using Tinja.Resolving.Dependency;
+using Tinja.Resolving.Dependency.Elements;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Activation.Builder
 {
-    public class ExpressionActivatorBuilder : CallDependencyElementVisitor<Expression>
+    public class ExpressionActivatorBuilder : CallDependencyElementVisitor<Expression>, IActivatorBuilder
     {
+        public static readonly IActivatorBuilder Default = new ExpressionActivatorBuilder();
+
         public virtual Func<IServiceResolver, IServiceLifeScope, object> Build(CallDepenencyElement element)
         {
             var lambdaBody = Visit(element);
@@ -40,31 +43,35 @@ namespace Tinja.Resolving.Activation.Builder
                 );
             }
 
-            return Expression.ListInit(Expression.New(element.ConstructorInfo), elementInits);
+            var listInit = Expression.ListInit(Expression.New(element.ConstructorInfo), elementInits);
+
+            if (element.LifeStyle != ServiceLifeStyle.Transient ||
+                element.ImplementionType.Is(typeof(IDisposable)))
+            {
+                return ResolveServiceLifeStyle(listInit, element);
+            }
+
+            return listInit;
         }
 
         protected internal override Expression VisitInstance(InstanceCallDependencyElement element)
         {
-            return
-                Expression.Invoke(
-                    ActivatorUtil.ApplyLifeConstant,
-                    ActivatorUtil.ParameterScope,
-                    Expression.Constant(element.ServiceType),
-                    Expression.Constant(element.LifeStyle),
-                    Expression.Constant((Func<IServiceResolver, object>)(_ => element.Instance))
-                );
+            return Expression.Constant(element.Instance);
         }
 
         protected internal override Expression VisitDelegate(DelegateCallDepenencyElement element)
         {
-            return
-                Expression.Invoke(
-                    ActivatorUtil.ApplyLifeConstant,
-                    ActivatorUtil.ParameterScope,
-                    Expression.Constant(element.ServiceType),
-                    Expression.Constant(element.LifeStyle),
-                    Expression.Constant(element.Delegate)
-                );
+            var constant = Expression.Constant(element.Delegate);
+            var invocation = Expression.Invoke(constant, ActivatorUtil.ParameterResolver);
+
+            if (element.Delegate.Method.ReturnType == typeof(object) ||
+                element.Delegate.Method.ReturnType.Is(typeof(IDisposable)) ||
+                element.LifeStyle != ServiceLifeStyle.Transient)
+            {
+                return ResolveServiceLifeStyle(invocation, element);
+            }
+
+            return invocation;
         }
 
         protected internal override Expression VisitConstrcutor(ConstructorCallDependencyElement element)
@@ -87,32 +94,46 @@ namespace Tinja.Resolving.Activation.Builder
                     throw new NullReferenceException(nameof(parameterValue));
                 }
 
-                if (parameterType.IsAssignableFrom(parameterElement.ServiceType))
-                {
-                    parameterValues[i] = parameterValue;
-                }
-                else
-                {
-                    parameterValues[i] = Expression.Convert(parameterValue, parameterType);
-                }
+                parameterValues[i] = Expression.Convert(parameterValue, parameterType);
             }
 
-            return ApplyServiceLifeStyle(Expression.New(element.ConstructorInfo, parameterValues), element);
+            var newExpression = Expression.New(element.ConstructorInfo, parameterValues);
+            var memberInit = InitializeProperty(newExpression, element);
+
+            if (element.LifeStyle != ServiceLifeStyle.Transient ||
+                element.ImplementionType.Is(typeof(IDisposable)))
+            {
+                return ResolveServiceLifeStyle(memberInit, element);
+            }
+
+            return memberInit;
         }
 
-        protected internal virtual Expression ApplyServiceLifeStyle(Expression serviceExpression, ConstructorCallDependencyElement element)
+        protected internal virtual Expression InitializeProperty(NewExpression newExpression, ConstructorCallDependencyElement element)
         {
-            if (element.LifeStyle == ServiceLifeStyle.Transient && !element.ImplementionType.Is(typeof(IDisposable)))
+            if (element?.Properties == null || element.Properties.Count == 0)
             {
-                return serviceExpression;
+                return newExpression;
             }
 
+            var propertyBindings = new List<MemberBinding>();
+
+            foreach (var item in element.Properties)
+            {
+                propertyBindings.Add(Expression.Bind(item.Key, Expression.Convert(item.Value.Accept(this), item.Key.PropertyType)));
+            }
+
+            return Expression.MemberInit(newExpression, propertyBindings);
+        }
+
+        protected internal virtual Expression ResolveServiceLifeStyle(Expression serviceExpression, CallDepenencyElement element)
+        {
             //optimization
             var preCompiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)
                 Expression
                     .Lambda(
-                        serviceExpression, 
-                        ActivatorUtil.ParameterResolver, 
+                        serviceExpression,
+                        ActivatorUtil.ParameterResolver,
                         ActivatorUtil.ParameterScope)
                     .Compile();
 

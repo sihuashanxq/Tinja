@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 
-namespace Tinja.Resolving.Dependency
+namespace Tinja.Resolving.Dependency.Elements
 {
+    /// <inheritdoc />
     /// <summary>
     /// Resolve(typeof(IEnumerable(T)))
     /// </summary>
@@ -14,8 +14,6 @@ namespace Tinja.Resolving.Dependency
         public ConstructorInfo ConstructorInfo { get; set; }
 
         public CallDepenencyElement[] Elements { get; set; }
-
-        public Dictionary<ParameterInfo, CallDepenencyElement> ParameterCallDepenencies { get; set; }
 
         protected internal override TVisitResult Accept<TVisitResult>(CallDependencyElementVisitor<TVisitResult> visitor)
         {

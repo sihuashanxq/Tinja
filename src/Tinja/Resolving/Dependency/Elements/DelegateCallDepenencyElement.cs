@@ -1,9 +1,10 @@
 ﻿using System;
 
-namespace Tinja.Resolving.Dependency
+namespace Tinja.Resolving.Dependency.Elements
 {
+    /// <inheritdoc />
     /// <summary>
-    /// AddScoped(typeof(Serice),resolver=>new Service());
+    /// AddScoped(typeof(Serice),resolver=&gt;new Service());
     /// </summary>
     public class DelegateCallDepenencyElement : CallDepenencyElement
     {

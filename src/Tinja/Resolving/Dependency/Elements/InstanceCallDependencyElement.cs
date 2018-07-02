@@ -1,5 +1,6 @@
-﻿namespace Tinja.Resolving
+﻿namespace Tinja.Resolving.Dependency.Elements
 {
+    /// <inheritdoc />
     /// AddSingleton(typeof(Serice),new Service());
     public class InstanceCallDependencyElement : CallDepenencyElement
     {

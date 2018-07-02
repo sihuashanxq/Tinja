@@ -25,7 +25,7 @@ namespace Tinja.ServiceLife
             }
             else
             {
-                _root = (root as ServiceLifeScope)._root ?? root;
+                _root = ((ServiceLifeScope) root)._root ?? root;
             }
         }
 
