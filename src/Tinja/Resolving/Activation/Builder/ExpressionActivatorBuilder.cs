@@ -19,11 +19,6 @@ namespace Tinja.Resolving.Activation.Builder
                 throw new NullReferenceException(nameof(lambdaBody));
             }
 
-            if (lambdaBody.Type != typeof(object))
-            {
-                lambdaBody = Expression.Convert(lambdaBody, typeof(object));
-            }
-
             return (Func<IServiceResolver, IServiceLifeScope, object>)
                 Expression
                     .Lambda(lambdaBody, ActivatorUtil.ParameterResolver, ActivatorUtil.ParameterScope)
@@ -37,9 +32,16 @@ namespace Tinja.Resolving.Activation.Builder
 
             for (var i = 0; i < elementInits.Length; i++)
             {
+                var elementValue = element.Elements[i].Accept(this);
+                if (elementValue.Type.Is(element.Elements[i].ServiceType))
+                {
+                    elementInits[i] = Expression.ElementInit(addElement, elementValue);
+                    continue;
+                }
+
                 elementInits[i] = Expression.ElementInit(
                     addElement,
-                    Expression.Convert(element.Elements[i].Accept(this), element.Elements[i].ServiceType)
+                    Expression.Convert(elementValue, element.Elements[i].ServiceType)
                 );
             }
 
@@ -94,7 +96,14 @@ namespace Tinja.Resolving.Activation.Builder
                     throw new NullReferenceException(nameof(parameterValue));
                 }
 
-                parameterValues[i] = Expression.Convert(parameterValue, parameterType);
+                if (parameterValue.Type.Is(parameterType))
+                {
+                    parameterValues[i] = parameterValue;
+                }
+                else
+                {
+                    parameterValues[i] = Expression.Convert(parameterValue, parameterType);
+                }
             }
 
             var newExpression = Expression.New(element.ConstructorInfo, parameterValues);
@@ -120,6 +129,13 @@ namespace Tinja.Resolving.Activation.Builder
 
             foreach (var item in element.Properties)
             {
+                var propertyValue = item.Value.Accept(this);
+                if (propertyValue.Type.Is(item.Key.PropertyType))
+                {
+                    propertyBindings.Add(Expression.Bind(item.Key, item.Value.Accept(this)));
+                    continue;
+                }
+
                 propertyBindings.Add(Expression.Bind(item.Key, Expression.Convert(item.Value.Accept(this), item.Key.PropertyType)));
             }
 

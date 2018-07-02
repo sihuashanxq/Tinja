@@ -51,6 +51,7 @@ namespace Tinja.Extensions
 
             var activatorFacotry = new ActivatorFactory(callDependencyBuilderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
+            var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
 
             container.AddScoped(typeof(IServiceResolver), resolver => resolver);
             container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
@@ -68,9 +69,9 @@ namespace Tinja.Extensions
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
 
-            serviceContextFactory.Initialize(container.Components);
+            serviceContextFactory.Populate(container.Components, serviceResolver.ServiceLifeScope);
 
-            return new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
+            return serviceResolver;
         }
 
         /// <summary>

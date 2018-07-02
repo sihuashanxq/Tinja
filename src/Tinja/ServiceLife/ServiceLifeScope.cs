@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Resolving;
-using Tinja.Resolving.Context;
 
 namespace Tinja.ServiceLife
 {
@@ -11,87 +10,80 @@ namespace Tinja.ServiceLife
 
         private readonly IServiceResolver _resolver;
 
-        private readonly IServiceLifeScope _root;
+        private readonly IServiceLifeScope _rootScope;
 
-        private readonly List<object> _transientDisposeObjects;
+        private readonly List<object> _needCollectedObjects;
 
-        private readonly Dictionary<Type, object> _scopedObjects;
+        private readonly Dictionary<Type, object> _scopedSingleObjects;
 
         internal ServiceLifeScope(IServiceResolver resolver, IServiceLifeScope root) : this(resolver)
         {
             if (!(root is ServiceLifeScope))
             {
-                _root = root;
+                _rootScope = root;
             }
             else
             {
-                _root = ((ServiceLifeScope) root)._root ?? root;
+                _rootScope = ((ServiceLifeScope)root)._rootScope ?? root;
             }
         }
 
         public ServiceLifeScope(IServiceResolver resolver)
         {
             _resolver = resolver;
-            _transientDisposeObjects = new List<object>();
-            _scopedObjects = new Dictionary<Type, object>();
+            _needCollectedObjects = new List<object>();
+            _scopedSingleObjects = new Dictionary<Type, object>();
         }
 
-        public object ApplyServiceLifeStyle(ServiceContext context, Func<IServiceResolver, object> factory)
+        public virtual void AddResolvedService(object instance)
         {
-            if (_disposed)
+            if (_rootScope != null)
             {
-                throw new NotSupportedException("scope has disposed!");
+                _rootScope.AddResolvedService(instance);
             }
-
-            switch (context.LifeStyle)
+            else
             {
-                case ServiceLifeStyle.Transient:
-                    return ApplyTransientInstance(context.ServiceType, factory);
-                case ServiceLifeStyle.Scoped:
-                    return ApplyScopedInstance(context.ServiceType, factory);
-                default:
-                    return ApplySingletonInstance(context.ServiceType, factory);
+                _needCollectedObjects.Add(instance);
             }
         }
 
-        protected virtual object ApplyScopedInstance(Type serviceType, Func<IServiceResolver, object> factory)
+        protected virtual object GetOrAddScopedInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
-            if (!_scopedObjects.ContainsKey(serviceType))
+            if (_scopedSingleObjects.TryGetValue(serviceType, out var obj))
             {
-                lock (_scopedObjects)
+                return obj;
+            }
+
+            lock (_scopedSingleObjects)
+            {
+                if (_scopedSingleObjects.TryGetValue(serviceType, out obj))
                 {
-                    if (!_scopedObjects.ContainsKey(serviceType))
-                    {
-                        return _scopedObjects[serviceType] = factory(_resolver);
-                    }
+                    return obj;
                 }
-            }
 
-            return _scopedObjects[serviceType];
+                return _scopedSingleObjects[serviceType] = factory(_resolver);
+            }
         }
 
-        protected virtual object ApplyTransientInstance(Type serviceType, Func<IServiceResolver, object> factory)
+        protected virtual object GetOrAddTransientInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
             var instance = factory(_resolver);
             if (instance is IDisposable)
             {
-                _transientDisposeObjects.Add(instance);
+                _needCollectedObjects.Add(instance);
             }
 
             return instance;
         }
 
-        protected virtual object ApplySingletonInstance(Type serviceType, Func<IServiceResolver, object> factory)
+        protected virtual object GetOrAddSingletonInstance(Type serviceType, Func<IServiceResolver, object> factory)
         {
-            if (_root == null)
-            {
-                return ApplyScopedInstance(serviceType, factory);
-            }
-
-            return _root.ApplyServiceLifeStyle(serviceType, ServiceLifeStyle.Singleton, factory);
+            return _rootScope == null
+                ? GetOrAddScopedInstance(serviceType, factory)
+                : _rootScope.GetOrAddResolvedService(serviceType, ServiceLifeStyle.Singleton, factory);
         }
 
-        public object ApplyServiceLifeStyle(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
+        public object GetOrAddResolvedService(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {
@@ -101,11 +93,11 @@ namespace Tinja.ServiceLife
             switch (lifeStyle)
             {
                 case ServiceLifeStyle.Transient:
-                    return ApplyTransientInstance(serviceType, factory);
+                    return GetOrAddTransientInstance(serviceType, factory);
                 case ServiceLifeStyle.Scoped:
-                    return ApplyScopedInstance(serviceType, factory);
+                    return GetOrAddScopedInstance(serviceType, factory);
                 default:
-                    return ApplySingletonInstance(serviceType, factory);
+                    return GetOrAddSingletonInstance(serviceType, factory);
             }
         }
 
@@ -135,7 +127,7 @@ namespace Tinja.ServiceLife
 
                 _disposed = true;
 
-                foreach (var item in _transientDisposeObjects)
+                foreach (var item in _needCollectedObjects)
                 {
                     if (item is IDisposable dispose)
                     {
@@ -143,7 +135,7 @@ namespace Tinja.ServiceLife
                     }
                 }
 
-                foreach (var item in _scopedObjects.Values)
+                foreach (var item in _scopedSingleObjects.Values)
                 {
                     if (item is IDisposable dispose)
                     {
@@ -151,8 +143,8 @@ namespace Tinja.ServiceLife
                     }
                 }
 
-                _transientDisposeObjects.Clear();
-                _scopedObjects.Clear();
+                _needCollectedObjects.Clear();
+                _scopedSingleObjects.Clear();
             }
         }
     }

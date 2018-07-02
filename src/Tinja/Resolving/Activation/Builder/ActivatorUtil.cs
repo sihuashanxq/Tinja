@@ -21,7 +21,7 @@ namespace Tinja.Resolving.Activation.Builder
             ParameterScope = Expression.Parameter(typeof(IServiceLifeScope));
             ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
 
-            ApplyLifeFunc = (serviceType, lifeStyle, scope, factory) => scope.ApplyServiceLifeStyle(serviceType, lifeStyle, factory);
+            ApplyLifeFunc = (serviceType, lifeStyle, scope, factory) => scope.GetOrAddResolvedService(serviceType, lifeStyle, factory);
             ApplyLifeConstant = Expression.Constant(ApplyLifeFunc, typeof(ApplyLifeDelegate));
         }
     }

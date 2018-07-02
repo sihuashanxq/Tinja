@@ -1,31 +1,25 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
 using Tinja;
 using Tinja.Extensions;
-using Tinja.Resolving;
-using Tinja.Resolving.Activation.Builder;
-using Tinja.Resolving.Dependency;
-using Tinja.ServiceLife;
 
 namespace ConsoleApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             var container = new Container();
             var s = new UserRepository();
             container.AddTransient<IUserService, UserService1>();
             container.AddTransient<IUserService, UserService>();
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
-            container.AddSingleton<IUserRepository>(s);
+            container.AddScoped(typeof(IUserRepository), typeof(UserRepository));
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
             container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
 
-            container.Configure(config => config.Interception.Providers.Add(new MemberInterceptionProvider()));
+            //container.Configure(config => config.Interception.Providers.Add(new MemberInterceptionProvider()));
             container.Configure(config => config.Interception.EnableInterception = true);
 
             var resolver = container.BuildResolver();
@@ -42,18 +36,19 @@ namespace ConsoleApp
                 var repository = resolver.Resolve<IRepository<IUserService>>();
             }
 
-            var stopWatch = new Stopwatch();
             var type = typeof(IUserRepository);
+            var stopWatch=new Stopwatch();
             stopWatch.Start();
-
             for (var i = 0; i < 100000000; i++)
             {
                 resolver.Resolve(type);
             }
 
             stopWatch.Stop();
+
             Console.WriteLine(stopWatch.ElapsedMilliseconds);
-            Console.ReadKey();
+
+            Console.ReadLine();
         }
     }
 }

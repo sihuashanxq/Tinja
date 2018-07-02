@@ -24,7 +24,7 @@ namespace Tinja.Resolving.Context
             Components = new ConcurrentDictionary<Type, List<Component>>();
         }
 
-        public virtual void Initialize(ConcurrentDictionary<Type, List<Component>> components)
+        public virtual void Populate(ConcurrentDictionary<Type, List<Component>> components, IServiceLifeScope lifeScope)
         {
             foreach (var kv in components)
             {
@@ -32,6 +32,11 @@ namespace Tinja.Resolving.Context
 
                 foreach (var item in Components[kv.Key])
                 {
+                    if (item.ImplementionInstance != null)
+                    {
+                        lifeScope.AddResolvedService(item.ImplementionInstance);
+                    }
+
                     if (ShouldCreateProxyType(item))
                     {
                         InitializeProxyType(item);

@@ -3,7 +3,7 @@ using Tinja.Interception;
 
 namespace ConsoleApp
 {
-    [Interceptor(typeof(UserServiceDataAnnotationInterceptor), Inherited = true, Priority = -1)]
+    [Interceptor(typeof(UserServiceDataAnnotationInterceptor), Inherited = true)]
     public interface IUserService
     {
         string GetUserName(int id);
@@ -25,9 +25,6 @@ namespace ConsoleApp
     public class UserService : IUserService
     {
         private readonly IUserRepository _repository;
-
-        [Inject]
-        public IRepository<IUserRepository> Repository { get; set; }
 
         public UserService(IUserRepository repository)
         {
