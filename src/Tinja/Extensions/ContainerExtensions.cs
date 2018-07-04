@@ -7,10 +7,8 @@ using Tinja.Interception.Executors.Internal;
 using Tinja.Interception.Members;
 using Tinja.Resolving;
 using Tinja.Resolving.Activation;
-using Tinja.Resolving.Activation.Builder;
 using Tinja.Resolving.Context;
 using Tinja.Resolving.Dependency;
-using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
 namespace Tinja.Extensions
@@ -39,11 +37,7 @@ namespace Tinja.Extensions
                 MemberCollectorFactory.Default
             );
 
-            var serviceContextFactory = new ServiceContextFactory(
-                new TypeMetadataFactory(),
-                memberInterceptionCollector
-            );
-
+            var serviceContextFactory = new ServiceContextFactory(memberInterceptionCollector);
             var callDependencyBuilderFactory = new CallDependencyElementBuilderFactory(
                 serviceContextFactory,
                 configuration

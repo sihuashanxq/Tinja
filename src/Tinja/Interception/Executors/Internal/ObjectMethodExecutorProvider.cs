@@ -5,7 +5,7 @@ namespace Tinja.Interception.Executors.Internal
 {
     public class ObjectMethodExecutorProvider : IObjectMethodExecutorProvider
     {
-        private ConcurrentDictionary<MethodInfo, IObjectMethodExecutor> _executors;
+        private readonly ConcurrentDictionary<MethodInfo, IObjectMethodExecutor> _executors;
 
         public ObjectMethodExecutorProvider()
         {

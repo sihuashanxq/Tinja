@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Tinja.Interception;
 using Tinja.Interception.Generators;
-using Tinja.Resolving.Metadata;
 using Tinja.ServiceLife;
 
 namespace Tinja.Resolving.Context
@@ -13,14 +12,11 @@ namespace Tinja.Resolving.Context
     {
         protected ConcurrentDictionary<Type, List<Component>> Components { get; }
 
-        protected ITypeMetadataFactory TypeFactory { get; }
-
         internal IMemberInterceptionCollector InterceptionProvider { get; }
 
-        internal ServiceContextFactory(ITypeMetadataFactory typeFactory, IMemberInterceptionCollector provider)
+        internal ServiceContextFactory(IMemberInterceptionCollector provider)
         {
             InterceptionProvider = provider;
-            TypeFactory = typeFactory;
             Components = new ConcurrentDictionary<Type, List<Component>>();
         }
 
@@ -86,52 +82,42 @@ namespace Tinja.Resolving.Context
 
         protected ServiceContext CreateContext(Type serviceType, Component component)
         {
-            if (component.ImplementionFactory != null || component.ImplementionInstance != null)
+            if (component.ImplementionFactory != null)
             {
-                return new ServiceContext()
+                return new ServiceDelegateContext()
                 {
-                    LifeStyle = component.LifeStyle,
                     ServiceType = serviceType,
-                    ImplementionFactory = component.ImplementionFactory,
-                    ImplementionInstance = component.ImplementionInstance
+                    LifeStyle = component.LifeStyle,
+                    Delegate = component.ImplementionFactory
                 };
             }
 
-            var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
-            if (meta == null)
+            if (component.ImplementionInstance != null)
             {
-                throw new InvalidOperationException(
-                    $"Create ImplementionType metadata failed!Service Type:${serviceType.FullName}");
+                return new ServiceInstanceContext()
+                {
+                    ServiceType = serviceType,
+                    LifeStyle = component.LifeStyle,
+                    Instance = component.ImplementionInstance
+                };
             }
 
             if (component.ProxyType == null)
             {
-                return new ServiceContext()
+                return new ServiceConstrcutorContext()
                 {
                     ServiceType = serviceType,
                     LifeStyle = component.LifeStyle,
-                    Constrcutors = meta.Constructors,
-                    ImplementionType = meta.Type,
-                    ImplementionFactory = component.ImplementionFactory
+                    ImplementionType = MakeGenericImplementionType(serviceType, component.ImplementionType)
                 };
-            }
-
-            var proxyMeta = MakeTypeMetadata(serviceType, component.ProxyType);
-            if (proxyMeta == null)
-            {
-
-                throw new InvalidOperationException($"Create ProxyImplementionType metadata failed!Service Type:${serviceType.FullName}");
             }
 
             return new ServiceProxyContext()
             {
                 ServiceType = serviceType,
                 LifeStyle = component.LifeStyle,
-                Constrcutors = meta.Constructors,
-                ImplementionType = meta.Type,
-                ImplementionFactory = component.ImplementionFactory,
-                ProxyType = proxyMeta.Type,
-                ProxyConstructors = proxyMeta.Constructors
+                TargetType = MakeGenericImplementionType(serviceType, component.ImplementionType),
+                ProxyType = MakeGenericImplementionType(serviceType, component.ProxyType)
             };
         }
 
@@ -191,20 +177,17 @@ namespace Tinja.Resolving.Context
             {
                 ServiceType = typeof(IEnumerable<>),
                 ImplementionType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
-                ImplementionFactory = null,
                 LifeStyle = ServiceLifeStyle.Scoped
             };
 
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
             var elements = CreateManyContext(elementType).Reverse().ToList();
-            var meta = MakeTypeMetadata(serviceType, component.ImplementionType);
 
             return new ServiceManyContext()
             {
                 ServiceType = serviceType,
-                ImplementionType = meta.Type,
+                CollectionType = MakeGenericImplementionType(serviceType, component.ImplementionType),
                 LifeStyle = component.LifeStyle,
-                Constrcutors = meta.Constructors,
                 Elements = elements
             };
         }
@@ -243,14 +226,15 @@ namespace Tinja.Resolving.Context
                 : new ServiceContext[0];
         }
 
-        protected TypeMetadata MakeTypeMetadata(Type serviceType, Type implementionType)
+        private static Type MakeGenericImplementionType(Type serviceType, Type impleType)
         {
-            if (implementionType.IsGenericTypeDefinition && serviceType.IsConstructedGenericType)
+            if (impleType.IsGenericTypeDefinition &&
+                serviceType.IsConstructedGenericType)
             {
-                implementionType = implementionType.MakeGenericType(serviceType.GenericTypeArguments);
+                return impleType.MakeGenericType(serviceType.GenericTypeArguments);
             }
 
-            return TypeFactory.Create(implementionType);
+            return impleType;
         }
 
         private bool ShouldCreateProxyType(Component component)

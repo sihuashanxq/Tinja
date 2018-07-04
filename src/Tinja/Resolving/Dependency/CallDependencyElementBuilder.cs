@@ -26,82 +26,86 @@ namespace Tinja.Resolving.Dependency
         public virtual CallDepenencyElement Build(Type serviceType)
         {
             var ctx = ContextFactory.CreateContext(serviceType);
-            if (ctx != null)
+            if (ctx == null)
             {
-                return Build(ctx);
+                return null;
             }
 
-            return null;
+            return BuildElement(ctx);
         }
 
-        protected virtual CallDepenencyElement Build(ServiceContext ctx)
+        protected virtual CallDepenencyElement BuildElement(ServiceContext ctx)
         {
-            using (DenpendencyScope.Begin(ctx.ImplementionType))
-            {
-                return BuildCallDependency(ctx);
-            }
-        }
-
-        protected virtual CallDepenencyElement BuildCallDependency(ServiceContext ctx)
-        {
-            if (ctx.ImplementionInstance != null)
-            {
-                return BuildInstanceCallDepdency(ctx);
-            }
-
-            if (ctx.ImplementionFactory != null)
-            {
-                return BuildDelegateCallDepenency(ctx);
-            }
-
             switch (ctx)
             {
                 case ServiceManyContext many:
-                    return BuildManyCallDependency(many);
+                    return BuildManyElement(many);
+
+                case ServiceInstanceContext instance:
+                    return BuildInstanceElement(instance);
+
+                case ServiceDelegateContext @delegate:
+                    return BuildDelegateElement(@delegate);
+
                 case ServiceProxyContext proxy:
-                    return BuildProxyCallDependency(proxy);
-                default:
-                    return BuildDefaultCallDependency(ctx);
+                    return BuildProxyElement(proxy);
+
+                case ServiceConstrcutorContext constrcutor:
+                    using (DenpendencyScope.Begin(constrcutor.ImplementionType))
+                        return BuildConstrcutorElement(constrcutor);
             }
+
+            throw new InvalidOperationException();
         }
 
-        protected virtual CallDepenencyElement BuildDelegateCallDepenency(ServiceContext ctx)
+        protected virtual CallDepenencyElement BuildDelegateElement(ServiceDelegateContext ctx)
         {
             return new DelegateCallDepenencyElement()
             {
                 LifeStyle = ctx.LifeStyle,
                 ServiceType = ctx.ServiceType,
-                Delegate = ctx.ImplementionFactory
+                Delegate = ctx.Delegate
             };
         }
 
-        protected virtual CallDepenencyElement BuildInstanceCallDepdency(ServiceContext ctx)
+        protected virtual CallDepenencyElement BuildInstanceElement(ServiceInstanceContext ctx)
         {
             return new InstanceCallDependencyElement()
             {
                 LifeStyle = ctx.LifeStyle,
                 ServiceType = ctx.ServiceType,
-                Instance = ctx.ImplementionInstance
+                Instance = ctx.Instance
             };
         }
 
-        protected virtual CallDepenencyElement BuildProxyCallDependency(ServiceProxyContext ctx)
+        protected virtual CallDepenencyElement BuildProxyElement(ServiceProxyContext ctx)
         {
             var parameterElements = new Dictionary<ParameterInfo, CallDepenencyElement>();
 
-            foreach (var item in ctx.ProxyConstructors.OrderByDescending(i => i.Paramters.Length))
+            foreach (var item in ctx.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
             {
-                foreach (var parameterInfo in item.Paramters)
+                var parameterInfos = item.GetParameters();
+                if (parameterInfos.Length == 0)
                 {
-                    if (parameterInfo.ParameterType == ctx.ImplementionType)
+                    return new ConstructorCallDependencyElement()
                     {
-                        var parameterElement = Build(new ServiceContext()
+                        Parameters = parameterElements,
+                        LifeStyle = ctx.LifeStyle,
+                        ServiceType = ctx.ServiceType,
+                        ImplementionType = ctx.ProxyType,
+                        ConstructorInfo = item
+                    };
+                }
+
+                foreach (var parameterInfo in parameterInfos)
+                {
+                    if (parameterInfo.ParameterType == ctx.TargetType)
+                    {
+                        var parameterElement = BuildElement(new ServiceConstrcutorContext()
                         {
                             ServiceType = ctx.ServiceType,
-                            ImplementionType = ctx.ImplementionType,
-                            LifeStyle = ctx.LifeStyle,
-                            Constrcutors = ctx.Constrcutors,
-                            ImplementionFactory = ctx.ImplementionFactory
+                            ImplementionType = ctx.TargetType,
+                            LifeStyle = ctx.LifeStyle
                         });
 
                         if (parameterElement == null)
@@ -114,7 +118,7 @@ namespace Tinja.Resolving.Dependency
                         continue;
                     }
 
-                    if (BuildParameter(parameterInfo, parameterElements))
+                    if (BuildParameterElement(parameterInfo, parameterElements))
                     {
                         continue;
                     }
@@ -123,7 +127,7 @@ namespace Tinja.Resolving.Dependency
                     break;
                 }
 
-                if (parameterElements.Count == item.Paramters.Length)
+                if (parameterElements.Count == parameterInfos.Length)
                 {
                     return new ConstructorCallDependencyElement()
                     {
@@ -131,7 +135,7 @@ namespace Tinja.Resolving.Dependency
                         LifeStyle = ctx.LifeStyle,
                         ServiceType = ctx.ServiceType,
                         ImplementionType = ctx.ProxyType,
-                        ConstructorInfo = item.ConstructorInfo
+                        ConstructorInfo = item
                     };
                 }
             }
@@ -139,13 +143,13 @@ namespace Tinja.Resolving.Dependency
             return null;
         }
 
-        protected virtual CallDepenencyElement BuildManyCallDependency(ServiceManyContext ctx)
+        protected virtual CallDepenencyElement BuildManyElement(ServiceManyContext ctx)
         {
             var elements = new List<CallDepenencyElement>();
 
             foreach (var item in ctx.Elements)
             {
-                var ele = Build(item);
+                var ele = BuildElement(item);
                 if (ele == null)
                 {
                     continue;
@@ -159,23 +163,24 @@ namespace Tinja.Resolving.Dependency
                 Elements = elements.ToArray(),
                 LifeStyle = ctx.LifeStyle,
                 ServiceType = ctx.ServiceType,
-                ImplementionType = ctx.ImplementionType,
-                ConstructorInfo = ctx.Constrcutors.FirstOrDefault()?.ConstructorInfo
+                ImplementionType = ctx.CollectionType,
+                ConstructorInfo = ctx.CollectionType.GetConstructors().FirstOrDefault(i => i.GetParameters().Length == 0)
             };
         }
 
-        protected virtual CallDepenencyElement BuildDefaultCallDependency(ServiceContext ctx)
+        protected virtual CallDepenencyElement BuildConstrcutorElement(ServiceConstrcutorContext ctx)
         {
             var parameterElements = new Dictionary<ParameterInfo, CallDepenencyElement>();
 
-            foreach (var item in ctx.Constrcutors.OrderByDescending(i => i.Paramters.Length))
+            foreach (var item in ctx.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
             {
-                if (item.Paramters.Any(parameterInfo => !BuildParameter(parameterInfo, parameterElements)))
+                var parameterInfos = item.GetParameters();
+                if (parameterInfos.Any(parameterInfo => !BuildParameterElement(parameterInfo, parameterElements)))
                 {
                     parameterElements.Clear();
                 }
 
-                if (parameterElements.Count != item.Paramters.Length)
+                if (parameterElements.Count != parameterInfos.Length)
                 {
                     parameterElements.Clear();
                     continue;
@@ -187,7 +192,7 @@ namespace Tinja.Resolving.Dependency
                     LifeStyle = ctx.LifeStyle,
                     ServiceType = ctx.ServiceType,
                     ImplementionType = ctx.ImplementionType,
-                    ConstructorInfo = item.ConstructorInfo
+                    ConstructorInfo = item
                 };
 
                 return BuildProperty(element);
@@ -213,7 +218,7 @@ namespace Tinja.Resolving.Dependency
 
             foreach (var propertieInfo in propertieInfos)
             {
-                BuildProperty(propertieInfo, properties);
+                BuildPropertyElement(propertieInfo, properties);
             }
 
             element.Properties = properties;
@@ -221,7 +226,7 @@ namespace Tinja.Resolving.Dependency
             return element;
         }
 
-        protected void BuildProperty(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDepenencyElement> propertyElements)
+        protected void BuildPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDepenencyElement> propertyElements)
         {
             var ctx = ContextFactory.CreateContext(propertyInfo.PropertyType);
             if (ctx == null)
@@ -229,9 +234,9 @@ namespace Tinja.Resolving.Dependency
                 return;
             }
 
-            CheckCircularDependency(ctx.ImplementionType);
+            CheckCircularDependency(ctx as ServiceConstrcutorContext);
 
-            var propertyElement = Build(ctx);
+            var propertyElement = BuildElement(ctx);
             if (propertyElement == null)
             {
                 return;
@@ -240,7 +245,7 @@ namespace Tinja.Resolving.Dependency
             propertyElements[propertyInfo] = propertyElement;
         }
 
-        protected bool BuildParameter(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameterElements)
+        protected bool BuildParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameterElements)
         {
             var ctx = ContextFactory.CreateContext(parameterInfo.ParameterType);
             if (ctx == null)
@@ -248,9 +253,9 @@ namespace Tinja.Resolving.Dependency
                 return false;
             }
 
-            CheckCircularDependency(ctx.ImplementionType);
+            CheckCircularDependency(ctx as ServiceConstrcutorContext);
 
-            var parameterElement = Build(ctx);
+            var parameterElement = BuildElement(ctx);
             if (parameterElement == null)
             {
                 return false;
@@ -261,16 +266,16 @@ namespace Tinja.Resolving.Dependency
             return true;
         }
 
-        protected void CheckCircularDependency(Type implementionType)
+        protected void CheckCircularDependency(ServiceConstrcutorContext ctx)
         {
-            if (implementionType == null)
+            if (ctx == null || ctx.ImplementionType == null)
             {
                 return;
             }
 
-            if (DenpendencyScope.Contains(implementionType))
+            if (DenpendencyScope.Contains(ctx.ImplementionType))
             {
-                throw new CallCircularException(implementionType, string.Empty);
+                throw new CallCircularException(ctx.ImplementionType, $"type:{ctx.ImplementionType.FullName} exists circular dependencies!");
             }
         }
     }
