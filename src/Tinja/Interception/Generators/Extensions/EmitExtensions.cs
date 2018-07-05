@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Threading.Tasks;
 using Tinja.Extensions;
 using Tinja.Interception.Executors;
 
@@ -16,32 +15,60 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static readonly MethodInfo GetProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
 
-        internal static ILGenerator Box(this ILGenerator il, Type boxType)
+        internal static ILGenerator Box(this ILGenerator ilGen, Type boxType)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (boxType == null)
+            {
+                throw new NullReferenceException(nameof(boxType));
+            }
+
             if (boxType.IsValueType)
             {
-                il.Emit(OpCodes.Box, boxType);
-            }
-
-            return il;
-        }
-
-        internal static ILGenerator UnBoxAny(this ILGenerator ilGen, Type valueType)
-        {
-            if (valueType.IsByRef)
-            {
-                ilGen.Emit(OpCodes.Unbox_Any, valueType.GetElementType());
-            }
-            else
-            {
-                ilGen.Emit(OpCodes.Unbox_Any, valueType);
+                ilGen.Emit(OpCodes.Box, boxType);
             }
 
             return ilGen;
         }
 
+        internal static ILGenerator UnBoxAny(this ILGenerator ilGen, Type valueType)
+        {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (valueType == null)
+            {
+                throw new NullReferenceException(nameof(valueType));
+            }
+
+            if (valueType.IsByRef)
+            {
+                ilGen.Emit(OpCodes.Unbox_Any, valueType.GetElementType());
+                return ilGen;
+            }
+
+            ilGen.Emit(OpCodes.Unbox_Any, valueType);
+            return ilGen;
+        }
+
         internal static void LoadMethodInfo(this ILGenerator ilGen, MethodInfo methodInfo)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             ilGen.Emit(OpCodes.Ldtoken, methodInfo);
             ilGen.Emit(OpCodes.Ldtoken, methodInfo.DeclaringType);
             ilGen.Emit(OpCodes.Call, MethodGetMethodFromHandle);
@@ -49,6 +76,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static void LoadPropertyInfo(this ILGenerator ilGen, PropertyInfo propertyInfo)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (propertyInfo == null)
+            {
+                throw new NullReferenceException(nameof(propertyInfo));
+            }
+
             ilGen.Emit(OpCodes.Ldtoken, propertyInfo.DeclaringType);
             ilGen.Emit(OpCodes.Ldstr, propertyInfo.Name);
             ilGen.Emit(OpCodes.Ldc_I4, (int)(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic));
@@ -57,6 +94,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadMethodGenericArguments(this ILGenerator ilGen, MethodInfo methodInfo)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             if (!methodInfo.IsGenericMethod)
             {
                 ilGen.Emit(OpCodes.Ldnull);
@@ -86,6 +133,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadDefaultValue(this ILGenerator ilGen, Type valueType)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (valueType == null)
+            {
+                throw new NullReferenceException(nameof(valueType));
+            }
+
             if (valueType == typeof(void))
             {
                 return ilGen;
@@ -211,6 +268,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator NewArray(this ILGenerator ilGen, Type arrayElementType, int length)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (arrayElementType == null)
+            {
+                throw new NullReferenceException(nameof(arrayElementType));
+            }
+
             ilGen.Emit(OpCodes.Ldc_I4, length);
             ilGen.Emit(OpCodes.Newarr, arrayElementType);
 
@@ -219,6 +286,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator MakeArgumentArray(this ILGenerator ilGen, ParameterInfo[] parameters)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (parameters == null)
+            {
+                throw new NullReferenceException(nameof(parameters));
+            }
+
             ilGen.NewArray(typeof(object), parameters.Length);
 
             for (var i = 0; i < parameters.Length; i++)
@@ -238,6 +315,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator SetRefArgumentsWithArray(this ILGenerator ilGen, ParameterInfo[] parameters, LocalBuilder array)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (parameters == null)
+            {
+                throw new NullReferenceException(nameof(parameters));
+            }
+
             for (var argIndex = 0; argIndex < parameters.Length; argIndex++)
             {
                 var parameter = parameters[argIndex];
@@ -256,6 +343,21 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadArrayElement(this ILGenerator ilGen, Action<ILGenerator> loadArrayInstance, int arrayIndex, Type elementType)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (loadArrayInstance == null)
+            {
+                throw new NullReferenceException(nameof(loadArrayInstance));
+            }
+
+            if (elementType == null)
+            {
+                throw new NullReferenceException(nameof(elementType));
+            }
+
             if (arrayIndex < 0)
             {
                 throw new IndexOutOfRangeException(nameof(arrayIndex));
@@ -269,8 +371,23 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator SetArrayElement(this ILGenerator ilGen, Action<ILGenerator> loadArrayInstance, Action<ILGenerator> loadElementValue, int arrayIndex, Type valueType)
+        internal static ILGenerator SetArrayElement(this ILGenerator ilGen, Action<ILGenerator> loadArrayInstance, Action<ILGenerator> loadElementValue, int arrayIndex, Type elementType)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (loadArrayInstance == null)
+            {
+                throw new NullReferenceException(nameof(loadArrayInstance));
+            }
+
+            if (elementType == null)
+            {
+                throw new NullReferenceException(nameof(elementType));
+            }
+
             if (arrayIndex < 0)
             {
                 throw new IndexOutOfRangeException(nameof(arrayIndex));
@@ -279,7 +396,7 @@ namespace Tinja.Interception.Generators.Extensions
             loadArrayInstance(ilGen);
             ilGen.Emit(OpCodes.Ldc_I4, arrayIndex);
             loadElementValue(ilGen);
-            ilGen.CastValueToObject(valueType);
+            ilGen.CastValueToObject(elementType);
             ilGen.Emit(OpCodes.Stelem_Ref);
 
             return ilGen;
@@ -287,6 +404,21 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator SetThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action<ILGenerator> loadFieldValue)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (fieldBuilder == null)
+            {
+                throw new NullReferenceException(nameof(fieldBuilder));
+            }
+
+            if (loadFieldValue == null)
+            {
+                throw new NullReferenceException(nameof(loadFieldValue));
+            }
+
             ilGen.This();
             loadFieldValue(ilGen);
             ilGen.Emit(OpCodes.Stfld, fieldBuilder);
@@ -296,6 +428,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (fieldBuilder == null)
+            {
+                throw new NullReferenceException(nameof(fieldBuilder));
+            }
+
             ilGen.This();
             ilGen.Emit(OpCodes.Ldfld, fieldBuilder);
 
@@ -304,6 +446,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator SetStaticField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action<ILGenerator> loadFieldValue)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (fieldBuilder == null)
+            {
+                throw new NullReferenceException(nameof(fieldBuilder));
+            }
+
             loadFieldValue(ilGen);
             ilGen.Emit(OpCodes.Stsfld, fieldBuilder);
 
@@ -312,6 +464,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadStaticField(this ILGenerator ilGen, FieldBuilder fieldBuilder)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (fieldBuilder == null)
+            {
+                throw new NullReferenceException(nameof(fieldBuilder));
+            }
+
             ilGen.Emit(OpCodes.Ldsfld, fieldBuilder);
 
             return ilGen;
@@ -319,6 +481,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator Call(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             if (argumentStuffers != null)
             {
                 foreach (var stuffer in argumentStuffers)
@@ -334,6 +506,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action<ILGenerator>[] argumentStuffers)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (constructorInfo == null)
+            {
+                throw new NullReferenceException(nameof(constructorInfo));
+            }
+
             ilGen.This();
 
             if (argumentStuffers != null)
@@ -351,6 +533,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator CallVirt(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             if (argumentStuffers != null)
             {
                 foreach (var stuffer in argumentStuffers)
@@ -366,6 +558,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator New(this ILGenerator ilGen, ConstructorInfo constructor, params Action<ILGenerator>[] argumentStuffers)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (constructor == null)
+            {
+                throw new NullReferenceException(nameof(constructor));
+            }
+
             if (argumentStuffers != null)
             {
                 foreach (var stuffer in argumentStuffers)
@@ -381,6 +583,11 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadArgument(this ILGenerator ilGen, int argumentIndex)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
             if (argumentIndex < 0 || argumentIndex > ushort.MaxValue)
             {
                 throw new IndexOutOfRangeException(nameof(argumentIndex));
@@ -416,6 +623,11 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator This(this ILGenerator ilGen)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
             ilGen.Emit(OpCodes.Ldarg_0);
 
             return ilGen;
@@ -423,6 +635,11 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator Return(this ILGenerator ilGen)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
             ilGen.Emit(OpCodes.Ret);
 
             return ilGen;
@@ -430,6 +647,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator SetVariableValue(this ILGenerator ilGen, LocalBuilder localBuilder)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (localBuilder == null)
+            {
+                throw new NullReferenceException(nameof(localBuilder));
+            }
+
             ilGen.Emit(OpCodes.Stloc, localBuilder);
 
             return ilGen;
@@ -437,6 +664,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadVariableRef(this ILGenerator ilGen, LocalBuilder localBuilder)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (localBuilder == null)
+            {
+                throw new NullReferenceException(nameof(localBuilder));
+            }
+
             ilGen.Emit(OpCodes.Ldloca, localBuilder);
 
             return ilGen;
@@ -444,6 +681,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadVariable(this ILGenerator ilGen, LocalBuilder localBuilder)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (localBuilder == null)
+            {
+                throw new NullReferenceException(nameof(localBuilder));
+            }
+
             ilGen.Emit(OpCodes.Ldloc, localBuilder);
 
             return ilGen;
@@ -451,6 +698,11 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator LoadVariable(this ILGenerator ilGen, int slot)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
             if (slot < 0)
             {
                 throw new IndexOutOfRangeException(nameof(slot));
@@ -486,6 +738,16 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator TypeOf(this ILGenerator ilGen, Type type)
         {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (type == null)
+            {
+                throw new NullReferenceException(nameof(type));
+            }
+
             ilGen.Emit(OpCodes.Ldtoken, type);
 
             return ilGen;
@@ -499,24 +761,32 @@ namespace Tinja.Interception.Generators.Extensions
 
         internal static ILGenerator InvokeMethodInvocation(this ILGenerator ilGen, MethodInfo methodInfo)
         {
-            if (methodInfo.ReturnType.IsValueTask())
+            if (ilGen == null)
             {
-                ilGen.CallVirt(MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
-            }
-            else if (methodInfo.ReturnType.IsTask())
-            {
-                ilGen.CallVirt(MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
-            }
-            else if (methodInfo.ReturnType.IsVoid())
-            {
-                ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(typeof(object)));
-            }
-            else
-            {
-                ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(methodInfo.ReturnType));
+                throw new NullReferenceException(nameof(ilGen));
             }
 
-            return ilGen;
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
+            if (methodInfo.ReturnType.IsValueTask())
+            {
+                return ilGen.CallVirt(MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
+            }
+
+            if (methodInfo.ReturnType.IsTask())
+            {
+                return ilGen.CallVirt(MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
+            }
+
+            if (methodInfo.ReturnType.IsVoid())
+            {
+                return ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(typeof(object)));
+            }
+
+            return ilGen.CallVirt(MethodInvocationExecute.MakeGenericMethod(methodInfo.ReturnType));
         }
     }
 }

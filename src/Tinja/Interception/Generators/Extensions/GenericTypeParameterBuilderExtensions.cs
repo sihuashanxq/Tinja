@@ -7,9 +7,14 @@ namespace Tinja.Interception.Generators.Extensions
     {
         public static GenericTypeParameterBuilder SetGenericParameterConstraint(this GenericTypeParameterBuilder builder, Type genericArgument)
         {
-            if (genericArgument == null || builder == null)
+            if (builder == null)
             {
-                return builder;
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            if (genericArgument == null)
+            {
+                throw new NullReferenceException(nameof(genericArgument));
             }
 
             foreach (var constraint in genericArgument.GetGenericParameterConstraints())

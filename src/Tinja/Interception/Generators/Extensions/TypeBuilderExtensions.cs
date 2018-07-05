@@ -9,7 +9,17 @@ namespace Tinja.Interception.Generators.Extensions
     {
         public static TypeBuilder DefineGenericParameters(this TypeBuilder builder, Type typeInfo)
         {
-            if (typeInfo == null || builder == null || !typeInfo.IsGenericType)
+            if (typeInfo == null)
+            {
+                throw new NullReferenceException(nameof(typeInfo));
+            }
+
+            if (builder == null)
+            {
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            if (!typeInfo.IsGenericType)
             {
                 return builder;
             }
@@ -36,9 +46,14 @@ namespace Tinja.Interception.Generators.Extensions
 
         public static TypeBuilder SetCustomAttributes(this TypeBuilder builder, Type typeInfo)
         {
-            if (builder == null || typeInfo == null)
+            if (typeInfo == null)
             {
-                return builder;
+                throw new NullReferenceException(nameof(typeInfo));
+            }
+
+            if (builder == null)
+            {
+                throw new NullReferenceException(nameof(builder));
             }
 
             foreach (var customAttriute in typeInfo
@@ -55,9 +70,14 @@ namespace Tinja.Interception.Generators.Extensions
             return builder;
         }
 
-        internal static MethodBuilder DefineMethod(this TypeBuilder typeBuilder, MethodInfo methodInfo)
+        internal static MethodBuilder DefineMethod(this TypeBuilder builder, MethodInfo methodInfo)
         {
-            return typeBuilder
+            if (builder == null)
+            {
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            return builder
                  .DefineMethod(
                     methodInfo.Name,
                     GetMethodAttributes(methodInfo),
@@ -73,33 +93,37 @@ namespace Tinja.Interception.Generators.Extensions
 
         private static MethodAttributes GetMethodAttributes(MethodInfo methodInfo)
         {
-            var attributes = MethodAttributes.HideBySig | MethodAttributes.Virtual;
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             if (methodInfo.IsPublic)
             {
-                return MethodAttributes.Public | attributes;
+                return MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual;
             }
 
             if (methodInfo.IsFamily)
             {
-                return MethodAttributes.Family | attributes;
+                return MethodAttributes.Family | MethodAttributes.HideBySig | MethodAttributes.Virtual;
             }
 
             if (methodInfo.IsFamilyAndAssembly)
             {
-                return MethodAttributes.FamANDAssem | attributes;
+                return MethodAttributes.FamANDAssem | MethodAttributes.HideBySig | MethodAttributes.Virtual;
             }
 
             if (methodInfo.IsFamilyOrAssembly)
             {
-                return MethodAttributes.FamORAssem | attributes;
+                return MethodAttributes.FamORAssem | MethodAttributes.HideBySig | MethodAttributes.Virtual;
             }
 
             if (methodInfo.IsPrivate)
             {
-                return MethodAttributes.Private | attributes;
+                return MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.Virtual;
             }
 
-            return attributes;
+            return MethodAttributes.HideBySig | MethodAttributes.Virtual;
         }
     }
 }

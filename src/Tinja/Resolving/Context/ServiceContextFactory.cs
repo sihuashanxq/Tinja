@@ -10,14 +10,14 @@ namespace Tinja.Resolving.Context
 {
     public class ServiceContextFactory : IServiceContextFactory
     {
-        protected ConcurrentDictionary<Type, List<Component>> Components { get; }
+        protected Dictionary<Type, List<Component>> Components { get; }
 
         internal IMemberInterceptionCollector InterceptionProvider { get; }
 
         internal ServiceContextFactory(IMemberInterceptionCollector provider)
         {
             InterceptionProvider = provider;
-            Components = new ConcurrentDictionary<Type, List<Component>>();
+            Components = new Dictionary<Type, List<Component>>();
         }
 
         public virtual void Populate(ConcurrentDictionary<Type, List<Component>> components, IServiceLifeScope lifeScope)
@@ -181,7 +181,7 @@ namespace Tinja.Resolving.Context
             };
 
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
-            var elements = CreateManyContext(elementType).Reverse().ToList();
+            var elements = CreateContextElements(elementType).Reverse().ToList();
 
             return new ServiceManyContext()
             {
@@ -192,49 +192,54 @@ namespace Tinja.Resolving.Context
             };
         }
 
-        protected virtual IEnumerable<ServiceContext> CreateManyContext(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateContextElements(Type serviceType)
         {
-            var ctxs = new List<ServiceContext>();
-            var ctx = CreateContextEnumerable(serviceType);
-            if (ctx != null)
+            var elements = new List<ServiceContext>();
+            var enumerable = CreateContextEnumerable(serviceType);
+            if (enumerable != null)
             {
-                ctxs.Add(ctx);
+                elements.Add(enumerable);
             }
 
-            ctxs.AddRange(CreateManyContextDirectly(serviceType));
-            ctxs.AddRange(CreateManyContextOpenGeneric(serviceType));
+            elements.AddRange(CreateContextElementsDirectly(serviceType));
+            elements.AddRange(CreateContextElementsOpenGeneric(serviceType));
 
-            return ctxs;
+            return elements;
         }
 
-        protected virtual IEnumerable<ServiceContext> CreateManyContextDirectly(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateContextElementsDirectly(Type serviceType)
         {
-            return Components.TryGetValue(serviceType, out var components)
-                ? components.Select(i => CreateContext(serviceType, i))
-                : new ServiceContext[0];
+            if (Components.TryGetValue(serviceType, out var components))
+            {
+                return components.Select(i => CreateContext(serviceType, i));
+            }
+
+            return ServiceContext.Empties;
         }
 
-        protected virtual IEnumerable<ServiceContext> CreateManyContextOpenGeneric(Type serviceType)
+        protected virtual IEnumerable<ServiceContext> CreateContextElementsOpenGeneric(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType)
             {
-                return new ServiceContext[0];
+                return ServiceContext.Empties;
             }
 
-            return Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components)
-                ? components.Select(i => CreateContext(serviceType, i))
-                : new ServiceContext[0];
+            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
+            {
+                return components.Select(i => CreateContext(serviceType, i));
+            }
+
+            return ServiceContext.Empties;
         }
 
-        private static Type MakeGenericImplementionType(Type serviceType, Type impleType)
+        private static Type MakeGenericImplementionType(Type serviceType, Type implementionType)
         {
-            if (impleType.IsGenericTypeDefinition &&
-                serviceType.IsConstructedGenericType)
+            if (!implementionType.IsGenericTypeDefinition || !serviceType.IsConstructedGenericType)
             {
-                return impleType.MakeGenericType(serviceType.GenericTypeArguments);
+                return implementionType;
             }
 
-            return impleType;
+            return implementionType.MakeGenericType(serviceType.GenericTypeArguments);
         }
 
         private bool ShouldCreateProxyType(Component component)

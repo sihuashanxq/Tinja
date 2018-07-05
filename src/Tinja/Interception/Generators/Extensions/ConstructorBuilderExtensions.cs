@@ -1,30 +1,42 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Generators.Extensions
 {
     public static class ConstructorBuilderExtensions
     {
-        public static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameters, int paramterCount)
+        public static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameterInfos, int paramterCount)
         {
-            if (builder == null || parameters == null || parameters.Length == 0)
+            if (builder == null)
+            {
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            if (parameterInfos == null)
+            {
+                throw new NullReferenceException(nameof(parameterInfos));
+            }
+
+            if (parameterInfos.Length == 0)
             {
                 return builder;
             }
 
-            for (var i = 0; i < parameters.Length; i++)
+            for (var i = 0; i < parameterInfos.Length; i++)
             {
-                var parameter = builder.DefineParameter(i + 1, parameters[i].Attributes, parameters[i].Name);
-                if (parameters[i].HasDefaultValue)
+                var parameter = builder.DefineParameter(i + 1, parameterInfos[i].Attributes, parameterInfos[i].Name);
+                if (parameterInfos[i].HasDefaultValue)
                 {
-                    parameter.SetConstant(parameters[i].DefaultValue);
+                    parameter.SetConstant(parameterInfos[i].DefaultValue);
                 }
 
-                parameter.SetCustomAttributes(parameters[i]);
+                parameter.SetCustomAttributes(parameterInfos[i]);
             }
 
-            for (var i = parameters.Length; i < paramterCount; i++)
+            for (var i = parameterInfos.Length; i < paramterCount; i++)
             {
                 builder.DefineParameter(i + 1, ParameterAttributes.None, "parameter" + (i + 1));
             }
@@ -34,19 +46,25 @@ namespace Tinja.Interception.Generators.Extensions
 
         public static ConstructorBuilder SetCustomAttributes(this ConstructorBuilder builder, ConstructorInfo constructorInfo)
         {
-            if (builder == null || constructorInfo == null)
+            if (builder == null)
             {
-                return builder;
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            if (constructorInfo == null)
+            {
+                throw new NullReferenceException(nameof(constructorInfo));
             }
 
             foreach (var customAttriute in constructorInfo
                 .CustomAttributes
-                .Where(item => item.AttributeType != typeof(InjectAttribute) && item.AttributeType != typeof(InterceptorAttribute)))
+                .Where(item => !item.AttributeType.Is(typeof(InjectAttribute)) &&
+                               !item.AttributeType.Is(typeof(InterceptorAttribute))))
             {
-                var attributeBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
-                if (attributeBuilder != null)
+                var attrBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
+                if (attrBuilder != null)
                 {
-                    builder.SetCustomAttribute(attributeBuilder);
+                    builder.SetCustomAttribute(attrBuilder);
                 }
             }
 

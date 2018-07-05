@@ -8,5 +8,7 @@ namespace Tinja.Resolving.Context
         public Type ServiceType { get; set; }
 
         public ServiceLifeStyle LifeStyle { get; set; }
+
+        public static readonly ServiceContext[] Empties = new ServiceContext[0];
     }
 }

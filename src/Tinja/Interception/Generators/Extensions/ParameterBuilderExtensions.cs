@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Generators.Extensions
 {
@@ -8,19 +10,25 @@ namespace Tinja.Interception.Generators.Extensions
     {
         public static ParameterBuilder SetCustomAttributes(this ParameterBuilder builder, ParameterInfo parameterInfo)
         {
-            if (builder == null || parameterInfo == null)
+            if (builder == null)
             {
-                return builder;
+                throw new NullReferenceException(nameof(builder));
+            }
+
+            if (parameterInfo == null)
+            {
+                throw new NullReferenceException(nameof(parameterInfo));
             }
 
             foreach (var customAttriute in parameterInfo
                 .CustomAttributes
-                .Where(item => item.AttributeType != typeof(InjectAttribute) && item.AttributeType != typeof(InterceptorAttribute)))
+                .Where(item => !item.AttributeType.Is(typeof(InjectAttribute)) &&
+                               !item.AttributeType.Is(typeof(InterceptorAttribute))))
             {
-                var attributeBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
-                if (attributeBuilder != null)
+                var attrBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
+                if (attrBuilder != null)
                 {
-                    builder.SetCustomAttribute(attributeBuilder);
+                    builder.SetCustomAttribute(attrBuilder);
                 }
             }
 

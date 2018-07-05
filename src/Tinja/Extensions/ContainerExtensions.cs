@@ -38,12 +38,8 @@ namespace Tinja.Extensions
             );
 
             var serviceContextFactory = new ServiceContextFactory(memberInterceptionCollector);
-            var callDependencyBuilderFactory = new CallDependencyElementBuilderFactory(
-                serviceContextFactory,
-                configuration
-            );
-
-            var activatorFacotry = new ActivatorFactory(callDependencyBuilderFactory);
+            var elementBuilderFactory = new CallDependencyElementBuilderFactory(serviceContextFactory, configuration);
+            var activatorFacotry = new ActivatorFactory(elementBuilderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
             var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
 
@@ -57,7 +53,7 @@ namespace Tinja.Extensions
             container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
             container.AddSingleton<IMemberCollectorFactory>(MemberCollectorFactory.Default);
             container.AddSingleton<IMemberInterceptionCollector>(memberInterceptionCollector);
-            container.AddSingleton<ICallDependencyElementBuilderFactory>(callDependencyBuilderFactory);
+            container.AddSingleton<ICallDependencyElementBuilderFactory>(elementBuilderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();

@@ -7,16 +7,16 @@ namespace Tinja.Resolving.Activation
 {
     public class ActivatorFactory : IActivatorFactory
     {
-        private readonly ICallDependencyElementBuilderFactory _callDependencyBuilderFactory;
+        private readonly ICallDependencyElementBuilderFactory _callDependencyElementBuilderFactory;
 
         public ActivatorFactory(ICallDependencyElementBuilderFactory factory)
         {
-            _callDependencyBuilderFactory = factory;
+            _callDependencyElementBuilderFactory = factory;
         }
 
         public Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(Type serviceType)
         {
-            var elementBuilder = _callDependencyBuilderFactory.CreateBuilder();
+            var elementBuilder = _callDependencyElementBuilderFactory.CreateBuilder();
             if (elementBuilder == null)
             {
                 throw new NullReferenceException(nameof(elementBuilder));
