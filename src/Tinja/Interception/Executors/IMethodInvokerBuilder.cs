@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Tinja.Interception
+namespace Tinja.Interception.Executors
 {
     public interface IMethodInvokerBuilder
     {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Tinja.Extensions;
 
 namespace Tinja.Interception.Executors
 {
@@ -16,7 +15,7 @@ namespace Tinja.Interception.Executors
         public virtual TResult Execute<TResult>(IMethodInvocation inv)
         {
             ExecuteCore(inv).Wait();
-            return (TResult)inv.ResultValue;
+            return (TResult)inv.ReturnValue;
         }
 
         public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation inv)
@@ -31,7 +30,7 @@ namespace Tinja.Interception.Executors
 
             task.GetAwaiter().OnCompleted(() =>
             {
-                taskCompletionSource.SetResult((TResult)inv.ResultValue);
+                taskCompletionSource.SetResult((TResult)inv.ReturnValue);
             });
 
             return taskCompletionSource.Task;

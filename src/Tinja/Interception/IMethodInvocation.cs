@@ -5,16 +5,18 @@ namespace Tinja.Interception
 {
     public interface IMethodInvocation
     {
-        object Object { get; }
-
-        Type TargetType { get; }
-
         MethodInfo Method { get; }
 
-        object ResultValue { get; set; }
+        object[] Arguments { get; }
 
-        object[] ParameterValues { get; }
+        object ReturnValue { get; }
+
+        object ContextObject { get; }
+
+        Type ProxyTargetType { get; }
 
         IInterceptor[] Interceptors { get; }
+
+        bool SetReturnValue(object value);
     }
 }

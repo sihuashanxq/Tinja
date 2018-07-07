@@ -1,29 +1,30 @@
 ﻿using System;
 using System.Reflection;
+using Tinja.Extensions;
 
 namespace Tinja.Interception.Executors
 {
     public class MethodInvocation : IMethodInvocation
     {
-        public object Object { get; }
-
         public MethodInfo Method { get; }
 
-        public object ResultValue { get; set; }
+        public object ReturnValue { get; protected set; }
 
-        public object[] ParameterValues { get; }
+        public object[] Arguments { get; }
 
-        public Type TargetType { get; }
+        public object ContextObject { get; }
+
+        public Type ProxyTargetType { get; }
 
         public IInterceptor[] Interceptors { get; }
 
-        public MethodInvocation(object proxy, Type proxyTargetType, MethodInfo targetMethod, Type[] genericArguments, object[] parameterValues, IInterceptor[] interceptors)
+        public MethodInvocation(object contextObject, Type proxyTargetType, MethodInfo method, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
         {
-            Object = proxy;
-            TargetType = proxyTargetType;
-            ParameterValues = parameterValues;
+            Method = method;
+            Arguments = arguments;
             Interceptors = interceptors;
-            Method = targetMethod;
+            ContextObject = contextObject;
+            ProxyTargetType = proxyTargetType;
 
             if (Method.IsGenericMethod)
             {
@@ -34,6 +35,17 @@ namespace Tinja.Interception.Executors
 
                 Method = Method.MakeGenericMethod(genericArguments);
             }
+        }
+
+        public bool SetReturnValue(object value)
+        {
+            if (Method.IsVoidMethod())
+            {
+                return false;
+            }
+
+            ReturnValue = value;
+            return true;
         }
     }
 }
