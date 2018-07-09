@@ -9,9 +9,9 @@ namespace Tinja.Interception.Generators
 {
     public static class GeneratorUtility
     {
-        const string AssemblyName = "Tinja.Interception.DynamicProxy";
+        private const string AssemblyName = "Tinja.Interception.DynamicProxy";
 
-        const string ModuleName = "ProxyModules";
+        private const string ModuleName = "ProxyModules";
 
         internal static ModuleBuilder ModuleBuilder { get; }
 

@@ -14,7 +14,12 @@ namespace Tinja.Interception.Executors.Internal
 
         public IObjectMethodExecutor GetExecutor(MethodInfo methodInfo)
         {
-            return _executors.GetOrAdd(methodInfo, m => new ObjectMethodExecutor(m));
+            if (_executors.TryGetValue(methodInfo, out var executor))
+            {
+                return executor;
+            }
+
+            return _executors[methodInfo] = new ObjectMethodExecutor(methodInfo);
         }
     }
 }

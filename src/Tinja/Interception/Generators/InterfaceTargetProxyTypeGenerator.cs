@@ -7,12 +7,12 @@ using Tinja.Interception.Generators.Extensions;
 
 namespace Tinja.Interception.Generators
 {
-    public class InterfaceWithTargetProxyTypeGenerator : ProxyTypeGenerator
+    public class InterfaceTargetProxyTypeGenerator : ProxyTypeGenerator
     {
         protected override Type[] DefaultConstrcutorParameters { get; }
 
-        public InterfaceWithTargetProxyTypeGenerator(Type interaceType, Type implemetionType, IMemberInterceptionCollector provider)
-            : base(interaceType, implemetionType, provider)
+        public InterfaceTargetProxyTypeGenerator(Type interaceType, Type implemetionType, IMemberInterceptionCollector collector)
+            : base(interaceType, implemetionType, collector)
         {
             DefaultConstrcutorParameters = new[]
             {
@@ -21,7 +21,6 @@ namespace Tinja.Interception.Generators
                 typeof(IMethodInvocationExecutor)
             };
         }
-
 
         protected override void DefineTypeBuilder()
         {

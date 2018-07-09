@@ -64,7 +64,7 @@ namespace Tinja.Resolving.Context
             }
             else if (component.ServiceType.IsInterface)
             {
-                component.ProxyType = new InterfaceWithTargetProxyTypeGenerator(component.ServiceType, component.ImplementionType, InterceptionProvider).CreateProxyType();
+                component.ProxyType = new InterfaceTargetProxyTypeGenerator(component.ServiceType, component.ImplementionType, InterceptionProvider).CreateProxyType();
             }
             else
             {

@@ -8,17 +8,17 @@ namespace Tinja.Interception
     {
         private readonly IServiceResolver _resolver;
 
-        private readonly IMemberInterceptionCollector _provider;
+        private readonly IMemberInterceptionCollector _collector;
 
-        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionCollector provider)
+        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionCollector collector)
         {
             _resolver = resolver;
-            _provider = provider;
+            _collector = collector;
         }
 
         public IEnumerable<MemberInterceptionBinding> Collect(Type serviceType, Type implementionType)
         {
-            foreach (var item in _provider.Collect(serviceType, implementionType) ?? new MemberInterception[0])
+            foreach (var item in _collector.Collect(serviceType, implementionType) ?? new MemberInterception[0])
             {
                 var interceptor = (IInterceptor)_resolver.Resolve(item.Interceptor);
                 if (interceptor != null)

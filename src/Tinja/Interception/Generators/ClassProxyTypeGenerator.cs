@@ -10,8 +10,8 @@ namespace Tinja.Interception.Generators
 {
     public class ClassProxyTypeGenerator : ProxyTypeGenerator
     {
-        public ClassProxyTypeGenerator(Type targetToProxy, IMemberInterceptionCollector provider)
-        : base(targetToProxy, targetToProxy, provider)
+        public ClassProxyTypeGenerator(Type classType, IMemberInterceptionCollector collector)
+        : base(classType, classType, collector)
         {
 
         }

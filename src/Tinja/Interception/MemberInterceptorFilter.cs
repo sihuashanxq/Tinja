@@ -7,7 +7,7 @@ namespace Tinja.Interception
 {
     public class MemberInterceptorFilter
     {
-        private ConcurrentDictionary<MemberInfo, IInterceptor[]> _memberInterceptors;
+        private readonly ConcurrentDictionary<MemberInfo, IInterceptor[]> _memberInterceptors;
 
         public MemberInterceptorFilter()
         {
@@ -25,8 +25,10 @@ namespace Tinja.Interception
                     if (item.MemberInterception.Prioritys.ContainsKey(target))
                     {
                         map[item.Interceptor] = item.MemberInterception.Prioritys.GetValueOrDefault(target);
+                        continue;
                     }
-                    else if (item.MemberInterception.Prioritys.ContainsKey(target.DeclaringType))
+
+                    if (item.MemberInterception.Prioritys.ContainsKey(target.DeclaringType))
                     {
                         map[item.Interceptor] = item.MemberInterception.Prioritys.GetValueOrDefault(target.DeclaringType);
                     }
