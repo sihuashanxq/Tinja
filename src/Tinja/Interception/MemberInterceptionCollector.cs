@@ -26,83 +26,77 @@ namespace Tinja.Interception
             Caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<MemberInterception>>();
         }
 
-        public IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType, bool caching = true)
+        public IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType)
         {
             if (!Configuration.EnableInterception)
             {
                 return new MemberInterception[0];
             }
 
-            return caching ? Caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectFromType(serviceType, implementionType)) : CollectFromType(serviceType, implementionType);
+            return Caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectFromType(serviceType, implementionType));
         }
 
         protected virtual IEnumerable<MemberInterception> CollectFromType(Type serviceType, Type implementionType)
         {
-            var map = new Dictionary<Type, MemberInterception>();
-            var members = MemberCollectorFactory
-                .Create(serviceType, implementionType)
-                .Collect();
+            var typeInterceptions = new Dictionary<Type, MemberInterception>();
+            var collectedMembers = MemberCollectorFactory.Create(serviceType, implementionType).Collect();
 
-            foreach (var item in members.Where(i => !i.IsEvent))
+            foreach (var item in collectedMembers.Where(i => !i.IsEvent))
             {
-                CollectFromMember(item.Member, item.InterfaceMembers, map);
-                CollectFromMember(item.DeclaringType, item.Interfaces, map);
+                CollectFromMember(item.Member, item.InterfaceMembers, typeInterceptions);
+                CollectFromMember(item.DeclaringType, item.Interfaces, typeInterceptions);
             }
 
-            return map.Values.ToList();
+            return typeInterceptions.Values.ToList();
         }
 
-        protected virtual void CollectFromMember(MemberInfo memberInfo, IEnumerable<MemberInfo> interfaceMembers, Dictionary<Type, MemberInterception> map)
+        protected virtual void CollectFromMember(MemberInfo memberInfo, IEnumerable<MemberInfo> interfaceMembers, Dictionary<Type, MemberInterception> typeInterceptions)
         {
             var attrs = new HashSet<InterceptorAttribute>();
 
             foreach (var member in interfaceMembers.Concat(new[] { memberInfo }))
             {
-                foreach (var attr in member.GetInterceptorAttributes())
+                foreach (var attr in member.GetInterceptorAttributes().Where(item => item != null))
                 {
-                    if (attr != null)
-                    {
-                        attrs.Add(attr);
-                    }
+                    attrs.Add(attr);
                 }
 
-                CollectFromProvider(member, map);
+                CollectFromProvider(member, typeInterceptions);
             }
 
             foreach (var attr in attrs)
             {
-                var item = map.GetValueOrDefault(attr.InterceptorType) ?? (map[attr.InterceptorType] = new MemberInterception()
+                var item = typeInterceptions.GetValueOrDefault(attr.InterceptorType) ?? (typeInterceptions[attr.InterceptorType] = new MemberInterception()
                 {
-                    Interceptor = attr.InterceptorType,
-                    Prioritys = new Dictionary<MemberInfo, long>()
+                    InterceptorType = attr.InterceptorType,
+                    MemberOrders = new Dictionary<MemberInfo, long>()
                 });
 
-                item.Prioritys[memberInfo] = attr.Priority;
+                item.MemberOrders[memberInfo] = attr.Order;
             }
         }
 
-        protected virtual void CollectFromProvider(MemberInfo memberInfo, Dictionary<Type, MemberInterception> map)
+        protected virtual void CollectFromProvider(MemberInfo memberInfo, Dictionary<Type, MemberInterception> typeInterceptions)
         {
             foreach (var provider in Providers)
             {
-                var entries = provider.GetInterceptions(memberInfo);
-                if (entries == null)
+                var interceptions = provider.GetInterceptions(memberInfo);
+                if (interceptions == null)
                 {
                     continue;
                 }
 
-                foreach (var entry in entries)
+                foreach (var interception in interceptions)
                 {
-                    var item = map.GetValueOrDefault(entry.Interceptor);
-                    if (item == null)
+                    if (!typeInterceptions.TryGetValue(interception.InterceptorType, out var orders))
                     {
-                        map[entry.Interceptor] = entry;
+                        typeInterceptions[interception.InterceptorType] = interception;
                         continue;
                     }
 
-                    foreach (var kv in entry.Prioritys)
+                    foreach (var kv in interception.MemberOrders)
                     {
-                        item.Prioritys[kv.Key] = kv.Value;
+                        orders.MemberOrders[kv.Key] = kv.Value;
                     }
                 }
             }

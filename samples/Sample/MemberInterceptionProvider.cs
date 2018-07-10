@@ -14,8 +14,8 @@ namespace ConsoleApp
             {
                 yield return new MemberInterception()
                 {
-                    Interceptor = typeof(UserServiceInterceptor),
-                    Prioritys = new Dictionary<MemberInfo, long>()
+                    InterceptorType = typeof(UserServiceInterceptor),
+                    MemberOrders = new Dictionary<MemberInfo, long>()
                     {
                         [memberInfo] = long.MaxValue
                     }

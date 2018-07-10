@@ -20,14 +20,14 @@ namespace Tinja.Interception
         {
             foreach (var item in _collector.Collect(serviceType, implementionType) ?? new MemberInterception[0])
             {
-                var interceptor = (IInterceptor)_resolver.Resolve(item.Interceptor);
+                var interceptor = (IInterceptor)_resolver.Resolve(item.InterceptorType);
                 if (interceptor != null)
                 {
                     yield return new MemberInterceptionBinding(interceptor, item);
                 }
                 else
                 {
-                    throw new InvalidOperationException($"can not resolve the interceptor with type:{item.Interceptor.FullName}");
+                    throw new InvalidOperationException($"can not resolve the interceptor with type:{item.InterceptorType.FullName}");
                 }
             }
         }

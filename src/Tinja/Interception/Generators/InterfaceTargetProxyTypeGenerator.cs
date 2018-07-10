@@ -61,7 +61,6 @@ namespace Tinja.Interception.Generators
             //this.executor.Execute(new MethodInvocation)
             ilGen.LoadThisField(GetField("__target"));
 
-            ilGen.TypeOf(ProxyTargetType);
             ilGen.LoadStaticField(GetField(methodInfo));
 
             ilGen.LoadMethodGenericArguments(methodInfo);
@@ -107,7 +106,6 @@ namespace Tinja.Interception.Generators
             //this.executor.Execute(new MethodInvocation)
             ilGen.LoadThisField(GetField("__target"));
 
-            ilGen.TypeOf(ProxyTargetType);
             ilGen.LoadStaticField(GetField(methodInfo));
 
             ilGen.LoadMethodGenericArguments(methodInfo);
@@ -164,7 +162,7 @@ namespace Tinja.Interception.Generators
             );
 
             ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(3));
-            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorFilter).GetConstructor(Type.EmptyTypes)));
+            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorMatchFilter).GetConstructor(Type.EmptyTypes)));
 
             ilGen.Return();
         }

@@ -7,16 +7,16 @@ namespace Tinja.Extensions.DependencyInjection
     {
         private bool _disposed;
 
-        protected IServiceResolver Resolver { get; }
+        private readonly IServiceResolver _resolver;
 
         public ServiceProviderAdapter(IServiceResolver resolver)
         {
-            Resolver = resolver;
+            _resolver = resolver;
         }
 
         public virtual object GetService(Type serviceType)
         {
-            return Resolver.Resolve(serviceType);
+            return _resolver.Resolve(serviceType);
         }
 
         ~ServiceProviderAdapter()
@@ -41,7 +41,7 @@ namespace Tinja.Extensions.DependencyInjection
                 if (!_disposed)
                 {
                     _disposed = true;
-                    Resolver.Dispose();
+                    _resolver.Dispose();
                 }
             }
         }

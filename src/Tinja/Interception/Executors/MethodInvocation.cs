@@ -14,17 +14,14 @@ namespace Tinja.Interception.Executors
 
         public object ContextObject { get; }
 
-        public Type ProxyTargetType { get; }
-
         public IInterceptor[] Interceptors { get; }
 
-        public MethodInvocation(object contextObject, Type proxyTargetType, MethodInfo method, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
+        public MethodInvocation(object contextObject, MethodInfo method, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
         {
             Method = method;
             Arguments = arguments;
             Interceptors = interceptors;
             ContextObject = contextObject;
-            ProxyTargetType = proxyTargetType;
 
             if (Method.IsGenericMethod)
             {

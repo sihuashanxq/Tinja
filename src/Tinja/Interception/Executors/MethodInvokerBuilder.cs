@@ -39,7 +39,7 @@ namespace Tinja.Interception.Executors
             return invocation =>
             {
                 var stack = CreateExecuteStack(executor);
-                if (stack.Any())
+                if (!stack.Any())
                 {
                     throw new InvalidOperationException("build invoker failed!");
                 }

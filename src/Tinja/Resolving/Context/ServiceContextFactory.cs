@@ -251,7 +251,7 @@ namespace Tinja.Resolving.Context
 
             return component.ImplementionFactory == null &&
                    component.ImplementionInstance == null &&
-                   InterceptionProvider.Collect(component.ServiceType, component.ImplementionType, false).Any();
+                   InterceptionProvider.Collect(component.ServiceType, component.ImplementionType).Any();
         }
     }
 }

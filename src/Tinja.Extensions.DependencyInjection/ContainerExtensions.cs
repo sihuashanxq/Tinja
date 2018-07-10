@@ -4,9 +4,9 @@ namespace Tinja.Extensions.DependencyInjection
 {
     public static class ContainerExtensions
     {
-        public static IServiceProvider BuildServiceProvider(this IContainer ioc)
+        public static IServiceProvider BuildServiceProvider(this IContainer container)
         {
-            return new ServiceProviderAdapterFactory().CreateServiceProvider(ioc);
+            return new ServiceProviderAdapterFactory().CreateServiceProvider(container);
         }
     }
 }

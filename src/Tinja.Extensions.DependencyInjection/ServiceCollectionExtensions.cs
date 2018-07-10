@@ -6,59 +6,52 @@ namespace Tinja.Extensions.DependencyInjection
 {
     public static class ServiceCollectionExtensions
     {
-        public static IContainer BuildContainer(this IServiceCollection services)
+        public static IContainer BuildContainer(this IServiceCollection serviceCollection)
         {
-            var ioc = new Container();
-
-            if (services == null)
+            if (serviceCollection == null)
             {
-                return ioc;
+                throw new NullReferenceException(nameof(serviceCollection));
             }
 
-            foreach (var item in services)
+            var container = new Container();
+
+            foreach (var item in serviceCollection)
             {
                 switch (item.Lifetime)
                 {
                     case ServiceLifetime.Singleton:
-                        AddService(ioc, item, ServiceLifeStyle.Singleton);
+                        AddServiceDefinition(container, item, ServiceLifeStyle.Singleton);
                         break;
                     case ServiceLifetime.Scoped:
-                        AddService(ioc, item, ServiceLifeStyle.Scoped);
+                        AddServiceDefinition(container, item, ServiceLifeStyle.Scoped);
                         break;
                     case ServiceLifetime.Transient:
-                        AddService(ioc, item, ServiceLifeStyle.Transient);
+                        AddServiceDefinition(container, item, ServiceLifeStyle.Transient);
                         break;
+                    default:
+                        throw new NotSupportedException($"Lifetime:{item.Lifetime} is not supported!");
                 }
             }
 
-            ioc.AddSingleton<IServiceScopeFactory, ServiceScopeAdapterFactory>();
-            ioc.AddSingleton<IServiceProviderFactory<IContainer>, ServiceProviderAdapterFactory>();
+            container.AddSingleton<IServiceScopeFactory, ServiceScopeAdapterFactory>();
+            container.AddSingleton<IServiceProviderFactory<IContainer>, ServiceProviderAdapterFactory>();
 
-            return ioc;
+            return container;
         }
 
-        private static void AddService(IContainer ioc, ServiceDescriptor service, ServiceLifeStyle lifeStyle)
+        private static void AddServiceDefinition(IContainer container, ServiceDescriptor descriptor, ServiceLifeStyle lifeStyle)
         {
-            if (service.ImplementationFactory != null)
+            if (descriptor.ImplementationFactory != null)
             {
-                ioc.AddService(
-                    service.ServiceType,
-                    (resolver) => service.ImplementationFactory(resolver.Resolve<IServiceProvider>()),
-                    lifeStyle
-                );
+                container.AddService(descriptor.ServiceType, resolver => descriptor.ImplementationFactory(resolver.Resolve<IServiceProvider>()), lifeStyle);
             }
-
-            else if (service.ImplementationInstance != null)
+            else if (descriptor.ImplementationInstance != null)
             {
-                ioc.AddService(
-                    service.ServiceType,
-                    (resolver) => service.ImplementationInstance,
-                    lifeStyle
-                );
+                container.AddSingleton(descriptor.ServiceType, descriptor.ImplementationInstance);
             }
             else
             {
-                ioc.AddService(service.ServiceType, service.ImplementationType, lifeStyle);
+                container.AddService(descriptor.ServiceType, descriptor.ImplementationType, lifeStyle);
             }
         }
     }

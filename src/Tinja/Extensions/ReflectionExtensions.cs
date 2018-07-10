@@ -14,6 +14,16 @@ namespace Tinja.Extensions
             return target.IsAssignableFrom(type);
         }
 
+        internal static bool Is<TType>(this Type type)
+        {
+            return Is(type, typeof(TType));
+        }
+
+        internal static bool IsNot<TType>(this Type type)
+        {
+            return !Is<TType>(type);
+        }
+
         internal static PropertyInfo AsProperty(this MemberInfo m)
         {
             return m as PropertyInfo;

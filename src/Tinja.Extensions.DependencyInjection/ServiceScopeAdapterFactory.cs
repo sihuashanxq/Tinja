@@ -6,16 +6,16 @@ namespace Tinja.Extensions.DependencyInjection
 {
     public class ServiceScopeAdapterFactory : IServiceScopeFactory
     {
-        protected IServiceResolver Resolver { get; }
+        private readonly IServiceResolver _resolver;
 
         public ServiceScopeAdapterFactory(IServiceResolver resolver)
         {
-            Resolver = resolver;
+            _resolver = resolver;
         }
 
         public IServiceScope CreateScope()
         {
-            return new ServiceScopeAdapter(Resolver.CreateScope().Resolve<IServiceProvider>());
+            return new ServiceScopeAdapter(_resolver.CreateScope().Resolve<IServiceProvider>());
         }
     }
 }

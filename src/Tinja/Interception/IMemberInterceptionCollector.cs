@@ -5,6 +5,6 @@ namespace Tinja.Interception
 {
     public interface IMemberInterceptionCollector
     {
-        IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType, bool caching = true);
+        IEnumerable<MemberInterception> Collect(Type serviceType, Type implementionType);
     }
 }

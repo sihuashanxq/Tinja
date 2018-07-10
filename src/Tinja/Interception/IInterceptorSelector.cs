@@ -4,6 +4,6 @@ namespace Tinja.Interception
 {
     public interface IInterceptorSelector
     {
-        IInterceptor[] Select(object target, MethodInfo method, IInterceptor[] interceptors);
+        IInterceptor[] Select(MethodInfo method, IInterceptor[] interceptors);
     }
 }

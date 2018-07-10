@@ -6,8 +6,8 @@ namespace Tinja.Interception
 {
     public class MemberInterception
     {
-        public Type Interceptor { get; set; }
+        public Type InterceptorType { get; set; }
 
-        public Dictionary<MemberInfo, long> Prioritys { get; set; }
+        public Dictionary<MemberInfo, long> MemberOrders { get; set; }
     }
 }

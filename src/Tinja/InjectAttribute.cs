@@ -2,7 +2,7 @@
 
 namespace Tinja
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Property)]
     public class InjectAttribute : Attribute
     {
 

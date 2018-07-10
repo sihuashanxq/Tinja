@@ -13,8 +13,6 @@ namespace Tinja.Interception
 
         object ContextObject { get; }
 
-        Type ProxyTargetType { get; }
-
         IInterceptor[] Interceptors { get; }
 
         bool SetReturnValue(object value);
