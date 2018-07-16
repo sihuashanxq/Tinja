@@ -8,7 +8,7 @@ namespace Tinja.Interception.Generators
 {
     public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
-        public InterfaceProxyTypeGenerator(Type interfaceType, IMemberInterceptionCollector collector)
+        public InterfaceProxyTypeGenerator(Type interfaceType, IInterceptorDescriptorCollector collector)
             : base(interfaceType, interfaceType, collector)
         {
 
@@ -50,8 +50,8 @@ namespace Tinja.Interception.Generators
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(methodInfo));
 
-            ilGen.Call(MemberInterceptorFilter);
-            ilGen.New(NewMethodInvocation);
+            ilGen.Call(GeneratorUtility.FilterInterceptor);
+            ilGen.New(GeneratorUtility.NewMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
 
@@ -100,10 +100,10 @@ namespace Tinja.Interception.Generators
             ilGen.LoadThisField(GetField("__filter"));
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(property));
-            ilGen.Call(MemberInterceptorFilter);
+            ilGen.Call(GeneratorUtility.FilterInterceptor);
 
             ilGen.LoadStaticField(GetField(property));
-            ilGen.New(NewPropertyMethodInvocation);
+            ilGen.New(GeneratorUtility.NewPropertyMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
             ilGen.SetVariableValue(methodReturnValue);

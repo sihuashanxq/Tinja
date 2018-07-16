@@ -12,9 +12,9 @@ namespace Tinja.Resolving.Context
     {
         protected Dictionary<Type, List<Component>> Components { get; }
 
-        internal IMemberInterceptionCollector InterceptionProvider { get; }
+        internal IInterceptorDescriptorCollector InterceptionProvider { get; }
 
-        internal ServiceContextFactory(IMemberInterceptionCollector provider)
+        internal ServiceContextFactory(IInterceptorDescriptorCollector provider)
         {
             InterceptionProvider = provider;
             Components = new Dictionary<Type, List<Component>>();

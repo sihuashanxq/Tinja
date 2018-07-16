@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Tinja.Interception.Executors;
 
 namespace Tinja.Interception.Generators
 {
@@ -18,6 +19,27 @@ namespace Tinja.Interception.Generators
         internal static AssemblyBuilder AssemblyBuilder { get; }
 
         internal static Dictionary<Type, int> ProxyIndexs { get; }
+
+        internal static readonly MethodInfo FilterInterceptor = typeof(InterceptorFilter).GetMethod("Filter");
+
+        internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
+        {
+            typeof(object),
+            typeof(MethodInfo),
+            typeof(Type[]),
+            typeof(object[]),
+            typeof(IInterceptor[])
+        });
+
+        internal static readonly ConstructorInfo NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
+        {
+            typeof(object),
+            typeof(MethodInfo),
+            typeof(Type[]),
+            typeof(object[]),
+            typeof(IInterceptor[]),
+            typeof(PropertyInfo)
+        });
 
         static GeneratorUtility()
         {

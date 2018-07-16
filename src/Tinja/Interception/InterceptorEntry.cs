@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Interception.Refactor
+namespace Tinja.Interception
 {
     public class InterceptorEntry
     {

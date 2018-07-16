@@ -6,42 +6,42 @@ namespace Tinja.Interception.Executors
 {
     public class MethodInvocation : IMethodInvocation
     {
-        public MethodInfo Method { get; }
-
-        public object ReturnValue { get; protected set; }
+        public object Instance { get; }
 
         public object[] Arguments { get; }
 
-        public object ContextObject { get; }
+        public MethodInfo MethodInfo { get; }
+
+        public object Result { get; protected set; }
 
         public IInterceptor[] Interceptors { get; }
 
-        public MethodInvocation(object contextObject, MethodInfo method, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
+        public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
         {
-            Method = method;
+            Instance = instance;
             Arguments = arguments;
+            MethodInfo = methodInfo;
             Interceptors = interceptors;
-            ContextObject = contextObject;
 
-            if (Method.IsGenericMethod)
+            if (MethodInfo.IsGenericMethod)
             {
                 if (genericArguments == null)
                 {
                     throw new InvalidCastException("MakeGenericMethod Faild!");
                 }
 
-                Method = Method.MakeGenericMethod(genericArguments);
+                MethodInfo = MethodInfo.MakeGenericMethod(genericArguments);
             }
         }
 
-        public bool SetReturnValue(object value)
+        public bool SetResultValue(object value)
         {
-            if (Method.IsVoidMethod())
+            if (MethodInfo.IsVoidMethod())
             {
                 return false;
             }
 
-            ReturnValue = value;
+            Result = value;
             return true;
         }
     }

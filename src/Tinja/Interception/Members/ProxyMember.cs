@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace Tinja.Interception.Members
@@ -22,5 +23,10 @@ namespace Tinja.Interception.Members
 
         public bool IsMethod =>
             Member.MemberType == MemberTypes.Method;
+
+        public IEnumerable<MemberInfo> GetInterceptorCollectTargets()
+        {
+            return Interfaces.Concat(InterfaceMembers).Concat(new[] { Member }).Concat(new[] { Member.DeclaringType });
+        }
     }
 }

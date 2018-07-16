@@ -156,8 +156,7 @@ namespace Tinja.Resolving.Activation.Builder
             var factory = (Func<IServiceResolver, object>)(resolver => preCompiledFunc(resolver, resolver.ServiceLifeScope));
 
             return
-                Expression.Invoke(
-                    ActivatorUtil.ApplyLifeConstant,
+                Expression.Invoke( ActivatorUtil.ApplyLifeConstant,
                     Expression.Constant(element.ServiceType),
                     Expression.Constant(element.LifeStyle),
                     ActivatorUtil.ParameterScope,

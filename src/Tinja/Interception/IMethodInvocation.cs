@@ -1,20 +1,19 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace Tinja.Interception
 {
     public interface IMethodInvocation
     {
-        MethodInfo Method { get; }
+        object Result { get; }
+
+        object Instance { get; }
 
         object[] Arguments { get; }
 
-        object ReturnValue { get; }
+        MethodInfo MethodInfo { get; }
 
-        object ContextObject { get; }
+        bool SetResultValue(object value);
 
         IInterceptor[] Interceptors { get; }
-
-        bool SetReturnValue(object value);
     }
 }

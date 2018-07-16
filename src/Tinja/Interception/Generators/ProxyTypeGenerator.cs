@@ -22,49 +22,29 @@ namespace Tinja.Interception.Generators
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
-        protected IMemberInterceptionCollector InterceptionCollector { get; }
+        protected IInterceptorDescriptorCollector InterceptionCollector { get; }
 
-        protected IEnumerable<MemberInterception> MemberInterceptions { get; }
+        protected IEnumerable<InterceptorDescriptor> InterceptorDescriptors { get; }
 
-        protected virtual Type[] DefaultConstrcutorParameters => new[]
+        protected virtual Type[] DefaultConstrcutorParameterTypes => new[]
         {
             typeof(IInterceptorCollector),
-            typeof(IMethodInvocationExecutor)
+            typeof(IMethodInvocationExecutor),
+            typeof(InterceptorFilter)
         };
 
-        protected static MethodInfo MemberInterceptorFilter = typeof(MemberInterceptorMatchFilter).GetMethod("Filter");
-
-        protected static ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
-        {
-            typeof(object),
-            typeof(MethodInfo),
-            typeof(Type[]),
-            typeof(object[]),
-            typeof(IInterceptor[])
-        });
-
-        protected static ConstructorInfo NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
-        {
-            typeof(object),
-            typeof(MethodInfo),
-            typeof(Type[]),
-            typeof(object[]),
-            typeof(IInterceptor[]),
-            typeof(PropertyInfo)
-        });
-
-        public ProxyTypeGenerator(Type serviceType, Type implemetionType, IMemberInterceptionCollector collector)
+        public ProxyTypeGenerator(Type serviceType, Type proxyTargetType, IInterceptorDescriptorCollector collector)
         {
             ServiceType = serviceType;
-            ProxyTargetType = implemetionType;
+            ProxyTargetType = proxyTargetType;
             InterceptionCollector = collector;
 
             ProxyMembers = MemberCollectorFactory
                 .Default
-                .Create(serviceType, implemetionType)
+                .Create(serviceType, proxyTargetType)
                 .Collect();
 
-            MemberInterceptions = InterceptionCollector.Collect(serviceType, implemetionType);
+            InterceptorDescriptors = InterceptionCollector.Collect(serviceType, proxyTargetType);
             Fields = new Dictionary<string, FieldBuilder>();
         }
 
@@ -109,8 +89,8 @@ namespace Tinja.Interception.Generators
         protected virtual void DefineTypeFields()
         {
             DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            DefineField("__interceptors", typeof(IEnumerable<MemberInterceptionBinding>), FieldAttributes.Private);
-            DefineField("__filter", typeof(MemberInterceptorMatchFilter), FieldAttributes.Private);
+            DefineField("__interceptors", typeof(IEnumerable<InterceptorEntry>), FieldAttributes.Private);
+            DefineField("__filter", typeof(InterceptorFilter), FieldAttributes.Private);
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
@@ -262,12 +242,12 @@ namespace Tinja.Interception.Generators
         protected virtual void DefineTypeDefaultConstructor()
         {
             var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameters)
+                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameterTypes)
                 .GetILGenerator();
 
             ilGen.SetThisField(
                 GetField("__interceptors"),
-                _ =>
+                () =>
                 {
                     ilGen.LoadArgument(1);
                     ilGen.TypeOf(ServiceType);
@@ -276,8 +256,8 @@ namespace Tinja.Interception.Generators
                 }
             );
 
-            ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(2));
-            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorMatchFilter).GetConstructor(Type.EmptyTypes)));
+            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__filter"), () => ilGen.LoadArgument(3));
 
             ilGen.Return();
         }
@@ -305,7 +285,7 @@ namespace Tinja.Interception.Generators
 
         protected virtual bool IsUsedInterception(MemberInfo memberInfo)
         {
-            return MemberInterceptions.Any(i => i.MemberOrders.Any(n => n.Key == memberInfo || n.Key == memberInfo.DeclaringType));
+            return InterceptorDescriptors.Any(i => i.TargetMember == memberInfo || i.TargetMember == memberInfo.DeclaringType);
         }
 
         /// <summary>

@@ -9,16 +9,17 @@ namespace Tinja.Interception.Generators
 {
     public class InterfaceTargetProxyTypeGenerator : ProxyTypeGenerator
     {
-        protected override Type[] DefaultConstrcutorParameters { get; }
+        protected override Type[] DefaultConstrcutorParameterTypes { get; }
 
-        public InterfaceTargetProxyTypeGenerator(Type interaceType, Type implemetionType, IMemberInterceptionCollector collector)
-            : base(interaceType, implemetionType, collector)
+        public InterfaceTargetProxyTypeGenerator(Type interaceType, Type implementionType, IInterceptorDescriptorCollector collector)
+            : base(interaceType, implementionType, collector)
         {
-            DefaultConstrcutorParameters = new[]
+            DefaultConstrcutorParameterTypes = new[]
             {
-                implemetionType,
+                implementionType,
                 typeof(IInterceptorCollector),
-                typeof(IMethodInvocationExecutor)
+                typeof(IMethodInvocationExecutor),
+                typeof(InterceptorFilter)
             };
         }
 
@@ -71,9 +72,9 @@ namespace Tinja.Interception.Generators
             ilGen.LoadThisField(GetField("__filter"));
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(methodInfo));
-            ilGen.Call(MemberInterceptorFilter);
+            ilGen.Call(GeneratorUtility.FilterInterceptor);
 
-            ilGen.New(NewMethodInvocation);
+            ilGen.New(GeneratorUtility.NewMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
 
@@ -116,10 +117,10 @@ namespace Tinja.Interception.Generators
             ilGen.LoadThisField(GetField("__filter"));
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(property));
-            ilGen.Call(MemberInterceptorFilter);
+            ilGen.Call(GeneratorUtility.FilterInterceptor);
 
             ilGen.LoadStaticField(GetField(property));
-            ilGen.New(NewPropertyMethodInvocation);
+            ilGen.New(GeneratorUtility.NewPropertyMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
             ilGen.SetVariableValue(methodReturnValue);
@@ -145,14 +146,14 @@ namespace Tinja.Interception.Generators
         protected override void DefineTypeDefaultConstructor()
         {
             var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameters)
+                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameterTypes)
                 .GetILGenerator();
 
-            ilGen.SetThisField(GetField("__target"), _ => ilGen.LoadArgument(1));
+            ilGen.SetThisField(GetField("__target"), () => ilGen.LoadArgument(1));
 
             ilGen.SetThisField(
                 GetField("__interceptors"),
-                _ =>
+                () =>
                 {
                     ilGen.LoadArgument(2);
                     ilGen.TypeOf(ServiceType);
@@ -161,8 +162,8 @@ namespace Tinja.Interception.Generators
                 }
             );
 
-            ilGen.SetThisField(GetField("__executor"), _ => ilGen.LoadArgument(3));
-            ilGen.SetThisField(GetField("__filter"), _ => ilGen.New(typeof(MemberInterceptorMatchFilter).GetConstructor(Type.EmptyTypes)));
+            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(3));
+            ilGen.SetThisField(GetField("__filter"), () => ilGen.LoadArgument(4));
 
             ilGen.Return();
         }

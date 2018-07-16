@@ -6,29 +6,27 @@ namespace Tinja.Interception
 {
     public class InterceptorCollector : IInterceptorCollector
     {
-        private readonly IServiceResolver _resolver;
+        private readonly IServiceResolver _serviceResolver;
 
-        private readonly IMemberInterceptionCollector _collector;
+        private readonly IInterceptorDescriptorCollector _interceptorCollector;
 
-        internal InterceptorCollector(IServiceResolver resolver, IMemberInterceptionCollector collector)
+        internal InterceptorCollector(IServiceResolver serviceResolver, IInterceptorDescriptorCollector interceptorCollector)
         {
-            _resolver = resolver;
-            _collector = collector;
+            _serviceResolver = serviceResolver;
+            _interceptorCollector = interceptorCollector;
         }
 
-        public IEnumerable<MemberInterceptionBinding> Collect(Type serviceType, Type implementionType)
+        public IEnumerable<InterceptorEntry> Collect(Type serviceType, Type implementionType)
         {
-            foreach (var item in _collector.Collect(serviceType, implementionType) ?? new MemberInterception[0])
+            foreach (var item in _interceptorCollector.Collect(serviceType, implementionType))
             {
-                var interceptor = (IInterceptor)_resolver.Resolve(item.InterceptorType);
-                if (interceptor != null)
-                {
-                    yield return new MemberInterceptionBinding(interceptor, item);
-                }
-                else
+                var interceptor = (IInterceptor)_serviceResolver.Resolve(item.InterceptorType);
+                if (interceptor == null)
                 {
                     throw new InvalidOperationException($"can not resolve the interceptor with type:{item.InterceptorType.FullName}");
                 }
+
+                yield return new InterceptorEntry(interceptor, item);
             }
         }
     }

@@ -32,7 +32,7 @@ namespace Tinja.Extensions
 
             var configuration = container.BuildConfiguration();
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var memberInterceptionCollector = new MemberInterceptionCollector(
+            var memberInterceptionCollector = new InterceptorDescriptorCollector(
                 configuration.Interception,
                 MemberCollectorFactory.Default
             );
@@ -52,12 +52,15 @@ namespace Tinja.Extensions
             container.AddSingleton<IServiceContextFactory>(serviceContextFactory);
             container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
             container.AddSingleton<IMemberCollectorFactory>(MemberCollectorFactory.Default);
-            container.AddSingleton<IMemberInterceptionCollector>(memberInterceptionCollector);
+            container.AddSingleton<IInterceptorDescriptorCollector>(memberInterceptionCollector);
             container.AddSingleton<ICallDependencyElementBuilderFactory>(elementBuilderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            container.AddSingleton<InterceptorSelector>();
+
+            container.AddTransient<InterceptorFilter>();
 
             serviceContextFactory.Populate(container.Components, serviceResolver.ServiceLifeScope);
 

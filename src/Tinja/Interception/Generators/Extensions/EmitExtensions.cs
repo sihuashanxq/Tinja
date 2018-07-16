@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -402,7 +403,7 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator SetThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action<ILGenerator> loadFieldValue)
+        internal static ILGenerator SetThisField(this ILGenerator ilGen, FieldBuilder fieldBuilder, Action loadFieldValue)
         {
             if (ilGen == null)
             {
@@ -420,7 +421,7 @@ namespace Tinja.Interception.Generators.Extensions
             }
 
             ilGen.This();
-            loadFieldValue(ilGen);
+            loadFieldValue();
             ilGen.Emit(OpCodes.Stfld, fieldBuilder);
 
             return ilGen;
@@ -479,7 +480,7 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator Call(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
+        internal static ILGenerator Call(this ILGenerator ilGen, MethodInfo methodInfo, params Action[] argumentStuffers)
         {
             if (ilGen == null)
             {
@@ -495,7 +496,7 @@ namespace Tinja.Interception.Generators.Extensions
             {
                 foreach (var stuffer in argumentStuffers)
                 {
-                    stuffer(ilGen);
+                    stuffer();
                 }
             }
 
@@ -504,7 +505,7 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action<ILGenerator>[] argumentStuffers)
+        internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action[] argumentStuffers)
         {
             if (ilGen == null)
             {
@@ -522,7 +523,7 @@ namespace Tinja.Interception.Generators.Extensions
             {
                 foreach (var stuffer in argumentStuffers)
                 {
-                    stuffer(ilGen);
+                    stuffer();
                 }
             }
 
@@ -531,7 +532,7 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator CallVirt(this ILGenerator ilGen, MethodInfo methodInfo, params Action<ILGenerator>[] argumentStuffers)
+        internal static ILGenerator CallVirt(this ILGenerator ilGen, MethodInfo methodInfo, params Action[] argumentStuffers)
         {
             if (ilGen == null)
             {
@@ -547,7 +548,7 @@ namespace Tinja.Interception.Generators.Extensions
             {
                 foreach (var stuffer in argumentStuffers)
                 {
-                    stuffer(ilGen);
+                    stuffer();
                 }
             }
 
@@ -556,7 +557,7 @@ namespace Tinja.Interception.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator New(this ILGenerator ilGen, ConstructorInfo constructor, params Action<ILGenerator>[] argumentStuffers)
+        internal static ILGenerator New(this ILGenerator ilGen, ConstructorInfo constructor, params Action[] argumentStuffers)
         {
             if (ilGen == null)
             {
@@ -572,7 +573,7 @@ namespace Tinja.Interception.Generators.Extensions
             {
                 foreach (var stuffer in argumentStuffers)
                 {
-                    stuffer(ilGen);
+                    stuffer();
                 }
             }
 
@@ -608,12 +609,6 @@ namespace Tinja.Interception.Generators.Extensions
                     ilGen.Emit(OpCodes.Ldarg_3);
                     break;
                 default:
-                    if (argumentIndex <= byte.MaxValue)
-                    {
-                        ilGen.Emit(OpCodes.Ldarg_S);
-                        break;
-                    }
-
                     ilGen.Emit(OpCodes.Ldarg, argumentIndex);
                     break;
             }
@@ -723,12 +718,6 @@ namespace Tinja.Interception.Generators.Extensions
                     ilGen.Emit(OpCodes.Ldloc_3);
                     break;
                 default:
-                    if (slot <= byte.MaxValue)
-                    {
-                        ilGen.Emit(OpCodes.Ldloc_S, slot);
-                        break;
-                    }
-
                     ilGen.Emit(OpCodes.Ldloc, slot);
                     break;
             }

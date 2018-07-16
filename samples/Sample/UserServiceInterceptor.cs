@@ -8,13 +8,13 @@ namespace ConsoleApp
     {
         public async Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
-            Console.WriteLine($"InterceptorType:{GetType().FullName} :::: { invocation.Method.Name }:executing");
+            Console.WriteLine($"InterceptorType:{GetType().FullName} :::: { invocation.MethodInfo.Name }:executing");
 
             await next(invocation);
 
-            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.Method.Name }:executed :return{invocation.ReturnValue}->{invocation.ReturnValue.ToString() + "Interceptor"}");
+            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.MethodInfo.Name }:executed :return{invocation.Result}->{invocation.Result.ToString() + "Interceptor"}");
 
-            invocation.SetReturnValue(invocation.ReturnValue.ToString() + "Interceptor");
+            invocation.SetResultValue(invocation.Result.ToString() + "Interceptor");
         }
     }
 
@@ -22,11 +22,11 @@ namespace ConsoleApp
     {
         public async Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {
-            Console.WriteLine($"InterceptorType:{GetType().FullName} :::: { invocation.Method.Name }:executing");
+            Console.WriteLine($"InterceptorType:{GetType().FullName} :::: { invocation.MethodInfo.Name }:executing");
 
             await next(invocation);
 
-            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.Method.Name }:executed");
+            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.MethodInfo.Name }:executed");
         }
     }
 }

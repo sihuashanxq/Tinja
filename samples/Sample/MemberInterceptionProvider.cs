@@ -5,21 +5,14 @@ using Tinja.Interception;
 
 namespace ConsoleApp
 {
-    public class MemberInterceptionProvider : IMemberInterceptionProvider
+    public class MemberInterceptionProvider : IInterceptorDescriptorProvider
     {
-        public IEnumerable<MemberInterception> GetInterceptions(MemberInfo memberInfo)
+        public IEnumerable<InterceptorDescriptor> GetInterceptors(MemberInfo memberInfo)
         {
             if (memberInfo.DeclaringType != null &&
                 memberInfo.DeclaringType.Name.StartsWith("UserService"))
             {
-                yield return new MemberInterception()
-                {
-                    InterceptorType = typeof(UserServiceInterceptor),
-                    MemberOrders = new Dictionary<MemberInfo, long>()
-                    {
-                        [memberInfo] = long.MaxValue
-                    }
-                };
+                yield return new InterceptorDescriptor(10, typeof(UserServiceInterceptor),memberInfo);
             }
         }
     }

@@ -5,6 +5,6 @@ namespace Tinja.Interception
 {
     public interface IInterceptorCollector
     {
-        IEnumerable<MemberInterceptionBinding> Collect(Type baseType, Type implementionType);
+        IEnumerable<InterceptorEntry> Collect(Type baseType, Type implementionType);
     }
 }

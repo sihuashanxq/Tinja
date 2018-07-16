@@ -15,7 +15,7 @@ namespace Tinja.Interception.Executors
         public virtual TResult Execute<TResult>(IMethodInvocation inv)
         {
             ExecuteCore(inv).Wait();
-            return (TResult)inv.ReturnValue;
+            return (TResult)inv.Result;
         }
 
         public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation inv)
@@ -30,7 +30,7 @@ namespace Tinja.Interception.Executors
 
             task.GetAwaiter().OnCompleted(() =>
             {
-                taskCompletionSource.SetResult((TResult)inv.ReturnValue);
+                taskCompletionSource.SetResult((TResult)inv.Result);
             });
 
             return taskCompletionSource.Task;
@@ -38,7 +38,7 @@ namespace Tinja.Interception.Executors
 
         protected Task ExecuteCore(IMethodInvocation inv)
         {
-            var invoker = Builder.Build(inv.Method);
+            var invoker = Builder.Build(inv.MethodInfo);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));

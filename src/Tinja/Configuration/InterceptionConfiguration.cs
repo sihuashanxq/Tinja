@@ -7,11 +7,11 @@ namespace Tinja.Configuration
     {
         public bool EnableInterception { get; set; } = true;
 
-        public List<IMemberInterceptionProvider> Providers { get; }
+        public List<IInterceptorDescriptorProvider> Providers { get; }
 
         public InterceptionConfiguration()
         {
-            Providers = new List<IMemberInterceptionProvider>();
+            Providers = new List<IInterceptorDescriptorProvider>();
         }
     }
 }

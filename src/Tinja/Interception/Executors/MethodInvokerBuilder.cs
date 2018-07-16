@@ -68,13 +68,13 @@ namespace Tinja.Interception.Executors
 
             stack.Push(async inv =>
             {
-                if (inv.Method.IsAbstract || inv.Method.DeclaringType.IsInterface)
+                if (inv.MethodInfo.IsAbstract || inv.MethodInfo.DeclaringType.IsInterface)
                 {
                     await Task.CompletedTask;
                     return;
                 }
 
-                inv.SetReturnValue(await executor.ExecuteAsync(inv.ContextObject, inv.Arguments));
+                inv.SetResultValue(await executor.ExecuteAsync(inv.Instance, inv.Arguments));
             });
 
             return stack;
