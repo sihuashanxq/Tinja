@@ -7,24 +7,24 @@ namespace Tinja.Interception
     /// <summary>
     /// a descriptor for Interceptor
     /// </summary>
-    public class InterceptorDescriptor
+    public class InterceptorDefinition
     {
         public long Order { get; }
 
+        public MemberInfo Target { get; }
+
         public Type InterceptorType { get; }
 
-        public MemberInfo TargetMember { get; }
-
-        public InterceptorDescriptor(long order, Type interceptorType, MemberInfo targetMember)
+        public InterceptorDefinition(long order, Type interceptorType, MemberInfo target)
         {
             if (interceptorType == null)
             {
                 throw new NullReferenceException(nameof(interceptorType));
             }
 
-            if (targetMember == null)
+            if (target == null)
             {
-                throw new NullReferenceException(nameof(targetMember));
+                throw new NullReferenceException(nameof(target));
             }
 
             if (interceptorType.IsNot<IInterceptor>())
@@ -33,7 +33,7 @@ namespace Tinja.Interception
             }
 
             Order = order;
-            TargetMember = targetMember;
+            Target = target;
             InterceptorType = interceptorType;
         }
     }

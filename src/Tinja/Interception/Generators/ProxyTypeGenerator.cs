@@ -22,18 +22,18 @@ namespace Tinja.Interception.Generators
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
-        protected IInterceptorDescriptorCollector InterceptionCollector { get; }
+        protected IInterceptorDefinitionCollector InterceptionCollector { get; }
 
-        protected IEnumerable<InterceptorDescriptor> InterceptorDescriptors { get; }
+        protected IEnumerable<InterceptorDefinition> InterceptorDescriptors { get; }
 
         protected virtual Type[] DefaultConstrcutorParameterTypes => new[]
         {
             typeof(IInterceptorCollector),
             typeof(IMethodInvocationExecutor),
-            typeof(InterceptorFilter)
+            typeof(MemberInterceptorProvider)
         };
 
-        public ProxyTypeGenerator(Type serviceType, Type proxyTargetType, IInterceptorDescriptorCollector collector)
+        public ProxyTypeGenerator(Type serviceType, Type proxyTargetType, IInterceptorDefinitionCollector collector)
         {
             ServiceType = serviceType;
             ProxyTargetType = proxyTargetType;
@@ -44,7 +44,7 @@ namespace Tinja.Interception.Generators
                 .Create(serviceType, proxyTargetType)
                 .Collect();
 
-            InterceptorDescriptors = InterceptionCollector.Collect(serviceType, proxyTargetType);
+            InterceptorDescriptors = InterceptionCollector.CollectDefinitions(serviceType, proxyTargetType);
             Fields = new Dictionary<string, FieldBuilder>();
         }
 
@@ -90,7 +90,7 @@ namespace Tinja.Interception.Generators
         {
             DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
             DefineField("__interceptors", typeof(IEnumerable<InterceptorEntry>), FieldAttributes.Private);
-            DefineField("__filter", typeof(InterceptorFilter), FieldAttributes.Private);
+            DefineField("__filter", typeof(MemberInterceptorProvider), FieldAttributes.Private);
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
@@ -285,7 +285,7 @@ namespace Tinja.Interception.Generators
 
         protected virtual bool IsUsedInterception(MemberInfo memberInfo)
         {
-            return InterceptorDescriptors.Any(i => i.TargetMember == memberInfo || i.TargetMember == memberInfo.DeclaringType);
+            return InterceptorDescriptors.Any(i => i.Target == memberInfo || i.Target == memberInfo.DeclaringType);
         }
 
         /// <summary>

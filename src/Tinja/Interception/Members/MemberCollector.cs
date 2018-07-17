@@ -16,7 +16,7 @@ namespace Tinja.Interception.Members
 
         protected Type[] Interfaces { get; }
 
-        public MemberCollector(Type proxyTargetType)
+        protected MemberCollector(Type proxyTargetType)
         {
             ProxyTargetType = proxyTargetType;
             Interfaces = ProxyTargetType.GetInterfaces();

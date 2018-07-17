@@ -5,14 +5,14 @@ using Tinja.Interception;
 
 namespace ConsoleApp
 {
-    public class MemberInterceptionProvider : IInterceptorDescriptorProvider
+    public class MemberInterceptionProvider : IInterceptorDefinitonProvider
     {
-        public IEnumerable<InterceptorDescriptor> GetInterceptors(MemberInfo memberInfo)
+        public IEnumerable<InterceptorDefinition> GetDefinitions(MemberInfo memberInfo)
         {
             if (memberInfo.DeclaringType != null &&
                 memberInfo.DeclaringType.Name.StartsWith("UserService"))
             {
-                yield return new InterceptorDescriptor(10, typeof(UserServiceInterceptor),memberInfo);
+                yield return new InterceptorDefinition(10, typeof(UserServiceInterceptor),memberInfo);
             }
         }
     }

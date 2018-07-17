@@ -32,16 +32,14 @@ namespace Tinja.Extensions
 
             var configuration = container.BuildConfiguration();
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var memberInterceptionCollector = new InterceptorDescriptorCollector(
-                configuration.Interception,
-                MemberCollectorFactory.Default
-            );
-
+            var memberInterceptionCollector = new InterceptorDefinitionCollector(configuration.Interception, MemberCollectorFactory.Default);
             var serviceContextFactory = new ServiceContextFactory(memberInterceptionCollector);
             var elementBuilderFactory = new CallDependencyElementBuilderFactory(serviceContextFactory, configuration);
             var activatorFacotry = new ActivatorFactory(elementBuilderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
             var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
+
+            container.AddTransient<IMemberInterceptorProvider, MemberInterceptorProvider>();
 
             container.AddScoped(typeof(IServiceResolver), resolver => resolver);
             container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
@@ -52,15 +50,13 @@ namespace Tinja.Extensions
             container.AddSingleton<IServiceContextFactory>(serviceContextFactory);
             container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
             container.AddSingleton<IMemberCollectorFactory>(MemberCollectorFactory.Default);
-            container.AddSingleton<IInterceptorDescriptorCollector>(memberInterceptionCollector);
+            container.AddSingleton<IInterceptorDefinitionCollector>(memberInterceptionCollector);
             container.AddSingleton<ICallDependencyElementBuilderFactory>(elementBuilderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddSingleton<IInterceptorCollector, InterceptorCollector>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
-            container.AddSingleton<InterceptorSelector>();
-
-            container.AddTransient<InterceptorFilter>();
+            container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
 
             serviceContextFactory.Populate(container.Components, serviceResolver.ServiceLifeScope);
 

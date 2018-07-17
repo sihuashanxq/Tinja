@@ -12,9 +12,9 @@ namespace Tinja.Resolving.Context
     {
         protected Dictionary<Type, List<Component>> Components { get; }
 
-        internal IInterceptorDescriptorCollector InterceptionProvider { get; }
+        internal IInterceptorDefinitionCollector InterceptionProvider { get; }
 
-        internal ServiceContextFactory(IInterceptorDescriptorCollector provider)
+        internal ServiceContextFactory(IInterceptorDefinitionCollector provider)
         {
             InterceptionProvider = provider;
             Components = new Dictionary<Type, List<Component>>();
@@ -251,7 +251,7 @@ namespace Tinja.Resolving.Context
 
             return component.ImplementionFactory == null &&
                    component.ImplementionInstance == null &&
-                   InterceptionProvider.Collect(component.ServiceType, component.ImplementionType).Any();
+                   InterceptionProvider.CollectDefinitions(component.ServiceType, component.ImplementionType).Any();
         }
     }
 }

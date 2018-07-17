@@ -79,25 +79,24 @@ namespace Tinja.Extensions
         }
         internal static InterceptorAttribute[] GetInterceptorAttributes(this MemberInfo memberInfo)
         {
-            var attrs = memberInfo.GetCustomAttributes<InterceptorAttribute>(false);
+            var attrs = memberInfo.GetCustomAttributes<InterceptorAttribute>(false).ToArray();
 
             if (memberInfo.DeclaringType != null && memberInfo.DeclaringType.IsInterface)
             {
-                return attrs.ToArray();
+                return attrs;
             }
 
             if (memberInfo is Type typeInfo && typeInfo.IsInterface)
             {
-                return attrs.ToArray();
+                return attrs;
             }
 
-            var array = attrs as InterceptorAttribute[] ?? attrs.ToArray();
             var inheritedAttrs = memberInfo
                 .GetCustomAttributes<InterceptorAttribute>(true)
-                .Except(array)
+                .Except(attrs)
                 .Where(i => i.Inherited);
 
-            return array
+            return attrs
                 .Concat(inheritedAttrs)
                 .Distinct(i => i.InterceptorType)
                 .ToArray();

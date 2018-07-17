@@ -9,36 +9,36 @@ using Tinja.Interception.Members;
 
 namespace Tinja.Interception
 {
-    internal class InterceptorDescriptorCollector : IInterceptorDescriptorCollector
+    internal class InterceptorDefinitionCollector : IInterceptorDefinitionCollector
     {
         protected InterceptionConfiguration Configuration { get; }
 
         protected IMemberCollectorFactory MemberCollectorFactory { get; }
 
-        protected IEnumerable<IInterceptorDescriptorProvider> Providers => Configuration.Providers;
+        protected IEnumerable<IInterceptorDefinitonProvider> Providers => Configuration.Providers;
 
-        protected ConcurrentDictionary<Tuple<Type, Type>, InterceptorDescriptorCollection> Caches { get; }
+        protected ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptorDefinition>> Caches { get; }
 
-        public InterceptorDescriptorCollector(InterceptionConfiguration configuration, IMemberCollectorFactory memberCollectorFactory)
+        public InterceptorDefinitionCollector(InterceptionConfiguration configuration, IMemberCollectorFactory memberCollectorFactory)
         {
             Configuration = configuration;
             MemberCollectorFactory = memberCollectorFactory;
-            Caches = new ConcurrentDictionary<Tuple<Type, Type>, InterceptorDescriptorCollection>();
+            Caches = new ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptorDefinition>>();
         }
 
-        public InterceptorDescriptorCollection Collect(Type serviceType, Type implementionType)
+        public IEnumerable<InterceptorDefinition> CollectDefinitions(Type serviceType, Type implementionType)
         {
             if (!Configuration.EnableInterception)
             {
-                return new InterceptorDescriptorCollection(serviceType, implementionType);
+                return new InterceptorDefinition[0];
             }
 
             return Caches.GetOrAdd(Tuple.Create(serviceType, implementionType), key => CollectInterceptors(serviceType, implementionType));
         }
 
-        protected virtual InterceptorDescriptorCollection CollectInterceptors(Type serviceType, Type implementionType)
+        protected virtual IEnumerable<InterceptorDefinition> CollectInterceptors(Type serviceType, Type implementionType)
         {
-            var interceptors = new InterceptorDescriptorCollection(serviceType, implementionType);
+            var interceptors = new List<InterceptorDefinition>();
             var proxyMembers = MemberCollectorFactory.Create(serviceType, implementionType)
                 .Collect()
                 .Where(i => !i.IsEvent);
@@ -62,18 +62,18 @@ namespace Tinja.Interception
             return interceptors;
         }
 
-        protected virtual IEnumerable<InterceptorDescriptor> CollectInterceptors(MemberInfo memberInfo, IEnumerable<MemberInfo> interfaces)
+        protected virtual IEnumerable<InterceptorDefinition> CollectInterceptors(MemberInfo memberInfo, IEnumerable<MemberInfo> interfaces)
         {
             foreach (var item in interfaces.Concat(new[] { memberInfo }))
             {
                 foreach (var attr in item.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorDescriptor(attr.Order, attr.InterceptorType, memberInfo);
+                    yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, memberInfo);
                 }
 
-                foreach (var descriptor in Providers.SelectMany(provider => provider.GetInterceptors(item)))
+                foreach (var descriptor in Providers.SelectMany(provider => provider.GetDefinitions(item)))
                 {
-                    yield return new InterceptorDescriptor(descriptor.Order, descriptor.InterceptorType, memberInfo);
+                    yield return new InterceptorDefinition(descriptor.Order, descriptor.InterceptorType, memberInfo);
                 }
             }
         }

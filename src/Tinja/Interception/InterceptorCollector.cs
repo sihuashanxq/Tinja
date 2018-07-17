@@ -8,9 +8,9 @@ namespace Tinja.Interception
     {
         private readonly IServiceResolver _serviceResolver;
 
-        private readonly IInterceptorDescriptorCollector _interceptorCollector;
+        private readonly IInterceptorDefinitionCollector _interceptorCollector;
 
-        internal InterceptorCollector(IServiceResolver serviceResolver, IInterceptorDescriptorCollector interceptorCollector)
+        internal InterceptorCollector(IServiceResolver serviceResolver, IInterceptorDefinitionCollector interceptorCollector)
         {
             _serviceResolver = serviceResolver;
             _interceptorCollector = interceptorCollector;
@@ -18,7 +18,7 @@ namespace Tinja.Interception
 
         public IEnumerable<InterceptorEntry> Collect(Type serviceType, Type implementionType)
         {
-            foreach (var item in _interceptorCollector.Collect(serviceType, implementionType))
+            foreach (var item in _interceptorCollector.CollectDefinitions(serviceType, implementionType))
             {
                 var interceptor = (IInterceptor)_serviceResolver.Resolve(item.InterceptorType);
                 if (interceptor == null)

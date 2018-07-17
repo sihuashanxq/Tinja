@@ -11,7 +11,7 @@ namespace Tinja.Interception.Generators
     {
         protected override Type[] DefaultConstrcutorParameterTypes { get; }
 
-        public InterfaceTargetProxyTypeGenerator(Type interaceType, Type implementionType, IInterceptorDescriptorCollector collector)
+        public InterfaceTargetProxyTypeGenerator(Type interaceType, Type implementionType, IInterceptorDefinitionCollector collector)
             : base(interaceType, implementionType, collector)
         {
             DefaultConstrcutorParameterTypes = new[]
@@ -19,7 +19,7 @@ namespace Tinja.Interception.Generators
                 implementionType,
                 typeof(IInterceptorCollector),
                 typeof(IMethodInvocationExecutor),
-                typeof(InterceptorFilter)
+                typeof(MemberInterceptorProvider)
             };
         }
 
