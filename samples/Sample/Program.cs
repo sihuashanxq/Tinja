@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Tinja;
-using Tinja.Extensions;
+using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core;
 
 namespace ConsoleApp
 {

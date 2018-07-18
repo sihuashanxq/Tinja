@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Tinja.Core\Tinja.Core.csproj" />
     <ProjectReference Include="..\..\src\Tinja.Extensions.DependencyInjection\Tinja.Extensions.DependencyInjection.csproj" />
-    <ProjectReference Include="..\..\src\Tinja\Tinja.csproj" />
   </ItemGroup>
 
 </Project>

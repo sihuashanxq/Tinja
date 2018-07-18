@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Injection\Descriptors\**" />
+    <EmbeddedResource Remove="Injection\Descriptors\**" />
+    <None Remove="Injection\Descriptors\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tinja.Abstractions\Tinja.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

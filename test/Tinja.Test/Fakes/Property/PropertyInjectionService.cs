@@ -1,4 +1,5 @@
-﻿using Tinja.Test.Fakes.Consturctor;
+﻿using Tinja.Core;
+using Tinja.Test.Fakes.Consturctor;
 
 namespace Tinja.Test.Fakes.Property
 {

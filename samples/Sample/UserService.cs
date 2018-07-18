@@ -1,5 +1,5 @@
 ﻿using Tinja;
-using Tinja.Interception;
+using Tinja.Core.DynamicProxy;
 
 namespace ConsoleApp
 {

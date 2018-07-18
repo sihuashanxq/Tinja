@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using Tinja.ServiceLife;
+using Tinja.Abstractions;
+using Tinja.Abstractions.Injection;
+using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core;
 
 namespace Tinja.Extensions.DependencyInjection
 {
@@ -39,7 +42,7 @@ namespace Tinja.Extensions.DependencyInjection
             return container;
         }
 
-        private static void AddServiceDefinition(IContainer container, ServiceDescriptor descriptor, ServiceLifeStyle lifeStyle)
+        private static void AddServiceDefinition(IContainer container, Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor, ServiceLifeStyle lifeStyle)
         {
             if (descriptor.ImplementationFactory != null)
             {

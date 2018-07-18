@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Abstractions;
 
 namespace Tinja.Extensions.DependencyInjection
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Tinja.Interception;
+using Tinja.Abstractions.DynamicProxy;
 
 namespace ConsoleApp
 {

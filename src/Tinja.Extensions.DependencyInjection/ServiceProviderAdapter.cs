@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.Resolving;
+using Tinja.Abstractions.Injection;
 
 namespace Tinja.Extensions.DependencyInjection
 {

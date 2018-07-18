@@ -2,8 +2,9 @@
 using Xunit;
 using System.Linq;
 using System.Threading.Tasks;
-using Tinja.Extensions;
-using Tinja.Resolving.Dependency;
+using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core;
+using Tinja.Core.Injection.Dependency;
 using Tinja.Test.Fakes.Consturctor;
 using Tinja.Test.Fakes.Generic;
 using Tinja.Test.Fakes.Property;
