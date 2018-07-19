@@ -16,7 +16,7 @@ namespace Tinja.Core.DynamicProxy
 
         protected ITypeMemberCollectorFactory MemberCollectorFactory { get; }
 
-        protected IEnumerable<IInterceptorDefinitonProvider> Providers => Configuration.Providers;
+        protected IEnumerable<IInterceptorDefinitionProvider> Providers => Configuration.Providers;
 
         protected ConcurrentDictionary<Tuple<Type, Type>, IEnumerable<InterceptorDefinition>> Caches { get; }
 

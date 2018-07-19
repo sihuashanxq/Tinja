@@ -7,11 +7,11 @@ namespace Tinja.Abstractions.Configuration
     {
         public bool EnableInterception { get; set; } = true;
 
-        public List<IInterceptorDefinitonProvider> Providers { get; }
+        public List<IInterceptorDefinitionProvider> Providers { get; }
 
         public InterceptionConfiguration()
         {
-            Providers = new List<IInterceptorDefinitonProvider>();
+            Providers = new List<IInterceptorDefinitionProvider>();
         }
     }
 }

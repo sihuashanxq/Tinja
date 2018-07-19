@@ -33,7 +33,7 @@ namespace Tinja.Abstractions.Injection.Extensions
             var activatorProvider = new ActivatorProvider(activatorFacotry);
             var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
 
-            container.AddTransient<IMemberInterceptorProvider, MemberInterceptorProvider>();
+            container.AddTransient<IInterceptorAccessor, MemberInterceptorProvider>();
 
             container.AddScoped(typeof(IServiceResolver), resolver => resolver);
             container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);

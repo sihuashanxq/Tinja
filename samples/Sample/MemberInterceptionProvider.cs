@@ -5,7 +5,7 @@ using Tinja.Abstractions.DynamicProxy;
 
 namespace ConsoleApp
 {
-    public class MemberInterceptionProvider : IInterceptorDefinitonProvider
+    public class MemberInterceptionProvider : IInterceptorDefinitionProvider
     {
         public IEnumerable<InterceptorDefinition> GetDefinitions(MemberInfo memberInfo)
         {

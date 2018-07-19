@@ -6,7 +6,7 @@ namespace Tinja.Core.DynamicProxy
 {
     /// <summary>
     /// </summary>
-    public class MemberInterceptorProvider : IMemberInterceptorProvider
+    public class MemberInterceptorProvider : IInterceptorAccessor
     {
         private readonly IInterceptorSelectorProvider _interceptorSelectorProvider;
 
@@ -18,7 +18,7 @@ namespace Tinja.Core.DynamicProxy
             _interceptorCaches = new ConcurrentDictionary<MemberInfo, InterceptorEntry[]>();
         }
 
-        public InterceptorEntry[] GetInterceptors(MemberInfo memberInfo)
+        public InterceptorEntry[] GetOrCreateInterceptors(MemberInfo memberInfo)
         {
             throw new System.NotImplementedException();
         }
