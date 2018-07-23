@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
 
@@ -180,7 +181,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                     ilGen.LoadArgument(1);
                     ilGen.TypeOf(ServiceType);
                     ilGen.TypeOf(ProxyTargetType);
-                    ilGen.CallVirt(typeof(IInterceptorCollector).GetMethod("Collect"));
+                    ilGen.CallVirt(typeof(IInterceptorDefinitionCollector).GetMethod("Collect"));
                 }
             );
 

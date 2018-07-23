@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Tinja;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core;
+using Tinja.Core.Injection.Extensions;
 
 namespace ConsoleApp
 {

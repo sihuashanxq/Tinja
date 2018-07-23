@@ -1,9 +1,10 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 namespace Tinja.Abstractions.DynamicProxy
 {
     public interface IInterceptorAccessor
     {
-        InterceptorEntry[] GetOrCreateInterceptors(MemberInfo memberInfo);
+        IInterceptor[] GetOrCreateInterceptors(MemberInfo memberInfo);
     }
 }

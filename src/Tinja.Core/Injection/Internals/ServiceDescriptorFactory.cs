@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.Injection;
 using Tinja.Core.DynamicProxy.Generators;
 
@@ -12,11 +13,11 @@ namespace Tinja.Core.Injection.Internals
     {
         protected Dictionary<Type, List<Component>> Components { get; }
 
-        internal IInterceptorDefinitionCollector InterceptionProvider { get; }
+        internal IInterceptorDefinitionProvider InterceptorProvider { get; }
 
-        internal ServiceDescriptorFactory(IInterceptorDefinitionCollector provider)
+        internal ServiceDescriptorFactory(IInterceptorDefinitionProvider provider)
         {
-            InterceptionProvider = provider;
+            InterceptorProvider = provider;
             Components = new Dictionary<Type, List<Component>>();
         }
 
@@ -54,9 +55,9 @@ namespace Tinja.Core.Injection.Internals
 
         protected virtual void InitializeProxyType(Component component)
         {
-            component.ProxyType = component.ImplementionType.IsInterface 
-                ? new InterfaceProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType() 
-                : new ClassProxyTypeGenerator(component.ImplementionType, InterceptionProvider).CreateProxyType();
+            //component.ProxyType = component.ImplementionType.IsInterface 
+            //    ? new InterfaceProxyTypeGenerator(component.ImplementionType, InterceptorProvider).CreateProxyType() 
+            //    : new ClassProxyTypeGenerator(component.ImplementionType, InterceptorProvider).CreateProxyType();
         }
 
         public virtual ServiceDescriptor CreateDescriptor(Type serviceType)
@@ -236,9 +237,10 @@ namespace Tinja.Core.Injection.Internals
                 return false;
             }
 
-            return component.ImplementionFactory == null &&
-                   component.ImplementionInstance == null &&
-                   InterceptionProvider.CollectDefinitions(component.ServiceType, component.ImplementionType).Any();
+            return false;
+            //return component.ImplementionFactory == null &&
+            //       component.ImplementionInstance == null &&
+            //       InterceptorProvider.CollectDefinitions(component.ServiceType, component.ImplementionType).Any();
         }
     }
 }

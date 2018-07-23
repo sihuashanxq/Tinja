@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 
 namespace Tinja.Abstractions.DynamicProxy
 {

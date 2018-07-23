@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace Tinja.Abstractions.DynamicProxy
+namespace Tinja.Abstractions.DynamicProxy.Definitions
 {
     /// <summary>
     /// a descriptor for Interceptor

@@ -2,21 +2,22 @@
 using System;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core.Injection.Extensions;
 
 namespace Tinja.Extensions.DependencyInjection
 {
     public class ServiceScopeAdapterFactory : IServiceScopeFactory
     {
-        private readonly IServiceResolver _resolver;
+        private readonly IServiceResolver _serviceResolver;
 
-        public ServiceScopeAdapterFactory(IServiceResolver resolver)
+        public ServiceScopeAdapterFactory(IServiceResolver serviceResolver)
         {
-            _resolver = resolver;
+            _serviceResolver = serviceResolver;
         }
 
         public IServiceScope CreateScope()
         {
-            return new ServiceScopeAdapter(_resolver.CreateScope().Resolve<IServiceProvider>());
+            return new ServiceScopeAdapter(_serviceResolver.CreateScope().Resolve<IServiceProvider>());
         }
     }
 }

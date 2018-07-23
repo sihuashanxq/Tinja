@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 
 namespace Tinja.Abstractions.Configuration
 {
@@ -7,11 +8,11 @@ namespace Tinja.Abstractions.Configuration
     {
         public bool EnableInterception { get; set; } = true;
 
-        public List<IInterceptorDefinitionProvider> Providers { get; }
+        public List<IInterceptorDefinitionCollector> Collectors { get; }
 
         public InterceptionConfiguration()
         {
-            Providers = new List<IInterceptorDefinitionProvider>();
+            Collectors = new List<IInterceptorDefinitionCollector>();
         }
     }
 }

@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Tinja.Abstractions.DynamicProxy
 {
-    public interface ITypeMemberCollector
+    public interface IInterceptorFactory
     {
-        IEnumerable<MemberMetadata> Collect(Type typeInfo);
+         
     }
 }

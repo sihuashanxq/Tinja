@@ -1,11 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using Tinja.Abstractions;
 using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Executors;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Dependency;
+using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core.DynamicProxy;
+using Tinja.Core.DynamicProxy.Executors;
+using Tinja.Core.DynamicProxy.Executors.Internal;
+using Tinja.Core.Injection.Activators;
+using Tinja.Core.Injection.Dependency;
+using Tinja.Core.Injection.Internals;
 
-namespace Tinja.Abstractions.Injection.Extensions
+namespace Tinja.Core.Injection.Extensions
 {
     /// <summary>
     /// IContainer Extension Methods
@@ -26,14 +38,13 @@ namespace Tinja.Abstractions.Injection.Extensions
 
             var configuration = container.BuildConfiguration();
             var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var memberInterceptionCollector = new InterceptorDefinitionCollector(configuration.Interception, TypeMemberCollectorFactory.Default);
-            var serviceContextFactory = new ServiceDescriptorFactory(memberInterceptionCollector);
+            var serviceContextFactory = new ServiceDescriptorFactory(null);
             var elementBuilderFactory = new CallDependencyElementBuilderFactory(serviceContextFactory, configuration);
             var activatorFacotry = new ActivatorFactory(elementBuilderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
             var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
 
-            container.AddTransient<IInterceptorAccessor, MemberInterceptorProvider>();
+            container.AddTransient<IInterceptorAccessor, IInterceptorAccessor>();
 
             container.AddScoped(typeof(IServiceResolver), resolver => resolver);
             container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
@@ -43,11 +54,11 @@ namespace Tinja.Abstractions.Injection.Extensions
             container.AddSingleton<IActivatorProvider>(activatorProvider);
             container.AddSingleton<IServiceDescriptorFactory>(serviceContextFactory);
             container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
-            container.AddSingleton<ITypeMemberCollectorFactory>(TypeMemberCollectorFactory.Default);
-            container.AddSingleton<IInterceptorDefinitionCollector>(memberInterceptionCollector);
+            container.AddSingleton<IMemberMetadataProvider, IMemberMetadataProvider>();
+            //container.AddSingleton<IInterceptorDefinitionCollector>(memberInterceptionCollector);
             container.AddSingleton<ICallDependencyElementBuilderFactory>(elementBuilderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
-            container.AddSingleton<IInterceptorCollector, InterceptorCollector>();
+
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();

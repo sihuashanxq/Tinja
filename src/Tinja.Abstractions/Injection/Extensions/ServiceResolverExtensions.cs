@@ -28,10 +28,5 @@ namespace Tinja.Abstractions.Injection.Extensions
         {
             return (TType)resolver.ResolveRequired(typeof(TType));
         }
-
-        public static IServiceResolver CreateScope(this IServiceResolver resolver)
-        {
-            return new ServiceResolver(resolver);
-        }
     }
 }

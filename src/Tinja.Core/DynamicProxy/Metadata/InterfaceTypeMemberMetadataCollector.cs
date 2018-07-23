@@ -2,27 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 
-namespace Tinja.Core.DynamicProxy.Members
+namespace Tinja.Core.DynamicProxy.Metadata
 {
-    public class InterfaceTypeMemberCollector : TypeMemberCollector
+    public class InterfaceTypeMemberMetadataCollector : MemberMetadataCollector
     {
-        protected override IEnumerable<MemberMetadata> CollectTypeProperties(Type typeInfo, Type[] interfaces)
+        protected override IEnumerable<MemberMetadata> CollectProperties(Type typeInfo, Type[] interfaces)
         {
             return typeInfo
                 .GetProperties()
                 .Select(item => CreateMemberMetadata(item, interfaces));
         }
 
-        protected override IEnumerable<MemberMetadata> CollectTypeMethods(Type typeInfo, Type[] interfaces)
+        protected override IEnumerable<MemberMetadata> CollectMethods(Type typeInfo, Type[] interfaces)
         {
             return typeInfo
                 .GetMethods()
                 .Select(item => CreateMemberMetadata(item, interfaces));
         }
 
-        protected override IEnumerable<MemberMetadata> CollectTypeEvents(Type typeInfo, Type[] interfaces)
+        protected override IEnumerable<MemberMetadata> CollectEvents(Type typeInfo, Type[] interfaces)
         {
             return typeInfo
                 .GetEvents()

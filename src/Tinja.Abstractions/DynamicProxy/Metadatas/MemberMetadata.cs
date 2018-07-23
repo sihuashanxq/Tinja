@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Tinja.Abstractions.DynamicProxy
+namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     public class MemberMetadata
     {

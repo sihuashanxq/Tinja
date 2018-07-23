@@ -1,4 +1,5 @@
 ﻿using Tinja;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Core.DynamicProxy;
 
 namespace ConsoleApp

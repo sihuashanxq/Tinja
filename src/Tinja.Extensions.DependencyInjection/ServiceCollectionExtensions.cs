@@ -4,6 +4,7 @@ using Tinja.Abstractions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core;
+using Tinja.Core.Injection.Extensions;
 
 namespace Tinja.Extensions.DependencyInjection
 {

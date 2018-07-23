@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Tinja.Abstractions.DynamicProxy;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {

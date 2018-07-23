@@ -1,8 +1,7 @@
 ﻿using System;
-using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection.Extensions;
 
-namespace Tinja.Core.DynamicProxy
+namespace Tinja.Abstractions.DynamicProxy
 {
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true)]
     public class InterceptorAttribute : Attribute

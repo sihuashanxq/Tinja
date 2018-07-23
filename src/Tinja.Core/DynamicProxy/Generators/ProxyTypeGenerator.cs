@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Executors;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.DynamicProxy.Executors;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
@@ -30,9 +32,9 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected virtual Type[] DefaultConstrcutorParameterTypes => new[]
         {
-            typeof(IInterceptorCollector),
+            typeof(IInterceptorDefinitionCollector),
             typeof(IMethodInvocationExecutor),
-            typeof(MemberInterceptorProvider)
+            typeof(InterceptorAccessor)
         };
 
         public ProxyTypeGenerator(Type serviceType, Type proxyTargetType, IInterceptorDefinitionCollector collector)
@@ -41,13 +43,13 @@ namespace Tinja.Core.DynamicProxy.Generators
             ProxyTargetType = proxyTargetType;
             InterceptionCollector = collector;
 
-            ProxyMembers = TypeMemberCollectorFactory
-                .Default
-                .Create(proxyTargetType)
-                .Collect(proxyTargetType);
+            //ProxyMembers = MemberMetadataProvider
+            //    .Default
+            //    .GetMemberMetadatas(proxyTargetType)
+            //    .Collect(proxyTargetType);
 
-            InterceptorDescriptors = InterceptionCollector.CollectDefinitions(serviceType, proxyTargetType);
-            Fields = new Dictionary<string, FieldBuilder>();
+            //InterceptorDescriptors = InterceptionCollector.CollectDefinitions(serviceType, proxyTargetType);
+            //Fields = new Dictionary<string, FieldBuilder>();
         }
 
         public virtual Type CreateProxyType()
@@ -92,7 +94,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         {
             DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
             DefineField("__interceptors", typeof(IEnumerable<InterceptorEntry>), FieldAttributes.Private);
-            DefineField("__filter", typeof(MemberInterceptorProvider), FieldAttributes.Private);
+            DefineField("__filter", typeof(InterceptorAccessor), FieldAttributes.Private);
 
             foreach (var item in ProxyMembers.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
@@ -254,7 +256,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                     ilGen.LoadArgument(1);
                     ilGen.TypeOf(ServiceType);
                     ilGen.TypeOf(ProxyTargetType);
-                    ilGen.CallVirt(typeof(IInterceptorCollector).GetMethod("Collect"));
+                    ilGen.CallVirt(typeof(IInterceptorDefinitionCollector).GetMethod("Collect"));
                 }
             );
 

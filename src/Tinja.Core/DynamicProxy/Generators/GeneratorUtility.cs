@@ -21,7 +21,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         internal static Dictionary<Type, int> ProxyIndexs { get; }
 
-        internal static readonly MethodInfo FilterInterceptor = typeof(MemberInterceptorProvider).GetMethod("Filter");
+        internal static readonly MethodInfo FilterInterceptor = typeof(InterceptorAccessor).GetMethod("Filter");
 
         internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
         {
