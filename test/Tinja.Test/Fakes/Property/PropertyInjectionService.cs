@@ -1,4 +1,5 @@
 ﻿using Tinja.Core;
+using Tinja.Core.Injection;
 using Tinja.Test.Fakes.Consturctor;
 
 namespace Tinja.Test.Fakes.Property

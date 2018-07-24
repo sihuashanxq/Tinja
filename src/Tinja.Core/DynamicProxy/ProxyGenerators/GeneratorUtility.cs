@@ -7,7 +7,7 @@ using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Core.DynamicProxy.Executors;
 
-namespace Tinja.Core.DynamicProxy.Generators
+namespace Tinja.Core.DynamicProxy.ProxyGenerators
 {
     public static class GeneratorUtility
     {

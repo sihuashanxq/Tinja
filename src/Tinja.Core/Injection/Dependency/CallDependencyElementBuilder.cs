@@ -27,7 +27,7 @@ namespace Tinja.Core.Injection.Dependency
 
         public virtual CallDepenencyElement Build(Type serviceType)
         {
-            var descriptor = ServiceDescriptorFactory.CreateDescriptor(serviceType);
+            var descriptor = ServiceDescriptorFactory.Create(serviceType);
             if (descriptor == null)
             {
                 return null;
@@ -230,7 +230,7 @@ namespace Tinja.Core.Injection.Dependency
 
         protected void BuildPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDepenencyElement> propertyElements)
         {
-            var descriptor = ServiceDescriptorFactory.CreateDescriptor(propertyInfo.PropertyType);
+            var descriptor = ServiceDescriptorFactory.Create(propertyInfo.PropertyType);
             if (descriptor == null)
             {
                 return;
@@ -249,7 +249,7 @@ namespace Tinja.Core.Injection.Dependency
 
         protected bool BuildParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameterElements)
         {
-            var ctx = ServiceDescriptorFactory.CreateDescriptor(parameterInfo.ParameterType);
+            var ctx = ServiceDescriptorFactory.Create(parameterInfo.ParameterType);
             if (ctx == null)
             {
                 return false;

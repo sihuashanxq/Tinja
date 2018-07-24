@@ -4,6 +4,6 @@ namespace Tinja.Abstractions.Injection
 {
     public interface IServiceDescriptorFactory
     {
-        ServiceDescriptor CreateDescriptor(Type serviceType);
+        ServiceDescriptor Create(Type serviceType);
     }
 }

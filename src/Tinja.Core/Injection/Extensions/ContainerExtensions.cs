@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using Tinja.Abstractions;
 using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy;
 using Tinja.Core.DynamicProxy.Executors;
 using Tinja.Core.DynamicProxy.Executors.Internal;
 using Tinja.Core.Injection.Activators;
@@ -37,12 +35,13 @@ namespace Tinja.Core.Injection.Extensions
             }
 
             var configuration = container.BuildConfiguration();
-            var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var serviceContextFactory = new ServiceDescriptorFactory(null);
-            var elementBuilderFactory = new CallDependencyElementBuilderFactory(serviceContextFactory, configuration);
-            var activatorFacotry = new ActivatorFactory(elementBuilderFactory);
+
+            var lifeScopeFactory = new ServiceLifeScopeFactory();
+            var descriptorFactory = new ServiceDescriptorFactory();
+            var builderFactory = new CallDependencyElementBuilderFactory(descriptorFactory, configuration);
+            var activatorFacotry = new ActivatorFactory(builderFactory);
             var activatorProvider = new ActivatorProvider(activatorFacotry);
-            var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
+            var serviceResolver = new ServiceResolver(activatorProvider, lifeScopeFactory);
 
             container.AddTransient<IInterceptorAccessor, IInterceptorAccessor>();
 
@@ -52,18 +51,18 @@ namespace Tinja.Core.Injection.Extensions
             container.AddSingleton<IActivatorFactory>(activatorFacotry);
             container.AddSingleton<IServiceConfiguration>(configuration);
             container.AddSingleton<IActivatorProvider>(activatorProvider);
-            container.AddSingleton<IServiceDescriptorFactory>(serviceContextFactory);
-            container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
+            container.AddSingleton<IServiceLifeScopeFactory>(lifeScopeFactory);
+            container.AddSingleton<IServiceDescriptorFactory>(descriptorFactory);
             container.AddSingleton<IMemberMetadataProvider, IMemberMetadataProvider>();
             //container.AddSingleton<IInterceptorDefinitionCollector>(memberInterceptionCollector);
-            container.AddSingleton<ICallDependencyElementBuilderFactory>(elementBuilderFactory);
+            container.AddSingleton<ICallDependencyElementBuilderFactory>(builderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
 
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
 
-            serviceContextFactory.Populate(container.Components, serviceResolver.ServiceLifeScope);
+            descriptorFactory.Populate(container.Components, serviceResolver);
 
             return serviceResolver;
         }

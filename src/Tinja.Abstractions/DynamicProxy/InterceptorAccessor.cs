@@ -3,11 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.Injection;
 
-namespace Tinja.Core.DynamicProxy
+namespace Tinja.Abstractions.DynamicProxy
 {
     /// <summary>
     /// Transient

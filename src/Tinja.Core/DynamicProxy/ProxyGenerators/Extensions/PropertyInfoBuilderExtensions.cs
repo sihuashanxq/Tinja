@@ -4,8 +4,9 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core.Injection;
 
-namespace Tinja.Core.DynamicProxy.Generators.Extensions
+namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
 {
     public static class PropertyInfoBuilderExtensions
     {

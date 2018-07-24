@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.Injection.Extensions;
 
-namespace Tinja.Core.DynamicProxy.Generators.Extensions
+namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
 {
     internal static class EmitExtensions
     {

@@ -1,17 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy.Generators.Extensions;
+using Tinja.Core.DynamicProxy.ProxyGenerators.Extensions;
 
-namespace Tinja.Core.DynamicProxy.Generators
+namespace Tinja.Core.DynamicProxy.ProxyGenerators
 {
     public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
-        public InterfaceProxyTypeGenerator(Type interfaceType, IInterceptorDefinitionCollector collector)
-            : base(interfaceType, interfaceType, collector)
+        public InterfaceProxyTypeGenerator(Type interfaceType, IEnumerable<MemberMetadata> members) 
+            : base(interfaceType, members)
         {
 
         }
@@ -21,11 +21,6 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected override MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
         {
             var methodBudiler = TypeBuilder.DefineMethod(methodInfo);
-            if (!IsUsedInterception(methodInfo))
-            {
-                return methodBudiler.MakeDefaultMethodBody(methodInfo);
-            }
-
             var ilGen = methodBudiler.GetILGenerator();
             var parameters = methodInfo.GetParameters();
 
@@ -73,11 +68,6 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected override MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
         {
             var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
-            if (!IsUsedInterception(property))
-            {
-                return methodBuilder.MakeDefaultMethodBody(methodInfo);
-            }
-
             var ilGen = methodBuilder.GetILGenerator();
             var parameters = methodInfo.GetParameters();
 

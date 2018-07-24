@@ -2,9 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Core.DynamicProxy.Metadata;
 
-namespace Tinja.Core.DynamicProxy.Members
+namespace Tinja.Core.DynamicProxy.Metadata
 {
     public class MemberMetadataProvider : IMemberMetadataProvider
     {

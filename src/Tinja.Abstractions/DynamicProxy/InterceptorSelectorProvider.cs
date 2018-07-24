@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.DynamicProxy;
 
-namespace Tinja.Core.DynamicProxy
+namespace Tinja.Abstractions.DynamicProxy
 {
     public class InterceptorSelectorProvider : IInterceptorSelectorProvider
     {

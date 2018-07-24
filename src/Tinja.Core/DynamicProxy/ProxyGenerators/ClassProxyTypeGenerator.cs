@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy.Generators.Extensions;
+using Tinja.Core.DynamicProxy.ProxyGenerators.Extensions;
 
-namespace Tinja.Core.DynamicProxy.Generators
+namespace Tinja.Core.DynamicProxy.ProxyGenerators
 {
     public class ClassProxyTypeGenerator : ProxyTypeGenerator
     {
-        public ClassProxyTypeGenerator(Type classType, IInterceptorDefinitionCollector collector)
-        : base(classType, classType, collector)
+        public ClassProxyTypeGenerator(Type classType, IEnumerable<MemberMetadata> members) 
+            : base(classType, members)
         {
 
         }
@@ -22,13 +22,8 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected override void DefineTypeMethods()
         {
-            foreach (var item in ProxyMembers.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
+            foreach (var item in Members.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                if (!IsUsedInterception(item) && !item.IsAbstract)
-                {
-                    continue;
-                }
-
                 DefineTypeMethod(item);
             }
         }
@@ -80,24 +75,6 @@ namespace Tinja.Core.DynamicProxy.Generators
             ilGen.Return();
 
             return methodBuilder;
-        }
-
-        protected override PropertyBuilder DefineTypeProperty(PropertyInfo propertyInfo)
-        {
-            if (!IsUsedInterception(propertyInfo))
-            {
-                if (propertyInfo.CanRead && !propertyInfo.GetMethod.IsAbstract)
-                {
-                    return null;
-                }
-
-                if (propertyInfo.CanWrite && !propertyInfo.SetMethod.IsAbstract)
-                {
-                    return null;
-                }
-            }
-
-            return base.DefineTypeProperty(propertyInfo);
         }
 
         protected override MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
@@ -156,7 +133,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected override void DefineTypeConstrcutors()
         {
-            foreach (var item in ProxyTargetType.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            foreach (var item in TargetType.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
                 CreateTypeConstructor(item);
             }
@@ -179,8 +156,8 @@ namespace Tinja.Core.DynamicProxy.Generators
                 () =>
                 {
                     ilGen.LoadArgument(1);
-                    ilGen.TypeOf(ServiceType);
-                    ilGen.TypeOf(ProxyTargetType);
+                    //ilGen.TypeOf(ServiceType);
+                    ilGen.TypeOf(TargetType);
                     ilGen.CallVirt(typeof(IInterceptorDefinitionCollector).GetMethod("Collect"));
                 }
             );

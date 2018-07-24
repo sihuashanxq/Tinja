@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy.Generators.Extensions;
+using Tinja.Core.DynamicProxy.ProxyGenerators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Executors.Internal
 {

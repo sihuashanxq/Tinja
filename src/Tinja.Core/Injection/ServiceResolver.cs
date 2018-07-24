@@ -15,23 +15,23 @@ namespace Tinja.Core.Injection
         /// <summary>
         /// <see cref="IActivatorProvider"/>
         /// </summary>
-        protected IActivatorProvider ServiceActivatorProvider { get; }
+        protected IActivatorProvider ActivatorProvider { get; }
 
         public ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
         {
+            ActivatorProvider = serviceActivatorProvider;
             ServiceLifeScope = serviceLifeScopeFactory.Create(this);
-            ServiceActivatorProvider = serviceActivatorProvider;
         }
 
-        internal ServiceResolver(IServiceResolver root)
+        internal ServiceResolver(IServiceResolver parent)
         {
-            ServiceLifeScope = root.Resolve<IServiceLifeScopeFactory>().Create(this, root.ServiceLifeScope);
-            ServiceActivatorProvider = root.Resolve<IActivatorProvider>();
+            ActivatorProvider = parent.Resolve<IActivatorProvider>();
+            ServiceLifeScope = parent.Resolve<IServiceLifeScopeFactory>().Create(this, parent.ServiceLifeScope);
         }
 
         public object Resolve(Type serviceType)
         {
-            return ServiceActivatorProvider.Get(serviceType)?.Invoke(this, ServiceLifeScope);
+            return ActivatorProvider.Get(serviceType)?.Invoke(this, ServiceLifeScope);
         }
 
         public void Dispose()

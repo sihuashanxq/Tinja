@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
 
-namespace Tinja.Core.DynamicProxy.Generators.Extensions
+namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
 {
     public static class TypeBuilderExtensions
     {
