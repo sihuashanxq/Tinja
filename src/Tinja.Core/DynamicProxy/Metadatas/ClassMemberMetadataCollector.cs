@@ -4,9 +4,9 @@ using System.Linq;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
 
-namespace Tinja.Core.DynamicProxy.Metadata
+namespace Tinja.Core.DynamicProxy.Metadatas
 {
-    public class ClassTypeMemberMetadataCollector : MemberMetadataCollector
+    public class ClassMemberMetadataCollector : MemberMetadataCollector
     {
         /// <inheritdoc />
         protected override IEnumerable<MemberMetadata> CollectMethods(Type typeInfo, Type[] interfaces)

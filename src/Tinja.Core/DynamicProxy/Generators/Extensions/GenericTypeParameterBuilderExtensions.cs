@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection.Emit;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
+namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
     public static class GenericTypeParameterBuilderExtensions
     {

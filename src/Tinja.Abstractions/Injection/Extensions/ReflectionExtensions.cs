@@ -122,6 +122,11 @@ namespace Tinja.Abstractions.Injection.Extensions
 
             foreach (var @interface in interfaces)
             {
+                if (methodInfo.DeclaringType.IsNot(@interface))
+                {
+                    continue;
+                }
+
                 var mapping = methodInfo.DeclaringType.GetInterfaceMap(@interface);
                 if (mapping.TargetMethods.Length == 0)
                 {

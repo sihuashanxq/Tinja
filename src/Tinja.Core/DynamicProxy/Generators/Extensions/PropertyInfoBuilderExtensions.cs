@@ -6,31 +6,31 @@ using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.Injection;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
+namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class ParameterBuilderExtensions
+    public static class PropertyInfoBuilderExtensions
     {
-        public static ParameterBuilder SetCustomAttributes(this ParameterBuilder builder, ParameterInfo parameterInfo)
+        public static PropertyBuilder SetCustomAttributes(this PropertyBuilder builder, PropertyInfo propertyInfo)
         {
             if (builder == null)
             {
                 throw new NullReferenceException(nameof(builder));
             }
 
-            if (parameterInfo == null)
+            if (propertyInfo == null)
             {
-                throw new NullReferenceException(nameof(parameterInfo));
+                throw new NullReferenceException(nameof(propertyInfo));
             }
 
-            foreach (var customAttriute in parameterInfo
+            foreach (var customAttriute in propertyInfo
                 .CustomAttributes
                 .Where(item => !item.AttributeType.Is(typeof(InjectAttribute)) &&
                                !item.AttributeType.Is(typeof(InterceptorAttribute))))
             {
-                var attrBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
-                if (attrBuilder != null)
+                var attributeBuilder = GeneratorUtils.CreateCustomAttribute(customAttriute);
+                if (attributeBuilder != null)
                 {
-                    builder.SetCustomAttribute(attrBuilder);
+                    builder.SetCustomAttribute(attributeBuilder);
                 }
             }
 

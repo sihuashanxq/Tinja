@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
+namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
     public static class TypeBuilderExtensions
     {
@@ -61,7 +61,7 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
                 .CustomAttributes
                 .Where(item => item.AttributeType != typeof(InterceptorAttribute)))
             {
-                var attributeBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
+                var attributeBuilder = GeneratorUtils.CreateCustomAttribute(customAttriute);
                 if (attributeBuilder != null)
                 {
                     builder.SetCustomAttribute(attributeBuilder);

@@ -9,13 +9,13 @@ using Tinja.Abstractions.Injection.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Definitions
 {
-    public class DataAnnotationsInterceptorDefinitionCollector : IInterceptorDefinitionCollector
+    public class InterceptorDefinitionCollector : IInterceptorDefinitionCollector
     {
         protected InterceptionConfiguration Configuration { get; }
 
         protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>> Caches { get; }
 
-        public DataAnnotationsInterceptorDefinitionCollector(InterceptionConfiguration configuration, IMemberMetadataProvider memberCollectorFactory)
+        public InterceptorDefinitionCollector(InterceptionConfiguration configuration, IMemberMetadataProvider memberCollectorFactory)
         {
             Configuration = configuration;
             Caches = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>>();

@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using Tinja.Abstractions;
 using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Core.DynamicProxy;
+using Tinja.Core.DynamicProxy.Definitions;
 using Tinja.Core.DynamicProxy.Executors;
 using Tinja.Core.DynamicProxy.Executors.Internal;
+using Tinja.Core.DynamicProxy.Metadatas;
 using Tinja.Core.Injection.Activators;
 using Tinja.Core.Injection.Dependency;
 using Tinja.Core.Injection.Internals;
@@ -53,14 +57,17 @@ namespace Tinja.Core.Injection.Extensions
             container.AddSingleton<IActivatorProvider>(activatorProvider);
             container.AddSingleton<IServiceLifeScopeFactory>(lifeScopeFactory);
             container.AddSingleton<IServiceDescriptorFactory>(descriptorFactory);
-            container.AddSingleton<IMemberMetadataProvider, IMemberMetadataProvider>();
-            //container.AddSingleton<IInterceptorDefinitionCollector>(memberInterceptionCollector);
             container.AddSingleton<ICallDependencyElementBuilderFactory>(builderFactory);
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
 
+            container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
+            container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
-            container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
+            container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            container.AddSingleton<IInterceptorDefinitionProvider, InterceptorDefinitionProvider>();
+            container.AddSingleton<IInterceptorDefinitionCollector, InterceptorDefinitionCollector>();
 
             descriptorFactory.Populate(container.Components, serviceResolver);
 

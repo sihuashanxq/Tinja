@@ -4,9 +4,9 @@ using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 
-namespace Tinja.Core.DynamicProxy.Metadata
+namespace Tinja.Core.DynamicProxy.Metadatas
 {
-    public class InterfaceTypeMemberMetadataCollector : MemberMetadataCollector
+    public class InterfaceMemberMetadataCollector : MemberMetadataCollector
     {
         protected override IEnumerable<MemberMetadata> CollectProperties(Type typeInfo, Type[] interfaces)
         {

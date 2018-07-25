@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.Injection.Extensions;
-using System.Collections.Concurrent;
 
 namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {

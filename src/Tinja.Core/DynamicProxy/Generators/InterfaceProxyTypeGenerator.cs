@@ -4,9 +4,9 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy.ProxyGenerators.Extensions;
+using Tinja.Core.DynamicProxy.Generators.Extensions;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators
+namespace Tinja.Core.DynamicProxy.Generators
 {
     public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
@@ -47,8 +47,8 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(methodInfo));
 
-            ilGen.Call(GeneratorUtility.FilterInterceptor);
-            ilGen.New(GeneratorUtility.NewMethodInvocation);
+            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
+            ilGen.New(GeneratorUtils.NewMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
 
@@ -92,10 +92,10 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators
             ilGen.LoadThisField(GetField("__filter"));
             ilGen.LoadThisField(GetField("__interceptors"));
             ilGen.LoadStaticField(GetField(property));
-            ilGen.Call(GeneratorUtility.FilterInterceptor);
+            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
 
             ilGen.LoadStaticField(GetField(property));
-            ilGen.New(GeneratorUtility.NewPropertyMethodInvocation);
+            ilGen.New(GeneratorUtils.NewPropertyMethodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
             ilGen.SetVariableValue(methodReturnValue);

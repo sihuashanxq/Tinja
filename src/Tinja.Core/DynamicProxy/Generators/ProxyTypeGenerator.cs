@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy.ProxyGenerators.Extensions;
+using Tinja.Core.DynamicProxy.Generators.Extensions;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators
+namespace Tinja.Core.DynamicProxy.Generators
 {
     public abstract class ProxyTypeGenerator
     {
@@ -60,10 +59,10 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators
                 throw new NotSupportedException($"implemention type:{TargetType.FullName} must not be value type");
             }
 
-            TypeBuilder = GeneratorUtility
+            TypeBuilder = GeneratorUtils
                 .ModuleBuilder
                 .DefineType(
-                    GeneratorUtility.GetProxyTypeName(TargetType),
+                    GeneratorUtils.GetProxyTypeName(TargetType),
                     TypeAttributes.Class | TypeAttributes.Public,
                     TargetType.IsInterface ? typeof(object) : TargetType,
                     TargetType.IsInterface ? new[] { TargetType } : TargetType.GetInterfaces()

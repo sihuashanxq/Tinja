@@ -6,7 +6,7 @@ using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.Injection;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
+namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
     public static class EventBuilderExtensions
     {
@@ -27,7 +27,7 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators.Extensions
                 .Where(item => !item.AttributeType.Is(typeof(InjectAttribute)) &&
                                !item.AttributeType.Is(typeof(InterceptorAttribute))))
             {
-                var attrBuilder = GeneratorUtility.CreateCustomAttribute(customAttriute);
+                var attrBuilder = GeneratorUtils.CreateCustomAttribute(customAttriute);
                 if (attrBuilder != null)
                 {
                     builder.SetCustomAttribute(attrBuilder);

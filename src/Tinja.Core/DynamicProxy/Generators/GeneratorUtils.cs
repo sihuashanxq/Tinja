@@ -7,9 +7,9 @@ using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Core.DynamicProxy.Executors;
 
-namespace Tinja.Core.DynamicProxy.ProxyGenerators
+namespace Tinja.Core.DynamicProxy.Generators
 {
-    public static class GeneratorUtility
+    public static class GeneratorUtils
     {
         private const string AssemblyName = "Tinja.Interception.DynamicProxy";
 
@@ -21,7 +21,7 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators
 
         internal static Dictionary<Type, int> ProxyIndexs { get; }
 
-        internal static readonly MethodInfo FilterInterceptor = typeof(InterceptorAccessor).GetMethod("Filter");
+        internal static readonly MethodInfo GetOrCreateInterceptors = typeof(InterceptorAccessor).GetMethod("GetOrCreateInterceptors");
 
         internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
         {
@@ -42,7 +42,7 @@ namespace Tinja.Core.DynamicProxy.ProxyGenerators
             typeof(PropertyInfo)
         });
 
-        static GeneratorUtility()
+        static GeneratorUtils()
         {
             AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(AssemblyName), AssemblyBuilderAccess.Run);
             ModuleBuilder = AssemblyBuilder.DefineDynamicModule(ModuleName);

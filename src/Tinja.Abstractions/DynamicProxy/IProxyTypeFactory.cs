@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Abstractions.DynamicProxy.ProxyGenerators
+namespace Tinja.Abstractions.DynamicProxy
 {
     public interface IProxyTypeFactory
     {

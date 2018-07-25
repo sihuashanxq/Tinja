@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Tinja.Abstractions.DynamicProxy.ProxyGenerators;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection.Internals
@@ -50,6 +50,11 @@ namespace Tinja.Core.Injection.Internals
             {
                 foreach (var item in Components[kv.Key])
                 {
+                    if (item.ImplementionType == null)
+                    {
+                        continue;
+                    }
+
                     var proxyType = proxyTypeFactory.CreateProxyType(item.ImplementionType);
                     if (proxyType != null)
                     {
