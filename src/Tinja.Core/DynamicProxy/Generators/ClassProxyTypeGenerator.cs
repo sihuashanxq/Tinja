@@ -12,7 +12,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 {
     public class ClassProxyTypeGenerator : ProxyTypeGenerator
     {
-        public ClassProxyTypeGenerator(Type classType, IEnumerable<MemberMetadata> members) 
+        public ClassProxyTypeGenerator(Type classType, IEnumerable<MemberMetadata> members)
             : base(classType, members)
         {
 
@@ -56,8 +56,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadThisField(GetField("__filter"));
-            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadThisField(GetField("__accessor"));
             ilGen.LoadStaticField(GetField(methodInfo));
 
             ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
@@ -107,8 +106,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             //new Parameters[]
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadThisField(GetField("__filter"));
-            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadThisField(GetField("__accessor"));
             ilGen.LoadStaticField(GetField(property));
 
             ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
@@ -146,38 +144,28 @@ namespace Tinja.Core.DynamicProxy.Generators
             var parameterInfos = consturctor.GetParameters();
             var parameterTypes = parameterInfos.Select(i => i.ParameterType).ToArray();
             var ilGen = TypeBuilder
-                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, DefaultConstrcutorParameterTypes.Concat(parameterTypes).ToArray())
+                .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameterTypes.Concat(parameterTypes).ToArray())
                 .SetCustomAttributes(consturctor)
-                .DefineParameters(parameterInfos, parameterInfos.Length + DefaultConstrcutorParameterTypes.Length)
+                .DefineParameters(parameterInfos, parameterInfos.Length + ExtraConstrcutorParameterTypes.Length)
                 .GetILGenerator();
 
-            ilGen.SetThisField(
-                GetField("__interceptors"),
-                () =>
-                {
-                    ilGen.LoadArgument(1);
-                    //ilGen.TypeOf(ServiceType);
-                    ilGen.TypeOf(TargetType);
-                    ilGen.CallVirt(typeof(IInterceptorDefinitionCollector).GetMethod("Collect"));
-                }
-            );
+            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
+            ilGen.SetThisField(GetField("__accessor"), () => ilGen.LoadArgument(2));
 
-            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(2));
-            ilGen.SetThisField(GetField("__filter"), () => ilGen.LoadArgument(3));
-
-            var baseArgs = new List<Action>();
-            var startIndex = DefaultConstrcutorParameterTypes.Length;
-
-            if (parameterInfos.Length > 0)
+            var args = new Action<int>[parameterTypes.Length];
+            if (args.Length == 0)
             {
-                for (; startIndex < parameterTypes.Length; startIndex++)
-                {
-                    var argIndex = startIndex;
-                    baseArgs.Add(() => ilGen.LoadArgument(argIndex + 1));
-                }
+                ilGen.Base(consturctor, args);
+                ilGen.Return();
+                return;
             }
 
-            ilGen.Base(consturctor, baseArgs.ToArray());
+            for (var i = 0; i < parameterTypes.Length; i++)
+            {
+                args[i] = argIndex => ilGen.LoadArgument(argIndex + ExtraConstrcutorParameterTypes.Length);
+            }
+
+            ilGen.Base(consturctor, args);
             ilGen.Return();
         }
     }

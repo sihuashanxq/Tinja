@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
@@ -11,23 +10,15 @@ namespace Tinja.Core.DynamicProxy.Definitions
 {
     public class InterceptorDefinitionCollector : IInterceptorDefinitionCollector
     {
-        protected InterceptionConfiguration Configuration { get; }
-
         protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>> Caches { get; }
 
-        public InterceptorDefinitionCollector(InterceptionConfiguration configuration, IMemberMetadataProvider memberCollectorFactory)
+        public InterceptorDefinitionCollector(IMemberMetadataProvider memberCollectorFactory)
         {
-            Configuration = configuration;
             Caches = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>>();
         }
 
         public IEnumerable<InterceptorDefinition> Collect(MemberMetadata metadata)
         {
-            if (!Configuration.EnableInterception)
-            {
-                return new InterceptorDefinition[0];
-            }
-
             return Caches.GetOrAdd(metadata.Member, key => Collect(metadata.Member, metadata.InterfaceInherits.Select(item => item.Member).ToArray()));
         }
 

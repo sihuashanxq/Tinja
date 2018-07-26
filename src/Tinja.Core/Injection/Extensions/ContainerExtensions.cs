@@ -47,7 +47,7 @@ namespace Tinja.Core.Injection.Extensions
             var activatorProvider = new ActivatorProvider(activatorFacotry);
             var serviceResolver = new ServiceResolver(activatorProvider, lifeScopeFactory);
 
-            container.AddTransient<IInterceptorAccessor, IInterceptorAccessor>();
+            container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
 
             container.AddScoped(typeof(IServiceResolver), resolver => resolver);
             container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);

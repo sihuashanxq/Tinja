@@ -30,7 +30,7 @@ namespace Tinja.Core.DynamicProxy.Definitions
             var metadata = metadatas.FirstOrDefault(item => item.Member == memberInfo);
             if (metadata == null)
             {
-                throw new NullReferenceException(nameof(metadata));
+                return new InterceptorDefinition[0];
             }
 
             return _collectors.SelectMany(item => item.Collect(metadata));

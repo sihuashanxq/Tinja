@@ -43,8 +43,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             //new Parameters[]
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadThisField(GetField("__filter"));
-            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadThisField(GetField("__accessor"));
             ilGen.LoadStaticField(GetField(methodInfo));
 
             ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
@@ -89,8 +88,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             //new Parameters[]
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadThisField(GetField("__filter"));
-            ilGen.LoadThisField(GetField("__interceptors"));
+            ilGen.LoadThisField(GetField("__accessor"));
             ilGen.LoadStaticField(GetField(property));
             ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
 

@@ -17,7 +17,7 @@ namespace ConsoleApp
 
         }
 
-        public string GetUserName(int id)
+        public virtual string GetUserName(int id)
         {
             return "UserService1:Name:" + id;
         }
@@ -32,7 +32,7 @@ namespace ConsoleApp
             _repository = repository;
         }
 
-        public string GetUserName(int id)
+        public virtual string GetUserName(int id)
         {
             return "UserService:Name:" + id;
         }

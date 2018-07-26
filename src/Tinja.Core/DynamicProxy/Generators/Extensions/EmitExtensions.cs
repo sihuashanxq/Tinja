@@ -504,7 +504,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return ilGen;
         }
 
-        internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action[] argumentStuffers)
+        internal static ILGenerator Base(this ILGenerator ilGen, ConstructorInfo constructorInfo, params Action<int>[] argumentStuffers)
         {
             if (ilGen == null)
             {
@@ -520,9 +520,9 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             if (argumentStuffers != null)
             {
-                foreach (var stuffer in argumentStuffers)
+                for (var i = 0; i < argumentStuffers.Length; i++)
                 {
-                    stuffer();
+                    argumentStuffers[i](i);
                 }
             }
 

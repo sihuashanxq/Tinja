@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using Tinja.Abstractions.Injection.Extensions;
 
 namespace Tinja.Abstractions.DynamicProxy.Definitions
 {
@@ -26,7 +27,7 @@ namespace Tinja.Abstractions.DynamicProxy.Definitions
                 throw new NullReferenceException(nameof(target));
             }
 
-            if (typeof(IInterceptor).IsAssignableFrom(interceptorType))
+            if (interceptorType.IsNot(interceptorType))
             {
                 throw new InvalidOperationException($"Type:{InterceptorType.FullName} must be an IInterceptor");
             }

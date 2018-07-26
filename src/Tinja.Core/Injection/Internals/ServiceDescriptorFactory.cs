@@ -58,7 +58,7 @@ namespace Tinja.Core.Injection.Internals
                     var proxyType = proxyTypeFactory.CreateProxyType(item.ImplementionType);
                     if (proxyType != null)
                     {
-                        item.ProxyType = proxyType;
+                        item.ImplementionType = proxyType;
                         continue;
                     }
 

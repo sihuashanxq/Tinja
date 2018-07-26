@@ -26,8 +26,12 @@ namespace Tinja.Core.DynamicProxy
                 throw new NullReferenceException(nameof(typeInfo));
             }
 
-            var metadatas = _memberMetadataProvider.GetMemberMetadatas(typeInfo)?.Where(item => _referees.Any(referee => referee.ShouldProxy(item.Member)));
-            if (metadatas == null)
+            var metadatas = _memberMetadataProvider
+                .GetMemberMetadatas(typeInfo)
+                .Where(item => _referees.Any(referee => referee.ShouldProxy(item.Member)))
+                .ToArray();
+
+            if (metadatas == null || metadatas.Length == 0)
             {
                 return null;
             }

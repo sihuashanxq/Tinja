@@ -38,6 +38,8 @@ namespace ConsoleApp
                 var repository = resolver.Resolve<IRepository<IUserService>>();
             }
 
+            userService.GetUserName(2);
+
             var type = typeof(IUserRepository);
             var stopWatch=new Stopwatch();
             stopWatch.Start();

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
@@ -21,11 +21,10 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected Dictionary<string, FieldBuilder> Fields { get; }
 
-        protected virtual Type[] DefaultConstrcutorParameterTypes => new[]
+        protected virtual Type[] ExtraConstrcutorParameterTypes => new[]
         {
-            typeof(IInterceptorDefinitionCollector),
             typeof(IMethodInvocationExecutor),
-            typeof(InterceptorAccessor)
+            typeof(IInterceptorAccessor)
         };
 
         protected ProxyTypeGenerator(Type targetType, IEnumerable<MemberMetadata> members)
@@ -76,8 +75,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected virtual void DefineTypeFields()
         {
             DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            DefineField("__interceptors", typeof(IEnumerable<InterceptorEntry>), FieldAttributes.Private);
-            DefineField("__filter", typeof(InterceptorAccessor), FieldAttributes.Private);
+            DefineField("__accessor", typeof(IInterceptorAccessor), FieldAttributes.Private);
 
             foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
@@ -229,22 +227,11 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected virtual void DefineTypeDefaultConstructor()
         {
             var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, DefaultConstrcutorParameterTypes)
+                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, ExtraConstrcutorParameterTypes)
                 .GetILGenerator();
 
-            ilGen.SetThisField(
-                GetField("__interceptors"),
-                () =>
-                {
-                    ilGen.LoadArgument(1);
-                    //ilGen.TypeOf(ServiceType);
-                    ilGen.TypeOf(TargetType);
-                    ilGen.CallVirt(typeof(IInterceptorDefinitionCollector).GetMethod("Collect"));
-                }
-            );
-
-            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(2));
-            ilGen.SetThisField(GetField("__filter"), () => ilGen.LoadArgument(3));
+            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
+            ilGen.SetThisField(GetField("__accessor"), () => ilGen.LoadArgument(2));
 
             ilGen.Return();
         }

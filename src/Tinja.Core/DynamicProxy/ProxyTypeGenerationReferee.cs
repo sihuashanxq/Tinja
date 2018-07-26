@@ -20,15 +20,71 @@ namespace Tinja.Core.DynamicProxy
             switch (memberInfo)
             {
                 case MethodInfo methodInfo:
-                    return ShouldMethodProxy(methodInfo) || _provider.GetInterceptors(methodInfo).Any();
+                    return ShoudMethodProxy(methodInfo);
                 case PropertyInfo propertyInfo:
-                    return ShouldPropertyProxy(propertyInfo) || _provider.GetInterceptors(propertyInfo).Any();
+                    return ShouldPropertyProxy(propertyInfo);
                 default:
                     return false;
             }
         }
 
-        protected virtual bool ShouldMethodProxy(MethodInfo methodInfo)
+        protected virtual bool ShoudMethodProxy(MethodInfo methodInfo)
+        {
+            if (methodInfo == null)
+            {
+                return false;
+            }
+
+            if (IsInterfaceOrAbstractMethod(methodInfo))
+            {
+                return true;
+            }
+
+            return MethodOverridable(methodInfo) && _provider.GetInterceptors(methodInfo).Any();
+        }
+
+        protected virtual bool ShouldPropertyProxy(PropertyInfo propertyInfo)
+        {
+            if (propertyInfo == null)
+            {
+                return false;
+            }
+
+            if (IsInterfaceOrAbstractMethod(propertyInfo.GetMethod) ||
+                IsInterfaceOrAbstractMethod(propertyInfo.GetMethod))
+            {
+                return true;
+            }
+
+            if (MethodOverridable(propertyInfo.GetMethod))
+            {
+                return _provider.GetInterceptors(propertyInfo).Any();
+            }
+
+            if (MethodOverridable(propertyInfo.SetMethod))
+            {
+                return _provider.GetInterceptors(propertyInfo).Any();
+            }
+
+            return false;
+        }
+
+        protected virtual bool MethodOverridable(MethodInfo methodInfo)
+        {
+            if (methodInfo == null)
+            {
+                return false;
+            }
+
+            if (methodInfo.IsFinal || methodInfo.DeclaringType.IsSealed)
+            {
+                return false;
+            }
+
+            return methodInfo.IsVirtual;
+        }
+
+        protected virtual bool IsInterfaceOrAbstractMethod(MethodInfo methodInfo)
         {
             if (methodInfo == null)
             {
@@ -45,17 +101,7 @@ namespace Tinja.Core.DynamicProxy
                 return true;
             }
 
-            if (methodInfo.IsFinal || methodInfo.DeclaringType.IsSealed)
-            {
-                return false;
-            }
-
-            return methodInfo.IsVirtual;
-        }
-
-        protected virtual bool ShouldPropertyProxy(PropertyInfo propertyinfo)
-        {
-            return ShouldMethodProxy(propertyinfo.GetMethod) || ShouldMethodProxy(propertyinfo.SetMethod);
+            return false;
         }
     }
 }
