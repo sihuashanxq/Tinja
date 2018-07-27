@@ -105,22 +105,11 @@ namespace Tinja.Core.Injection.Internals
                 };
             }
 
-            if (component.ProxyType == null)
-            {
-                return new ServiceConstrcutorDescriptor()
-                {
-                    ServiceType = serviceType,
-                    LifeStyle = component.LifeStyle,
-                    ImplementionType = MakeGenericImplementionType(serviceType, component.ImplementionType)
-                };
-            }
-
-            return new ServiceProxyDescriptor()
+            return new ServiceConstrcutorDescriptor()
             {
                 ServiceType = serviceType,
                 LifeStyle = component.LifeStyle,
-                TargetType = MakeGenericImplementionType(serviceType, component.ImplementionType),
-                ProxyType = MakeGenericImplementionType(serviceType, component.ProxyType)
+                ImplementionType = MakeGenericImplementionType(serviceType, component.ImplementionType)
             };
         }
 

@@ -2,15 +2,16 @@
 using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace Tinja.Core.DynamicProxy
 {
     public class ProxyTypeGenerationReferee : IProxyTypeGenerationReferee
     {
-        private readonly IInterceptorDefinitionProvider _provider;
+        private readonly IInterceptorMetadataProvider _provider;
 
-        public ProxyTypeGenerationReferee(IInterceptorDefinitionProvider provider)
+        public ProxyTypeGenerationReferee(IInterceptorMetadataProvider provider)
         {
             _provider = provider ?? throw new NullReferenceException(nameof(provider));
         }
@@ -40,7 +41,7 @@ namespace Tinja.Core.DynamicProxy
                 return true;
             }
 
-            return MethodOverridable(methodInfo) && _provider.GetInterceptors(methodInfo).Any();
+            return MethodOverridable(methodInfo) && _provider.GetInterceptorMetadatas(methodInfo).Any();
         }
 
         protected virtual bool ShouldPropertyProxy(PropertyInfo propertyInfo)
@@ -58,12 +59,12 @@ namespace Tinja.Core.DynamicProxy
 
             if (MethodOverridable(propertyInfo.GetMethod))
             {
-                return _provider.GetInterceptors(propertyInfo).Any();
+                return _provider.GetInterceptorMetadatas(propertyInfo).Any();
             }
 
             if (MethodOverridable(propertyInfo.SetMethod))
             {
-                return _provider.GetInterceptors(propertyInfo).Any();
+                return _provider.GetInterceptorMetadatas(propertyInfo).Any();
             }
 
             return false;

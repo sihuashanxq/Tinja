@@ -1,6 +1,6 @@
 ﻿using System;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace Tinja.Core.DynamicProxy
 {
@@ -8,11 +8,11 @@ namespace Tinja.Core.DynamicProxy
     {
         public IInterceptor Interceptor { get; }
 
-        public InterceptorDefinition Definition { get; }
+        public InterceptorMetadata Metadata { get; }
 
-        public InterceptorEntry(IInterceptor interceptor, InterceptorDefinition definition)
+        public InterceptorEntry(IInterceptor interceptor, InterceptorMetadata metadata)
         {
-            Definition = definition ?? throw new NullReferenceException(nameof(definition));
+            Metadata = metadata ?? throw new NullReferenceException(nameof(metadata));
             Interceptor = interceptor ?? throw new NullReferenceException(nameof(interceptor));
         }
     }

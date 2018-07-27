@@ -2,12 +2,12 @@
 using System.Reflection;
 using Tinja.Abstractions.Injection.Extensions;
 
-namespace Tinja.Abstractions.DynamicProxy.Definitions
+namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     /// <summary>
     /// a descriptor for Interceptor
     /// </summary>
-    public class InterceptorDefinition
+    public class InterceptorMetadata
     {
         public long Order { get; }
 
@@ -15,7 +15,7 @@ namespace Tinja.Abstractions.DynamicProxy.Definitions
 
         public Type InterceptorType { get; }
 
-        public InterceptorDefinition(long order, Type interceptorType, MemberInfo target)
+        public InterceptorMetadata(long order, Type interceptorType, MemberInfo target)
         {
             if (interceptorType == null)
             {

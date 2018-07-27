@@ -16,13 +16,13 @@ namespace Tinja.Core.Injection.Activators
 
         public Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(Type serviceType)
         {
-            var elementBuilder = _callDependencyElementBuilderFactory.CreateBuilder();
-            if (elementBuilder == null)
+            var builder = _callDependencyElementBuilderFactory.CreateBuilder();
+            if (builder == null)
             {
-                throw new NullReferenceException(nameof(elementBuilder));
+                throw new NullReferenceException(nameof(builder));
             }
 
-            var element = elementBuilder.Build(serviceType);
+            var element = builder.Build(serviceType);
             if (element == null)
             {
                 return null;

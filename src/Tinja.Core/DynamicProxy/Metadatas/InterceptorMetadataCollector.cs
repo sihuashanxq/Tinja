@@ -2,27 +2,26 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.DynamicProxy.Definitions;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection.Extensions;
 
-namespace Tinja.Core.DynamicProxy.Definitions
+namespace Tinja.Core.DynamicProxy.Metadatas
 {
-    public class InterceptorDefinitionCollector : IInterceptorDefinitionCollector
+    public class InterceptorMetadataCollector : IInterceptorMetadataCollector
     {
-        protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>> Caches { get; }
+        protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Caches { get; }
 
-        public InterceptorDefinitionCollector(IMemberMetadataProvider memberCollectorFactory)
+        public InterceptorMetadataCollector(IMemberMetadataProvider memberCollectorFactory)
         {
-            Caches = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorDefinition>>();
+            Caches = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>>();
         }
 
-        public IEnumerable<InterceptorDefinition> Collect(MemberMetadata metadata)
+        public IEnumerable<InterceptorMetadata> Collect(MemberMetadata metadata)
         {
             return Caches.GetOrAdd(metadata.Member, key => Collect(metadata.Member, metadata.InterfaceInherits.Select(item => item.Member).ToArray()));
         }
 
-        protected virtual IEnumerable<InterceptorDefinition> Collect(MemberInfo memberInfo, MemberInfo[] implementsInterfaces)
+        protected virtual IEnumerable<InterceptorMetadata> Collect(MemberInfo memberInfo, MemberInfo[] implementsInterfaces)
         {
             switch (memberInfo)
             {
@@ -31,27 +30,27 @@ namespace Tinja.Core.DynamicProxy.Definitions
                 case PropertyInfo propertyInfo:
                     return Collect(propertyInfo, implementsInterfaces.OfType<PropertyInfo>().ToArray());
                 default:
-                    return new InterceptorDefinition[0];
+                    return new InterceptorMetadata[0];
             }
         }
 
-        protected virtual IEnumerable<InterceptorDefinition> Collect(MethodInfo methodInfo, MethodInfo[] implementsInterfaces)
+        protected virtual IEnumerable<InterceptorMetadata> Collect(MethodInfo methodInfo, MethodInfo[] implementsInterfaces)
         {
             foreach (var attr in methodInfo.DeclaringType.GetInterceptorAttributes())
             {
-                yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, methodInfo);
+                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, methodInfo);
             }
 
             foreach (var attr in methodInfo.GetInterceptorAttributes())
             {
-                yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, methodInfo);
+                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, methodInfo);
             }
 
             foreach (var implementsInterface in implementsInterfaces)
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, methodInfo);
+                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, methodInfo);
                 }
             }
 
@@ -59,28 +58,28 @@ namespace Tinja.Core.DynamicProxy.Definitions
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, methodInfo);
+                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, methodInfo);
                 }
             }
         }
 
-        protected virtual IEnumerable<InterceptorDefinition> Collect(PropertyInfo propertyInfo, PropertyInfo[] implementsInterfaces)
+        protected virtual IEnumerable<InterceptorMetadata> Collect(PropertyInfo propertyInfo, PropertyInfo[] implementsInterfaces)
         {
             foreach (var attr in propertyInfo.DeclaringType.GetInterceptorAttributes())
             {
-                yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, propertyInfo);
+                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, propertyInfo);
             }
 
             foreach (var attr in propertyInfo.GetInterceptorAttributes())
             {
-                yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, propertyInfo);
+                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, propertyInfo);
             }
 
             foreach (var implementsInterface in implementsInterfaces)
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, propertyInfo);
+                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, propertyInfo);
                 }
             }
 
@@ -88,7 +87,7 @@ namespace Tinja.Core.DynamicProxy.Definitions
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorDefinition(attr.Order, attr.InterceptorType, propertyInfo);
+                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, propertyInfo);
                 }
             }
         }

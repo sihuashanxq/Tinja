@@ -2,18 +2,19 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace ConsoleApp
 {
-    public class MemberInterceptionProvider : IInterceptorDefinitionProvider
+    public class MemberInterceptionProvider : IInterceptorMetadataProvider
     {
-        public IEnumerable<InterceptorDefinition> GetInterceptors(MemberInfo memberInfo)
+        public IEnumerable<InterceptorMetadata> GetInterceptorMetadatas(MemberInfo memberInfo)
         {
             if (memberInfo.DeclaringType != null &&
                 memberInfo.DeclaringType.Name.StartsWith("UserService"))
             {
-                yield return new InterceptorDefinition(10, typeof(UserServiceInterceptor), memberInfo);
+                yield return new InterceptorMetadata(10, typeof(UserServiceInterceptor), memberInfo);
             }
         }
     }

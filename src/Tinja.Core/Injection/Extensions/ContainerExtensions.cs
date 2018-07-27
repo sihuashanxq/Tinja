@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Tinja.Abstractions;
 using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Definitions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.DynamicProxy.Executors;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection;
@@ -11,7 +11,6 @@ using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.DynamicProxy;
-using Tinja.Core.DynamicProxy.Definitions;
 using Tinja.Core.DynamicProxy.Executors;
 using Tinja.Core.DynamicProxy.Executors.Internal;
 using Tinja.Core.DynamicProxy.Metadatas;
@@ -40,36 +39,35 @@ namespace Tinja.Core.Injection.Extensions
 
             var configuration = container.BuildConfiguration();
 
-            var lifeScopeFactory = new ServiceLifeScopeFactory();
-            var descriptorFactory = new ServiceDescriptorFactory();
-            var builderFactory = new CallDependencyElementBuilderFactory(descriptorFactory, configuration);
-            var activatorFacotry = new ActivatorFactory(builderFactory);
-            var activatorProvider = new ActivatorProvider(activatorFacotry);
-            var serviceResolver = new ServiceResolver(activatorProvider, lifeScopeFactory);
+            var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
+            var serviceDescriptorFactory = new ServiceDescriptorFactory();
+            var dependencyElementBuilderFactory = new CallDependencyElementBuilderFactory(serviceDescriptorFactory, configuration);
 
-            container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
+            var serviceActivatorFacotry = new ActivatorFactory(dependencyElementBuilderFactory);
+            var serviceActivatorProvider = new ActivatorProvider(serviceActivatorFacotry);
+            var serviceResolver = new ServiceResolver(serviceActivatorProvider, serviceLifeScopeFactory);
 
-            container.AddScoped(typeof(IServiceResolver), resolver => resolver);
-            container.AddScoped(typeof(IServiceLifeScope), resolver => resolver.ServiceLifeScope);
-
-            container.AddSingleton<IActivatorFactory>(activatorFacotry);
             container.AddSingleton<IServiceConfiguration>(configuration);
-            container.AddSingleton<IActivatorProvider>(activatorProvider);
-            container.AddSingleton<IServiceLifeScopeFactory>(lifeScopeFactory);
-            container.AddSingleton<IServiceDescriptorFactory>(descriptorFactory);
-            container.AddSingleton<ICallDependencyElementBuilderFactory>(builderFactory);
-            container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
-
+            container.AddSingleton<IActivatorFactory>(serviceActivatorFacotry);
+            container.AddSingleton<IActivatorProvider>(serviceActivatorProvider);
+            container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
             container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
+            container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
-            container.AddSingleton<IInterceptorDefinitionProvider, InterceptorDefinitionProvider>();
-            container.AddSingleton<IInterceptorDefinitionCollector, InterceptorDefinitionCollector>();
+            container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();
+            container.AddSingleton<IInterceptorMetadataCollector, InterceptorMetadataCollector>();
 
-            descriptorFactory.Populate(container.Components, serviceResolver);
+            container.AddScoped<IServiceResolver>(resolver => resolver);
+            container.AddScoped<IServiceLifeScope>(resolver => resolver.ServiceLifeScope);
+            container.AddScoped<IInterceptorFactory, InterceptorFactory>();
+
+            container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
+
+            serviceDescriptorFactory.Populate(container.Components, serviceResolver);
 
             return serviceResolver;
         }
@@ -121,7 +119,7 @@ namespace Tinja.Core.Injection.Extensions
                 throw new InvalidCastException($"type:{implementionType.FullName} can not casted to {serviceType.FullName}");
             }
 
-            container.AddComponent(new Component()
+            container.AddService(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
@@ -132,7 +130,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Service Definition
+        /// Add a service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImpl">ImplementionType</typeparam>
@@ -146,7 +144,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Service Definition
+        /// Add a service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -155,7 +153,7 @@ namespace Tinja.Core.Injection.Extensions
         /// <returns></returns>
         public static IContainer AddService(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            container.AddComponent(new Component()
+            container.AddService(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
@@ -166,7 +164,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Service Definition
+        /// Add a service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImple">ImplementionType</typeparam>
@@ -181,7 +179,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Service Definition 
+        /// Add a service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -196,7 +194,7 @@ namespace Tinja.Core.Injection.Extensions
                 throw new InvalidCastException($"type:{implementionType.FullName} can not casted to {serviceType.FullName}");
             }
 
-            container.AddComponent(new Component()
+            container.AddService(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
@@ -207,7 +205,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Service Definition
+        /// Add a service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
@@ -220,7 +218,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -232,7 +230,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType and ImplementionType</param>
@@ -243,7 +241,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImpl">ImplementionType</typeparam>
@@ -256,7 +254,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
         /// <param name="container">Container</param>
@@ -267,7 +265,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -279,7 +277,19 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddSingleton<TType>(this IContainer container, Func<IServiceResolver, object> factory)
+        {
+            return container.AddSingleton(typeof(TType), factory);
+        }
+
+        /// <summary>
+        /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImple">ImplementionType</typeparam>
@@ -293,7 +303,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -305,7 +315,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Singleton Service Defintion
+        /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
@@ -317,7 +327,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -329,7 +339,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType and ImplementionType</param>
@@ -340,7 +350,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImpl">ImplementionType</typeparam>
@@ -353,7 +363,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
         /// <param name="container">Container</param>
@@ -364,7 +374,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -376,7 +386,19 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Transient Service Definition
+        /// Add a transient service to container
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddTransient<TType>(this IContainer container, Func<IServiceResolver, object> factory)
+        {
+            return container.AddTransient(typeof(TType), factory);
+        }
+
+        /// <summary>
+        /// Add a transient service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImple">ImplementionType</typeparam>
@@ -390,7 +412,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -402,7 +424,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType and ImplementionType</param>
@@ -413,7 +435,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImpl">ImplementionType</typeparam>
@@ -425,7 +447,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
         /// <param name="container">Container</param>
@@ -436,7 +458,7 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
@@ -448,7 +470,20 @@ namespace Tinja.Core.Injection.Extensions
         }
 
         /// <summary>
-        /// Add Scoped Service Definition
+        /// Add a scoped service to container
+        /// </summary>
+        /// <typeparam name="TType">ServiceType</typeparam>
+        /// <typeparam name="TImple">ImplementionType</typeparam>
+        /// <param name="container">Container</param>
+        /// <param name="factory">ImplementionFactory</param>
+        /// <returns></returns>
+        public static IContainer AddScoped<TType>(this IContainer container, Func<IServiceResolver, object> factory)
+        {
+            return container.AddScoped(typeof(TType), factory);
+        }
+
+        /// <summary>
+        /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <typeparam name="TImple">ImplementionType</typeparam>
@@ -461,7 +496,7 @@ namespace Tinja.Core.Injection.Extensions
             return container.AddScoped(typeof(TType), factory);
         }
 
-        internal static void AddComponent(this IContainer container, Component component)
+        private static void AddService(this IContainer container, Component component)
         {
             if (component == null)
             {

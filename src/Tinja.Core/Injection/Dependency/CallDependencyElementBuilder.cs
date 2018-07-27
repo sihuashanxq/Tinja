@@ -16,13 +16,13 @@ namespace Tinja.Core.Injection.Dependency
 
         protected IServiceDescriptorFactory ServiceDescriptorFactory { get; set; }
 
-        protected CallDependencyElementScope DenpendencyScope { get; set; }
+        protected CallDependencyElementScope CallScope { get; set; }
 
         public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IServiceConfiguration configuration)
         {
             Configuration = configuration;
             ServiceDescriptorFactory = serviceDescriptorFactory;
-            DenpendencyScope = new CallDependencyElementScope();
+            CallScope = new CallDependencyElementScope();
         }
 
         public virtual CallDepenencyElement Build(Type serviceType)
@@ -49,12 +49,11 @@ namespace Tinja.Core.Injection.Dependency
                 case ServiceDelegateDescriptor @delegate:
                     return BuildDelegateElement(@delegate);
 
-                case ServiceProxyDescriptor proxy:
-                    return BuildProxyElement(proxy);
-
                 case ServiceConstrcutorDescriptor constrcutor:
-                    using (DenpendencyScope.Begin(constrcutor.ImplementionType))
+                    using (CallScope.Begin(constrcutor.ImplementionType))
+                    {
                         return BuildConstrcutorElement(constrcutor);
+                    }
             }
 
             throw new InvalidOperationException();
@@ -78,71 +77,6 @@ namespace Tinja.Core.Injection.Dependency
                 ServiceType = descriptor.ServiceType,
                 Instance = descriptor.Instance
             };
-        }
-
-        protected virtual CallDepenencyElement BuildProxyElement(ServiceProxyDescriptor descriptor)
-        {
-            var parameterElements = new Dictionary<ParameterInfo, CallDepenencyElement>();
-
-            foreach (var item in descriptor.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
-            {
-                var parameterInfos = item.GetParameters();
-                if (parameterInfos.Length == 0)
-                {
-                    return new ConstructorCallDependencyElement()
-                    {
-                        Parameters = parameterElements,
-                        LifeStyle = descriptor.LifeStyle,
-                        ServiceType = descriptor.ServiceType,
-                        ImplementionType = descriptor.ProxyType,
-                        ConstructorInfo = item
-                    };
-                }
-
-                foreach (var parameterInfo in parameterInfos)
-                {
-                    if (parameterInfo.ParameterType == descriptor.TargetType)
-                    {
-                        var parameterElement = BuildElement(new ServiceConstrcutorDescriptor()
-                        {
-                            ServiceType = descriptor.ServiceType,
-                            ImplementionType = descriptor.TargetType,
-                            LifeStyle = descriptor.LifeStyle
-                        });
-
-                        if (parameterElement == null)
-                        {
-                            parameterElements.Clear();
-                            break;
-                        }
-
-                        parameterElements[parameterInfo] = parameterElement;
-                        continue;
-                    }
-
-                    if (BuildParameterElement(parameterInfo, parameterElements))
-                    {
-                        continue;
-                    }
-
-                    parameterElements.Clear();
-                    break;
-                }
-
-                if (parameterElements.Count == parameterInfos.Length)
-                {
-                    return new ConstructorCallDependencyElement()
-                    {
-                        Parameters = parameterElements,
-                        LifeStyle = descriptor.LifeStyle,
-                        ServiceType = descriptor.ServiceType,
-                        ImplementionType = descriptor.ProxyType,
-                        ConstructorInfo = item
-                    };
-                }
-            }
-
-            return null;
         }
 
         protected virtual CallDepenencyElement BuildManyElement(ServiceManyDescriptor descriptor)
@@ -275,7 +209,7 @@ namespace Tinja.Core.Injection.Dependency
                 return;
             }
 
-            if (DenpendencyScope.Contains(ctx.ImplementionType))
+            if (CallScope.Contains(ctx.ImplementionType))
             {
                 throw new CallCircularException(ctx.ImplementionType, $"type:{ctx.ImplementionType.FullName} exists circular dependencies!");
             }
