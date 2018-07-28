@@ -41,7 +41,7 @@ namespace Tinja.Core.DynamicProxy
                 return true;
             }
 
-            return MethodOverridable(methodInfo) && _provider.GetInterceptorMetadatas(methodInfo).Any();
+            return MethodOverridable(methodInfo) && _provider.GetMetadatas(methodInfo).Any();
         }
 
         protected virtual bool ShouldPropertyProxy(PropertyInfo propertyInfo)
@@ -59,12 +59,12 @@ namespace Tinja.Core.DynamicProxy
 
             if (MethodOverridable(propertyInfo.GetMethod))
             {
-                return _provider.GetInterceptorMetadatas(propertyInfo).Any();
+                return _provider.GetMetadatas(propertyInfo).Any();
             }
 
             if (MethodOverridable(propertyInfo.SetMethod))
             {
-                return _provider.GetInterceptorMetadatas(propertyInfo).Any();
+                return _provider.GetMetadatas(propertyInfo).Any();
             }
 
             return false;

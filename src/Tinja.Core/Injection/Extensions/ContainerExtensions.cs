@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Abstractions;
-using Tinja.Abstractions.Configuration;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.DynamicProxy.Executors;
-using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
-using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Extensions;
 using Tinja.Core.DynamicProxy;
 using Tinja.Core.DynamicProxy.Executors;
@@ -17,6 +14,8 @@ using Tinja.Core.DynamicProxy.Metadatas;
 using Tinja.Core.Injection.Activators;
 using Tinja.Core.Injection.Dependency;
 using Tinja.Core.Injection.Internals;
+using Tinja.Abstractions.Configurations;
+using Tinja.Core.Configurations;
 
 namespace Tinja.Core.Injection.Extensions
 {
@@ -43,14 +42,15 @@ namespace Tinja.Core.Injection.Extensions
             var serviceDescriptorFactory = new ServiceDescriptorFactory();
             var dependencyElementBuilderFactory = new CallDependencyElementBuilderFactory(serviceDescriptorFactory, configuration);
 
-            var serviceActivatorFacotry = new ActivatorFactory(dependencyElementBuilderFactory);
-            var serviceActivatorProvider = new ActivatorProvider(serviceActivatorFacotry);
-            var serviceResolver = new ServiceResolver(serviceActivatorProvider, serviceLifeScopeFactory);
+            var activatorFacotry = new ActivatorFactory(dependencyElementBuilderFactory);
+            var activatorProvider = new ActivatorProvider(activatorFacotry);
+            var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
 
-            container.AddSingleton<IServiceConfiguration>(configuration);
-            container.AddSingleton<IActivatorFactory>(serviceActivatorFacotry);
-            container.AddSingleton<IActivatorProvider>(serviceActivatorProvider);
+            container.AddSingleton<IContainerConfiguration>(configuration);
+            container.AddSingleton<IActivatorFactory>(activatorFacotry);
+            container.AddSingleton<IActivatorProvider>(activatorProvider);
             container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
+
             container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
             container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
             container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
@@ -58,6 +58,7 @@ namespace Tinja.Core.Injection.Extensions
             container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
             container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+
             container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();
             container.AddSingleton<IInterceptorMetadataCollector, InterceptorMetadataCollector>();
 
@@ -78,7 +79,7 @@ namespace Tinja.Core.Injection.Extensions
         /// <param name="container">Container</param>
         /// <param name="configurator">Service Configurator</param>
         /// <returns></returns>
-        public static IContainer Configure(this IContainer container, Action<IServiceConfiguration> configurator)
+        public static IContainer Configure(this IContainer container, Action<IContainerConfiguration> configurator)
         {
             if (container == null)
             {
@@ -100,9 +101,9 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <returns></returns>
-        internal static IServiceConfiguration BuildConfiguration(this IContainer container)
+        internal static IContainerConfiguration BuildConfiguration(this IContainer container)
         {
-            var configuration = new ServiceCongfiguration();
+            var configuration = new ContainerCongfiguration();
 
             foreach (var configurator in container.Configurators)
             {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.Configuration;
+using Tinja.Abstractions.Configurations;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Dependency.Elements;
@@ -12,13 +12,13 @@ namespace Tinja.Core.Injection.Dependency
 {
     public class CallDependencyElementBuilder : ICallDependencyElementBuilder
     {
-        protected IServiceConfiguration Configuration { get; }
+        protected IContainerConfiguration Configuration { get; }
 
         protected IServiceDescriptorFactory ServiceDescriptorFactory { get; set; }
 
         protected CallDependencyElementScope CallScope { get; set; }
 
-        public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IServiceConfiguration configuration)
+        public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IContainerConfiguration configuration)
         {
             Configuration = configuration;
             ServiceDescriptorFactory = serviceDescriptorFactory;

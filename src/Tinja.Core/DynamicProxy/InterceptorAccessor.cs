@@ -46,7 +46,7 @@ namespace Tinja.Core.DynamicProxy
             lock (this)
             {
                 var interceptors = new List<InterceptorEntry>();
-                var interceptorMetadatas = _metadataProvider.GetInterceptorMetadatas(memberInfo) ?? new InterceptorMetadata[0];
+                var interceptorMetadatas = _metadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
 
                 foreach (var metadata in interceptorMetadatas)
                 {

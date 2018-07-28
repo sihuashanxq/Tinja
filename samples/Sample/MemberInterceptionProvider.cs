@@ -9,7 +9,7 @@ namespace ConsoleApp
 {
     public class MemberInterceptionProvider : IInterceptorMetadataProvider
     {
-        public IEnumerable<InterceptorMetadata> GetInterceptorMetadatas(MemberInfo memberInfo)
+        public IEnumerable<InterceptorMetadata> GetMetadatas(MemberInfo memberInfo)
         {
             if (memberInfo.DeclaringType != null &&
                 memberInfo.DeclaringType.Name.StartsWith("UserService"))

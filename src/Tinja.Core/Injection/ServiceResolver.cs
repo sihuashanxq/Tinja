@@ -17,12 +17,21 @@ namespace Tinja.Core.Injection
         /// </summary>
         protected IActivatorProvider ActivatorProvider { get; }
 
-        public ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
+        /// <summary>
+        /// 创建ServiceResolver:root
+        /// </summary>
+        /// <param name="serviceActivatorProvider"></param>
+        /// <param name="serviceLifeScopeFactory"></param>
+        internal ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
         {
             ActivatorProvider = serviceActivatorProvider;
             ServiceLifeScope = serviceLifeScopeFactory.Create(this);
         }
 
+        /// <summary>
+        /// 创建ServiceResolver:Scope
+        /// </summary>
+        /// <param name="parent"></param>
         internal ServiceResolver(IServiceResolver parent)
         {
             ActivatorProvider = parent.Resolve<IActivatorProvider>();

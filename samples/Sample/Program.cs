@@ -21,9 +21,7 @@ namespace ConsoleApp
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
             container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
 
-            //container.Configure(config => config.Interception.Providers.Add(new MemberInterceptionProvider()));
-            container.Configure(config => config.Interception.EnableInterception = true);
-
+         
             var resolver = container.BuildResolver();
 
             var userServices = resolver.Resolve<IEnumerable<IUserService>>();
@@ -41,7 +39,7 @@ namespace ConsoleApp
             userService.GetUserName(2);
 
             var type = typeof(IUserRepository);
-            var stopWatch=new Stopwatch();
+            var stopWatch = new Stopwatch();
             stopWatch.Start();
             for (var i = 0; i < 100000000; i++)
             {
