@@ -5,12 +5,6 @@ namespace Tinja.Core.DynamicProxy.Configurations
 {
     public class DynamicProxyConfiguration : Configuration, IDynamicProxyConfiguration
     {
-        public bool EnableDynamicProxy
-        {
-            get => Get<bool>(Constant.EnableDynamicProxyKey);
-            set => Set(Constant.EnableDynamicProxyKey, value);
-        }
-
         public bool EnableInterfaceProxy
         {
             get => Get<bool>(Constant.EnableInterfaceProxyKey);
@@ -25,7 +19,6 @@ namespace Tinja.Core.DynamicProxy.Configurations
 
         public DynamicProxyConfiguration()
         {
-            EnableDynamicProxy = true;
             EnableInterfaceProxy = true;
             EnableAstractionClassProxy = true;
         }

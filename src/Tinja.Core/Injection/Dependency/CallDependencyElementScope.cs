@@ -6,21 +6,21 @@ namespace Tinja.Core.Injection.Dependency
     /// <summary>
     /// record the call path
     /// </summary>
-    internal class CallDependencyElementScope
+    public class CallDependencyElementScope
     {
         protected Stack<Type> Stack { get; }
 
-        internal CallDependencyElementScope()
+        public CallDependencyElementScope()
         {
             Stack = new Stack<Type>();
         }
 
-        internal bool Contains(Type typeInfo)
+        public bool Contains(Type typeInfo)
         {
             return Stack.Contains(typeInfo);
         }
 
-        internal IDisposable Begin(Type typeInfo)
+        public IDisposable Begin(Type typeInfo)
         {
             if (typeInfo == null)
             {

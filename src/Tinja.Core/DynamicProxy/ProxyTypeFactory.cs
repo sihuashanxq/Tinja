@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tinja.Abstractions.Configurations;
+using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Configurations;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
@@ -35,11 +35,6 @@ namespace Tinja.Core.DynamicProxy
                 throw new NullReferenceException(nameof(typeInfo));
             }
 
-            if (!_configuration.EnableDynamicProxy)
-            {
-                return null;
-            }
-
             if (typeInfo.IsInterface && !_configuration.EnableInterfaceProxy)
             {
                 return null;
@@ -50,12 +45,8 @@ namespace Tinja.Core.DynamicProxy
                 return null;
             }
 
-            var metadatas = _metadataProvider
-                .GetMemberMetadatas(typeInfo)
-                .Where(item => _referees.Any(referee => referee.ShouldProxy(item.Member)))
-                .ToArray();
-
-            if (metadatas == null || metadatas.Length == 0)
+            var metadatas = _metadataProvider.GetMemberMetadatas(typeInfo).Where(item => ShouldProxy(item.Member)).ToArray();
+            if (metadatas.Length == 0)
             {
                 return null;
             }
@@ -66,6 +57,11 @@ namespace Tinja.Core.DynamicProxy
             }
 
             return new ClassProxyTypeGenerator(typeInfo, metadatas).CreateProxyType();
+        }
+
+        protected virtual bool ShouldProxy(MemberInfo memberInfo)
+        {
+            return _referees.Any(referee => referee.ShouldProxy(memberInfo));
         }
     }
 }
