@@ -1,7 +1,7 @@
 ﻿namespace Tinja.Abstractions.Injection.Dependency.Elements
 {
     /// <inheritdoc />
-    /// AddSingleton(typeof(Serice),new Service());
+    /// AddSingleton(typeof(Service),new Service());
     public class InstanceCallDependencyElement : CallDepenencyElement
     {
         public object Instance { get; set; }

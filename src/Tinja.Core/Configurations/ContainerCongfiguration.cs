@@ -1,4 +1,9 @@
-﻿namespace Tinja.Core.Configurations
+﻿using Tinja.Abstractions.DynamicProxy.Configurations;
+using Tinja.Abstractions.Injection.Configurations;
+using Tinja.Core.DynamicProxy.Configurations;
+using Tinja.Core.Injection.Configurations;
+
+namespace Tinja.Core.Configurations
 {
     using Tinja.Abstractions.Configurations;
 
@@ -18,8 +23,8 @@
 
         public ContainerCongfiguration()
         {
-            Set(Constant.InjectionConfigurationKey, new InjectionConfiguration());
-            Set(Constant.DynamicProxyConfigurationKey, new DynamicProxyConfiguration());
+            Injection = new InjectionConfiguration();
+            DynamicProxy = new DynamicProxyConfiguration();
         }
     }
 }

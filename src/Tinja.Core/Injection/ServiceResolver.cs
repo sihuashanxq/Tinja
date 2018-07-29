@@ -1,7 +1,7 @@
 ﻿using System;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
-using Tinja.Abstractions.Injection.Extensions;
 
 namespace Tinja.Core.Injection
 {

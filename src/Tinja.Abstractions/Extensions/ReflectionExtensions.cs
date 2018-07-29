@@ -5,28 +5,28 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
 
-namespace Tinja.Abstractions.Injection.Extensions
+namespace Tinja.Abstractions.Extensions
 {
     public static class ReflectionExtensions
     {
-        public static bool Is(this Type type, Type target)
+        public static bool IsType(this Type type, Type target)
         {
             return target.IsAssignableFrom(type);
         }
 
-        public static bool Is<TType>(this Type type)
+        public static bool IsType<TType>(this Type type)
         {
-            return type.Is(typeof(TType));
+            return type.IsType(typeof(TType));
         }
 
-        public static bool IsNot<TType>(this Type type)
+        public static bool IsNotType<TType>(this Type type)
         {
-            return !type.Is<TType>();
+            return !type.IsType<TType>();
         }
 
-        public static bool IsNot(this Type type, Type target)
+        public static bool IsNotType(this Type type, Type target)
         {
-            return !type.Is(target);
+            return !type.IsType(target);
         }
 
         public static PropertyInfo AsProperty(this MemberInfo m)
@@ -46,17 +46,17 @@ namespace Tinja.Abstractions.Injection.Extensions
 
         public static bool IsVoidMethod(this MethodInfo method)
         {
-            return method != null && method.ReturnType.IsVoid();
+            return method?.ReturnType.IsVoid() ?? false;
         }
 
         public static bool IsTask(this Type type)
         {
-            return type != null && typeof(Task).IsAssignableFrom(type);
+            return type != null && type.IsType<Task>();
         }
 
         public static bool IsValueTask(this Type type)
         {
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>);
+            return type.IsGenericType && type.GetGenericTypeDefinition().IsType(typeof(ValueTask<>));
         }
 
         public static IEnumerable<TElement> Distinct<TElement, TKey>(this IEnumerable<TElement> elements, Func<TElement, TKey> keyProvider)
@@ -122,7 +122,7 @@ namespace Tinja.Abstractions.Injection.Extensions
 
             foreach (var @interface in interfaces)
             {
-                if (methodInfo.DeclaringType.IsNot(@interface))
+                if (methodInfo.DeclaringType.IsNotType(@interface))
                 {
                     continue;
                 }

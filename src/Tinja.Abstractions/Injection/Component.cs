@@ -8,19 +8,19 @@ namespace Tinja.Abstractions.Injection
 
         public ServiceLifeStyle LifeStyle { get; set; }
 
-        public Type ImplementionType { get; set; }
+        public Type ImplementationType { get; set; }
 
-        public object ImplementionInstance { get; set; }
+        public object ImplementationInstance { get; set; }
 
-        public Func<IServiceResolver, object> ImplementionFactory { get; set; }
+        public Func<IServiceResolver, object> ImplementationFactory { get; set; }
 
         public override int GetHashCode()
         {
             var hashCode = ServiceType.GetHashCode();
 
-            hashCode += (hashCode * 31) ^ (ImplementionType?.GetHashCode() ?? 0);
-            hashCode += (hashCode * 31) ^ (ImplementionInstance?.GetHashCode() ?? 0);
-            hashCode += (hashCode * 31) ^ (ImplementionFactory?.GetHashCode() ?? 0);
+            hashCode += (hashCode * 31) ^ (ImplementationType?.GetHashCode() ?? 0);
+            hashCode += (hashCode * 31) ^ (ImplementationInstance?.GetHashCode() ?? 0);
+            hashCode += (hashCode * 31) ^ (ImplementationFactory?.GetHashCode() ?? 0);
             hashCode += (hashCode * 31) ^ LifeStyle.GetHashCode();
 
             return hashCode;
@@ -38,9 +38,9 @@ namespace Tinja.Abstractions.Injection
                 return
                     LifeStyle == component.LifeStyle &&
                     ServiceType == component.ServiceType &&
-                    ImplementionType == component.ImplementionType &&
-                    ImplementionFactory == component.ImplementionFactory &&
-                    ImplementionInstance == component.ImplementionInstance;
+                    ImplementationType == component.ImplementationType &&
+                    ImplementationFactory == component.ImplementationFactory &&
+                    ImplementationInstance == component.ImplementationInstance;
             }
 
             return false;
@@ -65,11 +65,11 @@ namespace Tinja.Abstractions.Injection
         {
             return new Component()
             {
-                ImplementionFactory = ImplementionFactory,
+                ImplementationFactory = ImplementationFactory,
                 LifeStyle = LifeStyle,
-                ImplementionType = ImplementionType,
+                ImplementationType = ImplementationType,
                 ServiceType = ServiceType,
-                ImplementionInstance = ImplementionInstance
+                ImplementationInstance = ImplementationInstance
             };
         }
     }

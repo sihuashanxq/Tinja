@@ -1,6 +1,7 @@
 ﻿using System;
+using Tinja.Abstractions.Injection;
 
-namespace Tinja.Abstractions.Injection.Extensions
+namespace Tinja.Abstractions.Extensions
 {
     public static class ServiceResolverExtensions
     {

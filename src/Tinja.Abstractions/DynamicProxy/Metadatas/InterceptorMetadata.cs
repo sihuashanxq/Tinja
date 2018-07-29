@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Reflection;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     /// <summary>
-    /// a descriptor for Interceptor
+    /// a metadata for Interceptor
     /// </summary>
     public class InterceptorMetadata
     {
@@ -22,18 +22,13 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
                 throw new NullReferenceException(nameof(interceptorType));
             }
 
-            if (target == null)
-            {
-                throw new NullReferenceException(nameof(target));
-            }
-
-            if (interceptorType.IsNot(interceptorType))
+            if (interceptorType.IsNotType(interceptorType))
             {
                 throw new InvalidOperationException($"Type:{InterceptorType.FullName} must be an IInterceptor");
             }
 
             Order = order;
-            Target = target;
+            Target = target ?? throw new NullReferenceException(nameof(target));
             InterceptorType = interceptorType;
         }
     }

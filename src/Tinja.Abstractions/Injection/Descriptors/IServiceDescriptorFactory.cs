@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Abstractions.Injection
+namespace Tinja.Abstractions.Injection.Descriptors
 {
     public interface IServiceDescriptorFactory
     {

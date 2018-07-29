@@ -2,10 +2,10 @@
 using Xunit;
 using System.Linq;
 using System.Threading.Tasks;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.Extensions;
 using Tinja.Core;
+using Tinja.Core.Extensions;
 using Tinja.Core.Injection.Dependency;
-using Tinja.Core.Injection.Extensions;
 using Tinja.Test.Fakes.Consturctor;
 using Tinja.Test.Fakes.Generic;
 using Tinja.Test.Fakes.Property;
@@ -21,7 +21,7 @@ namespace Tinja.Test
                 .AddTransient<ITransientServiceC, TransientServiceC>()
                 .AddTransient<ITransientServiceB, TransientServiceB>()
                 .AddTransient<ITransientServiceA, TransientServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var serviceA = resolver.Resolve<ITransientServiceA>();
             var serviceB = resolver.Resolve<ITransientServiceB>();
@@ -45,7 +45,7 @@ namespace Tinja.Test
                 .AddScoped<IScopedServiceC, ScopedServiceC>()
                 .AddScoped<IScopedServiceB, ScopedServiceB>()
                 .AddScoped<IScopeServiceA, ScopedServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var serviceA1 = resolver.Resolve<IScopeServiceA>();
             var serviceA2 = resolver.Resolve<IScopeServiceA>();
@@ -91,7 +91,7 @@ namespace Tinja.Test
                 .AddScoped<IScopedServiceC, ScopedServiceC>()
                 .AddScoped<IScopedServiceB, ScopedServiceB>()
                 .AddScoped<IScopeServiceA, ScopedServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var scoped1Resolver = resolver.CreateScope();
             var scoped2Resolver = resolver.CreateScope();
@@ -120,7 +120,7 @@ namespace Tinja.Test
                 .AddSingleton<ISingletonServiceC, SingletonServiceC>()
                 .AddSingleton<ISingletonServiceB, SingletonServiceB>()
                 .AddSingleton<ISingletonServiceA, SingletonServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var serviceA1 = resolver.Resolve<ISingletonServiceA>();
             var serviceA2 = resolver.Resolve<ISingletonServiceA>();
@@ -166,7 +166,7 @@ namespace Tinja.Test
                 .AddSingleton<ISingletonServiceC, SingletonServiceC>()
                 .AddSingleton<ISingletonServiceB, SingletonServiceB>()
                 .AddSingleton<ISingletonServiceA, SingletonServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var scoped1Resolver = resolver.CreateScope();
             var scoped2Resolver = resolver.CreateScope();
@@ -195,7 +195,7 @@ namespace Tinja.Test
                 .AddTransient<ITransientServiceB, TransientServiceB>()
                 .AddTransient<ITransientServiceA, TransientServiceA>()
                 .AddTransient<IFactoryService, FactoryService>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var service = resolver.Resolve<IFactoryService>();
 
@@ -211,7 +211,7 @@ namespace Tinja.Test
                 .AddScoped<ITransientServiceB, TransientServiceB>()
                 .AddScoped<ITransientServiceC, TransientServiceC>()
                 .AddScoped(typeof(IFactoryService), _ => new FactoryService(_.Resolve<ITransientServiceA>()))
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var scope1 = resolver.CreateScope();
             var scope2 = resolver.CreateScope();
@@ -236,7 +236,7 @@ namespace Tinja.Test
             var resolver = new Container()
                 .AddScoped<ITransientServiceB, TransientServiceB>()
                 .AddTransient<IPropertyInjectionService, PropertyInjectionService>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             for (var i = 0; i < 10000; i++)
             {
@@ -276,7 +276,7 @@ namespace Tinja.Test
                 .AddTransient<ITransientServiceB, TransientServiceB>()
                 .AddTransient<ITransientServiceA, TransientServiceA2>()
                 .AddTransient<ITransientServiceA, TransientServiceA>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var services = resolver.Resolve<IEnumerable<ITransientServiceA>>();
             var serviceA = resolver.Resolve<ITransientServiceA>();
@@ -300,7 +300,7 @@ namespace Tinja.Test
                 .AddTransient(typeof(IGenericService2<>), typeof(GenericService2<>))
                 .AddTransient<ITransientServiceB, TransientServiceB>()
                 .AddTransient<ITransientServiceC, TransientServiceC>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             var genericService = resolver.Resolve<IGenericService<ITransientServiceB>>();
             var genericService2 = resolver.Resolve<IGenericService2<ITransientServiceB>>();
@@ -319,7 +319,7 @@ namespace Tinja.Test
             var resolver = new Container()
                 .AddTransient<IParamterService, ParamterServie>()
                 .AddTransient<IConstructorCircularDepenencyService, ConstructorCircularDepenencyService>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             Assert.Throws<CallCircularException>(() => resolver.Resolve<IConstructorCircularDepenencyService>());
             Assert.Throws<CallCircularException>(() => resolver.Resolve<IParamterService>());
@@ -332,7 +332,7 @@ namespace Tinja.Test
                 .AddTransient<IPropertyServiceA, PropertyServiceA>()
                 .AddTransient<IPropertyServiceB, PropertyServiceB>()
                 .AddTransient<IPropertyCircularInjectionService, PropertyCircularInjectionService>()
-                .BuildResolver();
+                .BuildServiceResolver();
 
             Assert.Throws<CallCircularException>(() => resolver.Resolve<IPropertyServiceA>());
         }

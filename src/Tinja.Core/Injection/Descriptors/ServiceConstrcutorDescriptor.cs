@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Reflection;
-using Tinja.Abstractions.Injection;
+using Tinja.Abstractions.Injection.Descriptors;
 
-namespace Tinja.Core.Injection.Internals
+namespace Tinja.Core.Injection.Descriptors
 {
     public class ServiceConstrcutorDescriptor : ServiceDescriptor
     {
-        public Type ImplementionType { get; set; }
+        public Type ImplementationType { get; set; }
 
-        public ConstructorInfo[] Constrcutors => ImplementionType
+        public ConstructorInfo[] Constrcutors => ImplementationType
             .GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
     }
 }

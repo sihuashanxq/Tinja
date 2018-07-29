@@ -1,4 +1,6 @@
-﻿namespace Tinja.Abstractions.Configurations
+﻿using Tinja.Abstractions.Configurations;
+
+namespace Tinja.Abstractions.DynamicProxy.Configurations
 {
     /// <summary>
     /// </summary>

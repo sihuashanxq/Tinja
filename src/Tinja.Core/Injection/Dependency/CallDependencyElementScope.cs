@@ -3,21 +3,24 @@ using System.Collections.Generic;
 
 namespace Tinja.Core.Injection.Dependency
 {
-    public class CallDependencyElementScope
+    /// <summary>
+    /// record the call path
+    /// </summary>
+    internal class CallDependencyElementScope
     {
         protected Stack<Type> Stack { get; }
 
-        public CallDependencyElementScope()
+        internal CallDependencyElementScope()
         {
             Stack = new Stack<Type>();
         }
 
-        public bool Contains(Type typeInfo)
+        internal bool Contains(Type typeInfo)
         {
             return Stack.Contains(typeInfo);
         }
 
-        public IDisposable Begin(Type typeInfo)
+        internal IDisposable Begin(Type typeInfo)
         {
             if (typeInfo == null)
             {

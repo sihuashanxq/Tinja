@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {

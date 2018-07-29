@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection;
+using Tinja.Abstractions.Injection.Descriptors;
 
-namespace Tinja.Core.Injection.Internals
+namespace Tinja.Core.Injection.Descriptors
 {
     public class ServiceDescriptorFactory : IServiceDescriptorFactory
     {
@@ -30,9 +31,9 @@ namespace Tinja.Core.Injection.Internals
 
                 foreach (var item in Components[kv.Key])
                 {
-                    if (item.ImplementionInstance != null)
+                    if (item.ImplementationInstance != null)
                     {
-                        serviceResolver.ServiceLifeScope.AddResolvedService(item.ImplementionInstance);
+                        serviceResolver.ServiceLifeScope.AddResolvedService(item.ImplementationInstance);
                     }
                 }
             }
@@ -41,35 +42,31 @@ namespace Tinja.Core.Injection.Internals
         protected virtual void PopulateEnd(IServiceResolver serviceResolver)
         {
             var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.Resolve(typeof(IProxyTypeFactory));
-            if (proxyTypeFactory == null)
-            {
-                throw new NullReferenceException(nameof(proxyTypeFactory));
-            }
-
+  
             foreach (var kv in Components)
             {
                 foreach (var item in Components[kv.Key])
                 {
-                    if (item.ImplementionType == null)
+                    if (item.ImplementationType == null)
                     {
                         continue;
                     }
 
-                    var proxyType = proxyTypeFactory.CreateProxyType(item.ImplementionType);
+                    var proxyType = proxyTypeFactory?.CreateProxyType(item.ImplementationType);
                     if (proxyType != null)
                     {
-                        item.ImplementionType = proxyType;
+                        item.ImplementationType = proxyType;
                         continue;
                     }
 
-                    if (item.ImplementionType != null && item.ImplementionType.IsAbstract)
+                    if (item.ImplementationType != null && item.ImplementationType.IsAbstract)
                     {
-                        throw new InvalidOperationException($"ImplementionType:{item.ImplementionType.FullName} not can be Abstract when have not Interceptors!");
+                        throw new InvalidOperationException($"ImplementionType:{item.ImplementationType.FullName} not can be Abstract when have not Interceptors!");
                     }
 
-                    if (item.ImplementionType != null && item.ImplementionType.IsInterface)
+                    if (item.ImplementationType != null && item.ImplementationType.IsInterface)
                     {
-                        throw new InvalidOperationException($"ImplementionType:{item.ImplementionType.FullName} not can be Interface when have not Interceptors!");
+                        throw new InvalidOperationException($"ImplementionType:{item.ImplementationType.FullName} not can be Interface when have not Interceptors!");
                     }
                 }
             }
@@ -85,23 +82,23 @@ namespace Tinja.Core.Injection.Internals
 
         protected ServiceDescriptor Create(Type serviceType, Component component)
         {
-            if (component.ImplementionFactory != null)
+            if (component.ImplementationFactory != null)
             {
                 return new ServiceDelegateDescriptor()
                 {
                     ServiceType = serviceType,
                     LifeStyle = component.LifeStyle,
-                    Delegate = component.ImplementionFactory
+                    Delegate = component.ImplementationFactory
                 };
             }
 
-            if (component.ImplementionInstance != null)
+            if (component.ImplementationInstance != null)
             {
                 return new ServiceInstanceDescriptor()
                 {
                     ServiceType = serviceType,
                     LifeStyle = component.LifeStyle,
-                    Instance = component.ImplementionInstance
+                    Instance = component.ImplementationInstance
                 };
             }
 
@@ -109,7 +106,7 @@ namespace Tinja.Core.Injection.Internals
             {
                 ServiceType = serviceType,
                 LifeStyle = component.LifeStyle,
-                ImplementionType = MakeGenericImplementionType(serviceType, component.ImplementionType)
+                ImplementationType = MakeGenericImplementionType(serviceType, component.ImplementationType)
             };
         }
 
@@ -168,7 +165,7 @@ namespace Tinja.Core.Injection.Internals
             var component = new Component()
             {
                 ServiceType = typeof(IEnumerable<>),
-                ImplementionType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
+                ImplementationType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
                 LifeStyle = ServiceLifeStyle.Scoped
             };
 
@@ -178,7 +175,7 @@ namespace Tinja.Core.Injection.Internals
             return new ServiceManyDescriptor()
             {
                 ServiceType = serviceType,
-                CollectionType = MakeGenericImplementionType(serviceType, component.ImplementionType),
+                CollectionType = MakeGenericImplementionType(serviceType, component.ImplementationType),
                 LifeStyle = component.LifeStyle,
                 Elements = elements
             };

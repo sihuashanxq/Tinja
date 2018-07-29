@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Dependency.Elements;
-using Tinja.Abstractions.Injection.Extensions;
 
 namespace Tinja.Core.Injection.Activators
 {
@@ -26,7 +26,7 @@ namespace Tinja.Core.Injection.Activators
                     .Compile();
         }
 
-        protected  override Expression VisitMany(ManyCallDepenencyElement element)
+        protected override Expression VisitMany(ManyCallDepenencyElement element)
         {
             var elementInits = new ElementInit[element.Elements.Length];
             var addElement = element.ImplementionType.GetMethod("Add");
@@ -34,7 +34,7 @@ namespace Tinja.Core.Injection.Activators
             for (var i = 0; i < elementInits.Length; i++)
             {
                 var elementValue = element.Elements[i].Accept(this);
-                if (elementValue.Type.Is(element.Elements[i].ServiceType))
+                if (elementValue.Type.IsType(element.Elements[i].ServiceType))
                 {
                     elementInits[i] = Expression.ElementInit(addElement, elementValue);
                     continue;
@@ -49,7 +49,7 @@ namespace Tinja.Core.Injection.Activators
             var listInit = Expression.ListInit(Expression.New(element.ConstructorInfo), elementInits);
 
             if (element.LifeStyle != ServiceLifeStyle.Transient ||
-                element.ImplementionType.Is(typeof(IDisposable)))
+                element.ImplementionType.IsType(typeof(IDisposable)))
             {
                 return ResolveServiceLifeStyle(listInit, element);
             }
@@ -57,18 +57,18 @@ namespace Tinja.Core.Injection.Activators
             return listInit;
         }
 
-        protected  override Expression VisitInstance(InstanceCallDependencyElement element)
+        protected override Expression VisitInstance(InstanceCallDependencyElement element)
         {
             return Expression.Constant(element.Instance);
         }
 
-        protected  override Expression VisitDelegate(DelegateCallDepenencyElement element)
+        protected override Expression VisitDelegate(DelegateCallDepenencyElement element)
         {
             var constant = Expression.Constant(element.Delegate);
             var invocation = Expression.Invoke(constant, ActivatorUtil.ParameterResolver);
 
             if (element.Delegate.Method.ReturnType == typeof(object) ||
-                element.Delegate.Method.ReturnType.Is(typeof(IDisposable)) ||
+                element.Delegate.Method.ReturnType.IsType(typeof(IDisposable)) ||
                 element.LifeStyle != ServiceLifeStyle.Transient)
             {
                 return ResolveServiceLifeStyle(invocation, element);
@@ -77,7 +77,7 @@ namespace Tinja.Core.Injection.Activators
             return invocation;
         }
 
-        protected  override Expression VisitConstrcutor(ConstructorCallDependencyElement element)
+        protected override Expression VisitConstrcutor(ConstructorCallDependencyElement element)
         {
             var parameterInfos = element.ConstructorInfo.GetParameters();
             var parameterValues = new Expression[parameterInfos.Length];
@@ -97,7 +97,7 @@ namespace Tinja.Core.Injection.Activators
                     throw new NullReferenceException(nameof(parameterValue));
                 }
 
-                if (parameterValue.Type.Is(parameterType))
+                if (parameterValue.Type.IsType(parameterType))
                 {
                     parameterValues[i] = parameterValue;
                 }
@@ -111,7 +111,7 @@ namespace Tinja.Core.Injection.Activators
             var memberInit = InitializeProperty(newExpression, element);
 
             if (element.LifeStyle != ServiceLifeStyle.Transient ||
-                element.ImplementionType.Is(typeof(IDisposable)))
+                element.ImplementionType.IsType(typeof(IDisposable)))
             {
                 return ResolveServiceLifeStyle(memberInit, element);
             }
@@ -119,7 +119,7 @@ namespace Tinja.Core.Injection.Activators
             return memberInit;
         }
 
-        protected  virtual Expression InitializeProperty(NewExpression newExpression, ConstructorCallDependencyElement element)
+        protected virtual Expression InitializeProperty(NewExpression newExpression, ConstructorCallDependencyElement element)
         {
             if (element?.Properties == null || element.Properties.Count == 0)
             {
@@ -131,7 +131,7 @@ namespace Tinja.Core.Injection.Activators
             foreach (var item in element.Properties)
             {
                 var propertyValue = item.Value.Accept(this);
-                if (propertyValue.Type.Is(item.Key.PropertyType))
+                if (propertyValue.Type.IsType(item.Key.PropertyType))
                 {
                     propertyBindings.Add(Expression.Bind(item.Key, item.Value.Accept(this)));
                     continue;
@@ -143,26 +143,35 @@ namespace Tinja.Core.Injection.Activators
             return Expression.MemberInit(newExpression, propertyBindings);
         }
 
-        protected  virtual Expression ResolveServiceLifeStyle(Expression serviceExpression, CallDepenencyElement element)
+        protected virtual Expression ResolveServiceLifeStyle(Expression serviceExpression, CallDepenencyElement element)
         {
+            if (serviceExpression == null)
+            {
+                throw new NullReferenceException(nameof(serviceExpression));
+            }
+
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
             //optimization
             var preCompiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)
                 Expression
-                    .Lambda(
-                        serviceExpression,
-                        ActivatorUtil.ParameterResolver,
-                        ActivatorUtil.ParameterScope)
+                    .Lambda(serviceExpression, ActivatorUtil.ParameterResolver, ActivatorUtil.ParameterScope)
                     .Compile();
 
             var factory = (Func<IServiceResolver, object>)(resolver => preCompiledFunc(resolver, resolver.ServiceLifeScope));
 
             return
-                Expression.Invoke( ActivatorUtil.ApplyLifeConstant,
-                    Expression.Constant(element.ServiceType),
-                    Expression.Constant(element.LifeStyle),
-                    ActivatorUtil.ParameterScope,
-                    Expression.Constant(factory)
-                );
+                Expression
+                    .Invoke(
+                        ActivatorUtil.ApplyLifeConstant,
+                        Expression.Constant(element.ServiceType),
+                        Expression.Constant(element.LifeStyle),
+                        ActivatorUtil.ParameterScope,
+                        Expression.Constant(factory)
+                    );
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Tinja.Abstractions.Configurations
+﻿using Tinja.Abstractions.Configurations;
+
+namespace Tinja.Abstractions.Injection.Configurations
 {
     public interface IInjectionConfiguration : IConfiguration
     {

@@ -26,7 +26,6 @@ namespace Tinja.Core.Injection.Activators
                 return activator;
             }
 
-            //reenterable
             return _activators[serviceType] = _factory.CreateActivator(serviceType) ?? Default;
         }
     }

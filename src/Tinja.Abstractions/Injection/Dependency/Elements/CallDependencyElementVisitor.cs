@@ -3,7 +3,7 @@
     /// <summary>
     /// a visitor/translator for <see cref="CallDepenencyElement"/>
     /// </summary>
-    /// <typeparam name="TVisitResult">the type for transalted result</typeparam>
+    /// <typeparam name="TVisitResult">the type for translated result</typeparam>
     public abstract class CallDependencyElementVisitor<TVisitResult>
     {
         public virtual TVisitResult Visit(CallDepenencyElement element)

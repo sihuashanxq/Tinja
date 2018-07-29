@@ -1,7 +1,7 @@
 ﻿using System;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Extensions;
 
 namespace Tinja.Core.DynamicProxy
 {

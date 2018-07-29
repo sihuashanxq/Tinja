@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Tinja;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.Extensions;
 using Tinja.Core;
-using Tinja.Core.Injection.Extensions;
+using Tinja.Core.DynamicProxy;
+using Tinja.Core.Extensions;
 
 namespace ConsoleApp
 {
@@ -20,9 +21,8 @@ namespace ConsoleApp
             container.AddScoped(typeof(IUserRepository), typeof(UserRepository));
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
             container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
-
-         
-            var resolver = container.BuildResolver();
+            container.AddTransient<IInterceptorMetadataCollector, MemberInterceptionCollector>();
+            var resolver = container.UseDynamicProxy().BuildServiceResolver();
 
             var userServices = resolver.Resolve<IEnumerable<IUserService>>();
             var userService = resolver.ResolveRequired<IUserService>();

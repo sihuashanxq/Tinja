@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Executors;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {

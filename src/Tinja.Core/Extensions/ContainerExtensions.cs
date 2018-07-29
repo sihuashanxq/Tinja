@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Abstractions;
-using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Abstractions.DynamicProxy.Executors;
+using Tinja.Abstractions.Configurations;
+using Tinja.Abstractions.DynamicProxy.Configurations;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
-using Tinja.Abstractions.Injection.Extensions;
-using Tinja.Core.DynamicProxy;
-using Tinja.Core.DynamicProxy.Executors;
-using Tinja.Core.DynamicProxy.Executors.Internal;
-using Tinja.Core.DynamicProxy.Metadatas;
+using Tinja.Abstractions.Injection.Configurations;
+using Tinja.Abstractions.Injection.Descriptors;
+using Tinja.Core.Configurations;
+using Tinja.Core.Injection;
 using Tinja.Core.Injection.Activators;
 using Tinja.Core.Injection.Dependency;
-using Tinja.Core.Injection.Internals;
-using Tinja.Abstractions.Configurations;
-using Tinja.Core.Configurations;
+using Tinja.Core.Injection.Descriptors;
 
-namespace Tinja.Core.Injection.Extensions
+namespace Tinja.Core.Extensions
 {
     /// <summary>
     /// IContainer Extension Methods
@@ -29,7 +26,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container"></param>
         /// <returns></returns>
-        public static IServiceResolver BuildResolver(this IContainer container)
+        public static IServiceResolver BuildServiceResolver(this IContainer container)
         {
             if (container == null)
             {
@@ -37,40 +34,96 @@ namespace Tinja.Core.Injection.Extensions
             }
 
             var configuration = container.BuildConfiguration();
+            if (configuration == null)
+            {
+                throw new NullReferenceException(nameof(configuration));
+            }
 
-            var serviceLifeScopeFactory = new ServiceLifeScopeFactory();
-            var serviceDescriptorFactory = new ServiceDescriptorFactory();
-            var dependencyElementBuilderFactory = new CallDependencyElementBuilderFactory(serviceDescriptorFactory, configuration);
+            var scopeFactory = new ServiceLifeScopeFactory();
+            var serviceFactory = new ServiceDescriptorFactory();
 
-            var activatorFacotry = new ActivatorFactory(dependencyElementBuilderFactory);
-            var activatorProvider = new ActivatorProvider(activatorFacotry);
-            var serviceResolver = new ServiceResolver(activatorProvider, serviceLifeScopeFactory);
+            var activatorFactory = container.BuildActivatorFactory(configuration.Injection, serviceFactory);
+            if (activatorFactory == null)
+            {
+                throw new NullReferenceException(nameof(activatorFactory));
+            }
 
-            container.AddSingleton<IContainerConfiguration>(configuration);
-            container.AddSingleton<IActivatorFactory>(activatorFacotry);
-            container.AddSingleton<IActivatorProvider>(activatorProvider);
-            container.AddSingleton<IServiceLifeScopeFactory>(serviceLifeScopeFactory);
+            var activatorProvider = container.BuildActivatorProvider(activatorFactory);
+            if (activatorProvider == null)
+            {
+                throw new NullReferenceException(nameof(activatorProvider));
+            }
 
-            container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
-            container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
-            container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
-            container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
-            container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
-            container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
-            container.AddSingleton<IObjectMethodExecutorProvider, ObjectMethodExecutorProvider>();
+            var serviceResolver = container.BuildServiceResolver(activatorProvider, scopeFactory);
+            if (serviceResolver == null)
+            {
+                throw new NullReferenceException(nameof(serviceResolver));
+            }
 
-            container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();
-            container.AddSingleton<IInterceptorMetadataCollector, InterceptorMetadataCollector>();
+            serviceFactory.Populate(container.Components, serviceResolver);
+
+            return serviceResolver;
+        }
+
+        internal static IServiceResolver BuildServiceResolver(this IContainer container, IActivatorProvider provider, IServiceLifeScopeFactory factory)
+        {
+            if (container == null)
+            {
+                throw new NullReferenceException(nameof(container));
+            }
+
+            if (provider == null)
+            {
+                throw new NullReferenceException(nameof(provider));
+            }
+
+            if (factory == null)
+            {
+                throw new NullReferenceException(nameof(factory));
+            }
+
+            container.AddSingleton<IActivatorFactory>(resolver=> factory);
+            container.AddSingleton<IActivatorProvider>(resolver=> provider);
 
             container.AddScoped<IServiceResolver>(resolver => resolver);
             container.AddScoped<IServiceLifeScope>(resolver => resolver.ServiceLifeScope);
-            container.AddScoped<IInterceptorFactory, InterceptorFactory>();
 
-            container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
+            return new ServiceResolver(provider, factory);
+        }
 
-            serviceDescriptorFactory.Populate(container.Components, serviceResolver);
+        internal static IActivatorFactory BuildActivatorFactory(this IContainer container, IInjectionConfiguration configuration, IServiceDescriptorFactory serviceFactory)
+        {
+            if (configuration == null)
+            {
+                throw new NullReferenceException(nameof(configuration));
+            }
 
-            return serviceResolver;
+            if (container == null)
+            {
+                throw new NullReferenceException(nameof(container));
+            }
+
+            if (serviceFactory == null)
+            {
+                throw new NullReferenceException(nameof(serviceFactory));
+            }
+
+            return new ActivatorFactory(new CallDependencyElementBuilderFactory(serviceFactory, configuration));
+        }
+
+        internal static IActivatorProvider BuildActivatorProvider(this IContainer container, IActivatorFactory factory)
+        {
+            if (factory == null)
+            {
+                throw new NullReferenceException(nameof(factory));
+            }
+
+            if (container == null)
+            {
+                throw new NullReferenceException(nameof(container));
+            }
+
+            return new ActivatorProvider(factory);
         }
 
         /// <summary>
@@ -110,21 +163,25 @@ namespace Tinja.Core.Injection.Extensions
                 configurator?.Invoke(configuration);
             }
 
+            container.AddSingleton<IContainerConfiguration>(configuration);
+            container.AddSingleton<IInjectionConfiguration>(configuration.Injection);
+            container.AddSingleton<IDynamicProxyConfiguration>(configuration.DynamicProxy);
+
             return configuration;
         }
 
-        public static IContainer AddService(this IContainer container, Type serviceType, Type implementionType, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
+        public static IContainer AddService(this IContainer container, Type serviceType, Type implementationType, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            if (!implementionType.IsGenericTypeDefinition && !implementionType.Is(serviceType))
+            if (!implementationType.IsGenericTypeDefinition && !implementationType.IsType(serviceType))
             {
-                throw new InvalidCastException($"type:{implementionType.FullName} can not casted to {serviceType.FullName}");
+                throw new InvalidCastException($"type:{implementationType.FullName} can not cast to {serviceType.FullName}");
             }
 
             container.AddService(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
-                ImplementionType = implementionType
+                ImplementationType = implementationType
             });
 
             return container;
@@ -134,7 +191,7 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <typeparam name="TImpl">ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
         /// <returns></returns>
@@ -149,7 +206,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
         /// <returns></returns>
         public static IContainer AddService(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
@@ -158,7 +215,7 @@ namespace Tinja.Core.Injection.Extensions
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
-                ImplementionFactory = factory
+                ImplementationFactory = factory
             });
 
             return container;
@@ -168,9 +225,9 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImple">ImplementionType</typeparam>
+        /// <typeparam name="TImple">ImplementationType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
         /// <returns></returns>
         public static IContainer AddService<TType, TImple>(this IContainer container, Func<IServiceResolver, TImple> factory, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
@@ -184,22 +241,22 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="instance">ImplementionInstance</param>
+        /// <param name="instance">ImplementationInstance</param>
         /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
         /// <returns></returns>
         private static IContainer AddService(this IContainer container, Type serviceType, object instance, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
         {
-            var implementionType = instance.GetType();
-            if (!implementionType.Is(serviceType))
+            var implementationType = instance.GetType();
+            if (!implementationType.IsType(serviceType))
             {
-                throw new InvalidCastException($"type:{implementionType.FullName} can not casted to {serviceType.FullName}");
+                throw new InvalidCastException($"type:{implementationType.FullName} can not cast to {serviceType.FullName}");
             }
 
             container.AddService(new Component()
             {
                 LifeStyle = lifeStyle,
                 ServiceType = serviceType,
-                ImplementionInstance = instance
+                ImplementationInstance = instance
             });
 
             return container;
@@ -210,7 +267,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="instance">ImplementionType</param>
+        /// <param name="instance">ImplementationType</param>
         /// <param name="lifeStyle"><see cref="ServiceLifeStyle"/></param>
         /// <returns></returns>
         private static IContainer AddService<TType>(this IContainer container, object instance, ServiceLifeStyle lifeStyle = ServiceLifeStyle.Transient)
@@ -223,18 +280,18 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="implementionType">ImplementionType</param>
+        /// <param name="implementationType">ImplementationType</param>
         /// <returns></returns>
-        public static IContainer AddSingleton(this IContainer container, Type serviceType, Type implementionType)
+        public static IContainer AddSingleton(this IContainer container, Type serviceType, Type implementationType)
         {
-            return container.AddService(serviceType, implementionType, ServiceLifeStyle.Singleton);
+            return container.AddService(serviceType, implementationType, ServiceLifeStyle.Singleton);
         }
 
         /// <summary>
         /// Add a singleton service to container
         /// </summary>
         /// <param name="container">Container</param>
-        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <param name="serviceType">ServiceType and ImplementationType</param>
         /// <returns></returns>
         public static IContainer AddSingleton(this IContainer container, Type serviceType)
         {
@@ -245,7 +302,7 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <typeparam name="TImpl">ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddSingleton<TType, TImpl>(this IContainer container)
@@ -257,7 +314,7 @@ namespace Tinja.Core.Injection.Extensions
         /// <summary>
         /// Add a singleton service to container
         /// </summary>
-        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <typeparam name="TType">ServiceType and ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddSingleton<TType>(this IContainer container)
@@ -270,7 +327,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddSingleton(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
         {
@@ -282,7 +339,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddSingleton<TType>(this IContainer container, Func<IServiceResolver, object> factory)
         {
@@ -293,9 +350,9 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a singleton service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImple">ImplementionType</typeparam>
+        /// <typeparam name="TImple">ImplementationType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddSingleton<TType, TImple>(this IContainer container, Func<IServiceResolver, TImple> factory)
             where TImple : class, TType
@@ -308,7 +365,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="instance">ImplementionInstance</param>
+        /// <param name="instance">ImplementationInstance</param>
         /// <returns></returns>
         public static IContainer AddSingleton(this IContainer container, Type serviceType, object instance)
         {
@@ -320,7 +377,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="instance">ImplementionInstance</param>
+        /// <param name="instance">ImplementationInstance</param>
         /// <returns></returns>
         public static IContainer AddSingleton<TType>(this IContainer container, object instance)
         {
@@ -332,18 +389,18 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="implementionType">ImplementionType</param>
+        /// <param name="implementationType">ImplementationType</param>
         /// <returns></returns>
-        public static IContainer AddTransient(this IContainer container, Type serviceType, Type implementionType)
+        public static IContainer AddTransient(this IContainer container, Type serviceType, Type implementationType)
         {
-            return container.AddService(serviceType, implementionType);
+            return container.AddService(serviceType, implementationType);
         }
 
         /// <summary>
         /// Add a transient service to container
         /// </summary>
         /// <param name="container">Container</param>
-        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <param name="serviceType">ServiceType and ImplementationType</param>
         /// <returns></returns>
         public static IContainer AddTransient(this IContainer container, Type serviceType)
         {
@@ -354,7 +411,7 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a transient service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <typeparam name="TImpl">ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddTransient<TType, TImpl>(this IContainer container)
@@ -366,7 +423,7 @@ namespace Tinja.Core.Injection.Extensions
         /// <summary>
         /// Add a transient service to container
         /// </summary>
-        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <typeparam name="TType">ServiceType and ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddTransient<TType>(this IContainer container)
@@ -379,7 +436,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddTransient(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
         {
@@ -391,7 +448,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddTransient<TType>(this IContainer container, Func<IServiceResolver, object> factory)
         {
@@ -402,9 +459,9 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a transient service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImple">ImplementionType</typeparam>
+        /// <typeparam name="TImple">ImplementationType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddTransient<TType, TImple>(this IContainer container, Func<IServiceResolver, TImple> factory)
             where TImple : class, TType
@@ -417,18 +474,18 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="implementionType">ImplementionType</param>
+        /// <param name="implementationType">ImplementationType</param>
         /// <returns></returns>
-        public static IContainer AddScoped(this IContainer container, Type serviceType, Type implementionType)
+        public static IContainer AddScoped(this IContainer container, Type serviceType, Type implementationType)
         {
-            return container.AddService(serviceType, implementionType, ServiceLifeStyle.Scoped);
+            return container.AddService(serviceType, implementationType, ServiceLifeStyle.Scoped);
         }
 
         /// <summary>
         /// Add a scoped service to container
         /// </summary>
         /// <param name="container">Container</param>
-        /// <param name="serviceType">ServiceType and ImplementionType</param>
+        /// <param name="serviceType">ServiceType and ImplementationType</param>
         /// <returns></returns>
         public static IContainer AddScoped(this IContainer container, Type serviceType)
         {
@@ -439,7 +496,7 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImpl">ImplementionType</typeparam>
+        /// <typeparam name="TImpl">ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddScoped<TType, TImpl>(this IContainer container)
@@ -450,7 +507,7 @@ namespace Tinja.Core.Injection.Extensions
         /// <summary>
         /// Add a scoped service to container
         /// </summary>
-        /// <typeparam name="TType">ServiceType and ImplementionType</typeparam>
+        /// <typeparam name="TType">ServiceType and ImplementationType</typeparam>
         /// <param name="container">Container</param>
         /// <returns></returns>
         public static IContainer AddScoped<TType>(this IContainer container)
@@ -463,7 +520,7 @@ namespace Tinja.Core.Injection.Extensions
         /// </summary>
         /// <param name="container">Container</param>
         /// <param name="serviceType">ServiceType</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddScoped(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory)
         {
@@ -474,9 +531,8 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImple">ImplementionType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddScoped<TType>(this IContainer container, Func<IServiceResolver, object> factory)
         {
@@ -487,9 +543,9 @@ namespace Tinja.Core.Injection.Extensions
         /// Add a scoped service to container
         /// </summary>
         /// <typeparam name="TType">ServiceType</typeparam>
-        /// <typeparam name="TImple">ImplementionType</typeparam>
+        /// <typeparam name="TImple">ImplementationType</typeparam>
         /// <param name="container">Container</param>
-        /// <param name="factory">ImplementionFactory</param>
+        /// <param name="factory">ImplementationFactory</param>
         /// <returns></returns>
         public static IContainer AddScoped<TType, TImple>(this IContainer container, Func<IServiceResolver, TImple> factory)
             where TImple : class, TType
@@ -510,16 +566,16 @@ namespace Tinja.Core.Injection.Extensions
             }
 
             if (component.LifeStyle != ServiceLifeStyle.Singleton &&
-                component.ImplementionInstance != null)
+                component.ImplementationInstance != null)
             {
-                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} ServiceLifeStyle must be Singleton when registered with and implemention instance");
+                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} ServiceLifeStyle must be Singleton when registered with and Implementation instance");
             }
 
-            if (component.ImplementionFactory == null &&
-                component.ImplementionType == null &&
-                component.ImplementionInstance == null)
+            if (component.ImplementationFactory == null &&
+                component.ImplementationType == null &&
+                component.ImplementationInstance == null)
             {
-                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} have not an implemention!");
+                throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} have not an Implementation!");
             }
 
             container.Components.AddOrUpdate(
@@ -542,16 +598,16 @@ namespace Tinja.Core.Injection.Extensions
                         foreach (var item in v)
                         {
                             if (item.ServiceType == component.ServiceType &&
-                                item.ImplementionType != null &&
-                                item.ImplementionType == component.ImplementionType)
+                                item.ImplementationType != null &&
+                                item.ImplementationType == component.ImplementationType)
                             {
                                 item.LifeStyle = component.LifeStyle;
                                 return v;
                             }
 
                             if (item.ServiceType == component.ServiceType &&
-                                item.ImplementionFactory != null &&
-                                item.ImplementionFactory == component.ImplementionFactory)
+                                item.ImplementationFactory != null &&
+                                item.ImplementationFactory == component.ImplementationFactory)
                             {
                                 item.LifeStyle = component.LifeStyle;
                                 return v;

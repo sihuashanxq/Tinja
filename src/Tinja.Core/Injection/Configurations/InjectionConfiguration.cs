@@ -1,7 +1,8 @@
-﻿namespace Tinja.Core.Configurations
-{
-    using Tinja.Abstractions.Configurations;
+﻿using Tinja.Abstractions.Configurations;
+using Tinja.Abstractions.Injection.Configurations;
 
+namespace Tinja.Core.Injection.Configurations
+{
     public class InjectionConfiguration : Configuration, IInjectionConfiguration
     {
         public bool EnablePropertyInjection
@@ -12,7 +13,7 @@
 
         public InjectionConfiguration()
         {
-            Set(Constant.EnablePropertyInjectionKey, true);
+            EnablePropertyInjection = true;
         }
     }
 }

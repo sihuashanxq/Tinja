@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.Abstractions.Injection.Extensions;
+using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Abstractions.DynamicProxy
 {
@@ -14,7 +14,7 @@ namespace Tinja.Abstractions.DynamicProxy
 
         public InterceptorAttribute(Type interceptorType)
         {
-            if (interceptorType.IsNot<IInterceptor>())
+            if (interceptorType.IsNotType<IInterceptor>())
             {
                 throw new NotSupportedException($"type:{interceptorType.FullName} must implement the interface{typeof(IInterceptor).FullName}");
             }

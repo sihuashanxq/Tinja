@@ -1,7 +1,8 @@
-﻿namespace Tinja.Core.Configurations
-{
-    using Tinja.Abstractions.Configurations;
+﻿using Tinja.Abstractions.Configurations;
+using Tinja.Abstractions.DynamicProxy.Configurations;
 
+namespace Tinja.Core.DynamicProxy.Configurations
+{
     public class DynamicProxyConfiguration : Configuration, IDynamicProxyConfiguration
     {
         public bool EnableDynamicProxy
@@ -24,9 +25,9 @@
 
         public DynamicProxyConfiguration()
         {
-            Set(Constant.EnableDynamicProxyKey, true);
-            Set(Constant.EnableInterfaceProxyKey, true);
-            Set(Constant.EnableAstractionClassProxyKey, true);
+            EnableDynamicProxy = true;
+            EnableInterfaceProxy = true;
+            EnableAstractionClassProxy = true;
         }
     }
 }

@@ -4,7 +4,8 @@ using System.Reflection;
 
 namespace Tinja.Abstractions.Injection.Dependency.Elements
 {
-    /// AddSingleton(typeof(Serice),typeof(Service));
+    /// <inheritdoc />
+    /// AddSingleton(typeof(Service),typeof(Service));
     public class ConstructorCallDependencyElement : CallDepenencyElement
     {
         public Type ImplementionType { get; set; }

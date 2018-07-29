@@ -2,23 +2,26 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions.Configurations;
-using Tinja.Abstractions.Injection;
+using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Dependency.Elements;
-using Tinja.Core.Injection.Internals;
+using Tinja.Abstractions.Injection.Descriptors;
+using Tinja.Core.Injection.Descriptors;
 
 namespace Tinja.Core.Injection.Dependency
 {
+    /// <summary>
+    /// the default implementation for <see cref="ICallDependencyElementBuilder"/>
+    /// </summary>
     public class CallDependencyElementBuilder : ICallDependencyElementBuilder
     {
-        protected IContainerConfiguration Configuration { get; }
+        protected IInjectionConfiguration Configuration { get; }
 
         protected IServiceDescriptorFactory ServiceDescriptorFactory { get; set; }
 
         protected CallDependencyElementScope CallScope { get; set; }
 
-        public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IContainerConfiguration configuration)
+        public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IInjectionConfiguration configuration)
         {
             Configuration = configuration;
             ServiceDescriptorFactory = serviceDescriptorFactory;
@@ -50,7 +53,7 @@ namespace Tinja.Core.Injection.Dependency
                     return BuildDelegateElement(@delegate);
 
                 case ServiceConstrcutorDescriptor constrcutor:
-                    using (CallScope.Begin(constrcutor.ImplementionType))
+                    using (CallScope.Begin(constrcutor.ImplementationType))
                     {
                         return BuildConstrcutorElement(constrcutor);
                     }
@@ -127,7 +130,7 @@ namespace Tinja.Core.Injection.Dependency
                     Parameters = parameterElements,
                     LifeStyle = descriptor.LifeStyle,
                     ServiceType = descriptor.ServiceType,
-                    ImplementionType = descriptor.ImplementionType,
+                    ImplementionType = descriptor.ImplementationType,
                     ConstructorInfo = item
                 };
 
@@ -139,7 +142,7 @@ namespace Tinja.Core.Injection.Dependency
 
         protected CallDepenencyElement BuildProperty(ConstructorCallDependencyElement element)
         {
-            if (element == null || !Configuration.Injection.EnablePropertyInjection)
+            if (element == null || !Configuration.EnablePropertyInjection)
             {
                 return element;
             }
@@ -183,15 +186,15 @@ namespace Tinja.Core.Injection.Dependency
 
         protected bool BuildParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameterElements)
         {
-            var ctx = ServiceDescriptorFactory.Create(parameterInfo.ParameterType);
-            if (ctx == null)
+            var descriptor = ServiceDescriptorFactory.Create(parameterInfo.ParameterType);
+            if (descriptor == null)
             {
                 return false;
             }
 
-            CheckCircularDependency(ctx as ServiceConstrcutorDescriptor);
+            CheckCircularDependency(descriptor as ServiceConstrcutorDescriptor);
 
-            var parameterElement = BuildElement(ctx);
+            var parameterElement = BuildElement(descriptor);
             if (parameterElement == null)
             {
                 return false;
@@ -202,16 +205,17 @@ namespace Tinja.Core.Injection.Dependency
             return true;
         }
 
-        protected void CheckCircularDependency(ServiceConstrcutorDescriptor ctx)
+        protected void CheckCircularDependency(ServiceConstrcutorDescriptor descriptor)
         {
-            if (ctx == null || ctx.ImplementionType == null)
+            if (descriptor == null ||
+                descriptor.ImplementationType == null)
             {
                 return;
             }
 
-            if (CallScope.Contains(ctx.ImplementionType))
+            if (CallScope.Contains(descriptor.ImplementationType))
             {
-                throw new CallCircularException(ctx.ImplementionType, $"type:{ctx.ImplementionType.FullName} exists circular dependencies!");
+                throw new CallCircularException(descriptor.ImplementationType, $"type:{descriptor.ImplementationType.FullName} exists circular dependencies!");
             }
         }
     }
