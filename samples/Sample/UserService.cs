@@ -1,6 +1,5 @@
-﻿using Tinja;
+﻿using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Core.DynamicProxy;
 
 namespace ConsoleApp
 {
@@ -8,6 +7,10 @@ namespace ConsoleApp
     public interface IUserService
     {
         string GetUserName(int id);
+
+        int GetId();
+
+        ValueTask<int> GetIdAsync();
     }
 
     public class UserService1 : IUserService
@@ -15,6 +18,16 @@ namespace ConsoleApp
         public UserService1()
         {
 
+        }
+
+        public virtual int GetId()
+        {
+            return 0;
+        }
+
+        public ValueTask<int> GetIdAsync()
+        {
+            throw new System.NotImplementedException();
         }
 
         public virtual string GetUserName(int id)
@@ -35,6 +48,16 @@ namespace ConsoleApp
         public virtual string GetUserName(int id)
         {
             return "UserService:Name:" + id;
+        }
+
+        public virtual int GetId()
+        {
+            return 1;
+        }
+
+        public ValueTask<int> GetIdAsync()
+        {
+            throw new System.NotImplementedException();
         }
     }
 

@@ -17,6 +17,7 @@ namespace Tinja.Core.DynamicProxy.Executors
         public virtual TResult Execute<TResult>(IMethodInvocation inv)
         {
             ExecuteCore(inv).Wait();
+
             return (TResult)inv.Result;
         }
 

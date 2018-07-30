@@ -33,7 +33,7 @@ namespace Tinja.Core.Injection.Descriptors
                 {
                     if (item.ImplementationInstance != null)
                     {
-                        serviceResolver.ServiceLifeScope.AddResolvedService(item.ImplementationInstance);
+                        serviceResolver.Scope.GetOrAddResolvedService(Tuple.Create(item.ServiceType, item.ImplementationInstance), item.LifeStyle, resolver => item.ImplementationInstance);
                     }
                 }
             }

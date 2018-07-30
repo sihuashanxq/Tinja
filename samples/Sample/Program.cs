@@ -15,20 +15,20 @@ namespace ConsoleApp
         {
             var container = new Container();
             var s = new UserRepository();
-            container.AddTransient<IUserService, UserService1>();
-            container.AddTransient<IUserService, UserService>();
+            container.AddTransient<IUserService>();
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
             container.AddScoped(typeof(IUserRepository), typeof(UserRepository));
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
             container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
             container.AddTransient<IInterceptorMetadataCollector, MemberInterceptionCollector>();
+
             var resolver = container.UseDynamicProxy().BuildServiceResolver();
 
             var userServices = resolver.Resolve<IEnumerable<IUserService>>();
             var userService = resolver.ResolveRequired<IUserService>();
             var userRepository = resolver.Resolve<IUserRepository>();
-            var name = userService.GetUserName(2);
-
+            var name = userService.GetIdAsync();
+            var r = name.Result;
             Console.WriteLine("name:" + name);
 
             using (var scope = resolver.CreateScope())

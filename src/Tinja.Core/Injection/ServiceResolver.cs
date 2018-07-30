@@ -10,7 +10,7 @@ namespace Tinja.Core.Injection
         /// <summary>
         /// <see cref="IServiceLifeScope"/>
         /// </summary>
-        public IServiceLifeScope ServiceLifeScope { get; }
+        public IServiceLifeScope Scope { get; }
 
         /// <summary>
         /// <see cref="IActivatorProvider"/>
@@ -25,7 +25,7 @@ namespace Tinja.Core.Injection
         internal ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
         {
             ActivatorProvider = serviceActivatorProvider;
-            ServiceLifeScope = serviceLifeScopeFactory.Create(this);
+            Scope = serviceLifeScopeFactory.Create(this);
         }
 
         /// <summary>
@@ -35,17 +35,17 @@ namespace Tinja.Core.Injection
         internal ServiceResolver(IServiceResolver parent)
         {
             ActivatorProvider = parent.Resolve<IActivatorProvider>();
-            ServiceLifeScope = parent.Resolve<IServiceLifeScopeFactory>().Create(this, parent.ServiceLifeScope);
+            Scope = parent.Resolve<IServiceLifeScopeFactory>().Create(this, parent.Scope);
         }
 
         public object Resolve(Type serviceType)
         {
-            return ActivatorProvider.Get(serviceType)?.Invoke(this, ServiceLifeScope);
+            return ActivatorProvider.Get(serviceType)?.Invoke(this, Scope);
         }
 
         public void Dispose()
         {
-            ServiceLifeScope.Dispose();
+            Scope.Dispose();
         }
     }
 }

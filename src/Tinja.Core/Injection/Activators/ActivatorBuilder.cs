@@ -46,15 +46,7 @@ namespace Tinja.Core.Injection.Activators
                 );
             }
 
-            var listInit = Expression.ListInit(Expression.New(element.ConstructorInfo), elementInits);
-
-            if (element.LifeStyle != ServiceLifeStyle.Transient ||
-                element.ImplementionType.IsType(typeof(IDisposable)))
-            {
-                return ResolveServiceLifeStyle(listInit, element);
-            }
-
-            return listInit;
+            return Expression.ListInit(Expression.New(element.ConstructorInfo), elementInits);
         }
 
         protected override Expression VisitInstance(InstanceCallDependencyElement element)
@@ -71,7 +63,7 @@ namespace Tinja.Core.Injection.Activators
                 element.Delegate.Method.ReturnType.IsType(typeof(IDisposable)) ||
                 element.LifeStyle != ServiceLifeStyle.Transient)
             {
-                return ResolveServiceLifeStyle(invocation, element);
+                return ResolveServiceLife(Tuple.Create(element.ServiceType, element.Delegate), invocation, element);
             }
 
             return invocation;
@@ -113,7 +105,7 @@ namespace Tinja.Core.Injection.Activators
             if (element.LifeStyle != ServiceLifeStyle.Transient ||
                 element.ImplementionType.IsType(typeof(IDisposable)))
             {
-                return ResolveServiceLifeStyle(memberInit, element);
+                return ResolveServiceLife(Tuple.Create(element.ServiceType, element.ImplementionType), memberInit, element);
             }
 
             return memberInit;
@@ -143,7 +135,7 @@ namespace Tinja.Core.Injection.Activators
             return Expression.MemberInit(newExpression, propertyBindings);
         }
 
-        protected virtual Expression ResolveServiceLifeStyle(Expression serviceExpression, CallDepenencyElement element)
+        protected virtual Expression ResolveServiceLife(object cacheKey, Expression serviceExpression, CallDepenencyElement element)
         {
             if (serviceExpression == null)
             {
@@ -161,13 +153,13 @@ namespace Tinja.Core.Injection.Activators
                     .Lambda(serviceExpression, ActivatorUtil.ParameterResolver, ActivatorUtil.ParameterScope)
                     .Compile();
 
-            var factory = (Func<IServiceResolver, object>)(resolver => preCompiledFunc(resolver, resolver.ServiceLifeScope));
+            var factory = (Func<IServiceResolver, object>)(resolver => preCompiledFunc(resolver, resolver.Scope));
 
             return
                 Expression
                     .Invoke(
                         ActivatorUtil.ApplyLifeConstant,
-                        Expression.Constant(element.ServiceType),
+                        Expression.Constant(cacheKey),
                         Expression.Constant(element.LifeStyle),
                         ActivatorUtil.ParameterScope,
                         Expression.Constant(factory)

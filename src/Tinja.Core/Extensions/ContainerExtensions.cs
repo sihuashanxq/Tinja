@@ -82,11 +82,11 @@ namespace Tinja.Core.Extensions
                 throw new NullReferenceException(nameof(factory));
             }
 
-            container.AddSingleton<IActivatorFactory>(resolver=> factory);
-            container.AddSingleton<IActivatorProvider>(resolver=> provider);
+            container.AddSingleton<IActivatorProvider>(resolver => provider);
+            container.AddSingleton<IServiceLifeScopeFactory>(resolver => factory);
 
             container.AddScoped<IServiceResolver>(resolver => resolver);
-            container.AddScoped<IServiceLifeScope>(resolver => resolver.ServiceLifeScope);
+            container.AddScoped<IServiceLifeScope>(resolver => resolver.Scope);
 
             return new ServiceResolver(provider, factory);
         }
@@ -578,47 +578,43 @@ namespace Tinja.Core.Extensions
                 throw new InvalidOperationException($"ServiceType:{component.ServiceType.FullName} have not an Implementation!");
             }
 
-            container.Components.AddOrUpdate(
-                component.ServiceType,
-                 new List<Component>() { component },
-                (k, v) =>
+            container.Components.AddOrUpdate(component.ServiceType, new List<Component>() { component }, (key, components) =>
+            {
+                if (components.Contains(component))
                 {
-                    if (v.Contains(component))
-                    {
-                        return v;
-                    }
-
-                    lock (container.Components)
-                    {
-                        if (v.Contains(component))
-                        {
-                            return v;
-                        }
-
-                        foreach (var item in v)
-                        {
-                            if (item.ServiceType == component.ServiceType &&
-                                item.ImplementationType != null &&
-                                item.ImplementationType == component.ImplementationType)
-                            {
-                                item.LifeStyle = component.LifeStyle;
-                                return v;
-                            }
-
-                            if (item.ServiceType == component.ServiceType &&
-                                item.ImplementationFactory != null &&
-                                item.ImplementationFactory == component.ImplementationFactory)
-                            {
-                                item.LifeStyle = component.LifeStyle;
-                                return v;
-                            }
-                        }
-
-                        v.Add(component);
-                        return v;
-                    }
+                    return components;
                 }
-            );
+
+                lock (container.Components)
+                {
+                    if (components.Contains(component))
+                    {
+                        return components;
+                    }
+
+                    foreach (var item in components)
+                    {
+                        if (item.ServiceType == component.ServiceType &&
+                            item.ImplementationType != null &&
+                            item.ImplementationType == component.ImplementationType)
+                        {
+                            item.LifeStyle = component.LifeStyle;
+                            return components;
+                        }
+
+                        if (item.ServiceType == component.ServiceType &&
+                            item.ImplementationFactory != null &&
+                            item.ImplementationFactory == component.ImplementationFactory)
+                        {
+                            item.LifeStyle = component.LifeStyle;
+                            return components;
+                        }
+                    }
+
+                    components.Add(component);
+                    return components;
+                }
+            });
         }
     }
 }

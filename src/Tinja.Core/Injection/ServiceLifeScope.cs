@@ -14,7 +14,7 @@ namespace Tinja.Core.Injection
 
         private readonly List<object> _needCollectedObjects;
 
-        private readonly Dictionary<Type, object> _scopedSingleObjects;
+        private readonly Dictionary<object, object> _scopedSingleObjects;
 
         internal ServiceLifeScope(IServiceResolver resolver, IServiceLifeScope root) : this(resolver)
         {
@@ -32,40 +32,28 @@ namespace Tinja.Core.Injection
         {
             _resolver = resolver;
             _needCollectedObjects = new List<object>();
-            _scopedSingleObjects = new Dictionary<Type, object>();
+            _scopedSingleObjects = new Dictionary<object, object>();
         }
 
-        public virtual void AddResolvedService(object instance)
+        protected virtual object GetOrAddScopedInstance(object cacheKey, Func<IServiceResolver, object> factory)
         {
-            if (_rootScope != null)
-            {
-                _rootScope.AddResolvedService(instance);
-            }
-            else
-            {
-                _needCollectedObjects.Add(instance);
-            }
-        }
-
-        protected virtual object GetOrAddScopedInstance(Type serviceType, Func<IServiceResolver, object> factory)
-        {
-            if (_scopedSingleObjects.TryGetValue(serviceType, out var obj))
+            if (_scopedSingleObjects.TryGetValue(cacheKey, out var obj))
             {
                 return obj;
             }
 
             lock (_scopedSingleObjects)
             {
-                if (_scopedSingleObjects.TryGetValue(serviceType, out obj))
+                if (_scopedSingleObjects.TryGetValue(cacheKey, out obj))
                 {
                     return obj;
                 }
 
-                return _scopedSingleObjects[serviceType] = factory(_resolver);
+                return _scopedSingleObjects[cacheKey] = factory(_resolver);
             }
         }
 
-        protected virtual object GetOrAddTransientInstance(Type serviceType, Func<IServiceResolver, object> factory)
+        protected virtual object GetOrAddTransientInstance(object cacheKey, Func<IServiceResolver, object> factory)
         {
             var instance = factory(_resolver);
             if (instance is IDisposable)
@@ -76,14 +64,14 @@ namespace Tinja.Core.Injection
             return instance;
         }
 
-        protected virtual object GetOrAddSingletonInstance(Type serviceType, Func<IServiceResolver, object> factory)
+        protected virtual object GetOrAddSingletonInstance(object cacheKey, Func<IServiceResolver, object> factory)
         {
             return _rootScope == null
-                ? GetOrAddScopedInstance(serviceType, factory)
-                : _rootScope.GetOrAddResolvedService(serviceType, ServiceLifeStyle.Singleton, factory);
+                ? GetOrAddScopedInstance(cacheKey, factory)
+                : _rootScope.GetOrAddResolvedService(cacheKey, ServiceLifeStyle.Singleton, factory);
         }
 
-        public object GetOrAddResolvedService(Type serviceType, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
+        public object GetOrAddResolvedService(object cacheKey, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
         {
             if (_disposed)
             {
@@ -93,11 +81,11 @@ namespace Tinja.Core.Injection
             switch (lifeStyle)
             {
                 case ServiceLifeStyle.Transient:
-                    return GetOrAddTransientInstance(serviceType, factory);
+                    return GetOrAddTransientInstance(cacheKey, factory);
                 case ServiceLifeStyle.Scoped:
-                    return GetOrAddScopedInstance(serviceType, factory);
+                    return GetOrAddScopedInstance(cacheKey, factory);
                 default:
-                    return GetOrAddSingletonInstance(serviceType, factory);
+                    return GetOrAddSingletonInstance(cacheKey, factory);
             }
         }
 

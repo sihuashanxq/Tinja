@@ -4,8 +4,8 @@ namespace Tinja.Abstractions.Injection
 {
     public interface IServiceResolver : IDisposable
     {
-        object Resolve(Type serviceType);
+        IServiceLifeScope Scope { get; }
 
-        IServiceLifeScope ServiceLifeScope { get; }
+        object Resolve(Type serviceType);
     }
 }

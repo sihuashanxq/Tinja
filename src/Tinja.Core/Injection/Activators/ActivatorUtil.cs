@@ -6,7 +6,7 @@ namespace Tinja.Core.Injection.Activators
 {
     internal static class ActivatorUtil
     {
-        internal delegate object ApplyLifeDelegate(Type serviceType, ServiceLifeStyle lifeStyle, IServiceLifeScope lifeScope, Func<IServiceResolver, object> factory);
+        internal delegate object ApplyLifeDelegate(object cacheKey, ServiceLifeStyle lifeStyle, IServiceLifeScope lifeScope, Func<IServiceResolver, object> factory);
 
         internal static ApplyLifeDelegate ApplyLifeFunc { get; }
 
@@ -21,7 +21,7 @@ namespace Tinja.Core.Injection.Activators
             ParameterScope = Expression.Parameter(typeof(IServiceLifeScope));
             ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
 
-            ApplyLifeFunc = (serviceType, lifeStyle, scope, factory) => scope.GetOrAddResolvedService(serviceType, lifeStyle, factory);
+            ApplyLifeFunc = (cacheKey, lifeStyle, scope, factory) => scope.GetOrAddResolvedService(cacheKey, lifeStyle, factory);
             ApplyLifeConstant = Expression.Constant(ApplyLifeFunc, typeof(ApplyLifeDelegate));
         }
     }

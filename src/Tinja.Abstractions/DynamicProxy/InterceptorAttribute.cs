@@ -16,7 +16,7 @@ namespace Tinja.Abstractions.DynamicProxy
         {
             if (interceptorType.IsNotType<IInterceptor>())
             {
-                throw new NotSupportedException($"type:{interceptorType.FullName} must implement the interface{typeof(IInterceptor).FullName}");
+                throw new NotSupportedException($"Type:{interceptorType.FullName} can not cast to the interface:{typeof(IInterceptor).FullName}");
             }
 
             InterceptorType = interceptorType;

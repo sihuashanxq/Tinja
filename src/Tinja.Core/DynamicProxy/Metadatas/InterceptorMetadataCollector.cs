@@ -9,16 +9,16 @@ namespace Tinja.Core.DynamicProxy.Metadatas
 {
     public class InterceptorMetadataCollector : IInterceptorMetadataCollector
     {
-        protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Caches { get; }
+        protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Cache { get; }
 
         public InterceptorMetadataCollector(IMemberMetadataProvider memberCollectorFactory)
         {
-            Caches = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>>();
+            Cache = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>>();
         }
 
         public IEnumerable<InterceptorMetadata> Collect(MemberMetadata metadata)
         {
-            return Caches.GetOrAdd(metadata.Member, key => Collect(metadata.Member, metadata.InterfaceInherits.Select(item => item.Member).ToArray()));
+            return Cache.GetOrAdd(metadata.Member, key => Collect(metadata.Member, metadata.InterfaceInherits.Select(item => item.Member).ToArray()));
         }
 
         protected virtual IEnumerable<InterceptorMetadata> Collect(MemberInfo memberInfo, MemberInfo[] implementsInterfaces)
