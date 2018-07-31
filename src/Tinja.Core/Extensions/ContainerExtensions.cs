@@ -7,6 +7,7 @@ using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Configurations;
+using Tinja.Abstractions.Injection.Dependency;
 using Tinja.Abstractions.Injection.Descriptors;
 using Tinja.Core.Configurations;
 using Tinja.Core.Injection;
@@ -39,22 +40,8 @@ namespace Tinja.Core.Extensions
                 throw new NullReferenceException(nameof(configuration));
             }
 
-            var scopeFactory = new ServiceLifeScopeFactory();
             var serviceFactory = new ServiceDescriptorFactory();
-
-            var activatorFactory = container.BuildActivatorFactory(configuration.Injection, serviceFactory);
-            if (activatorFactory == null)
-            {
-                throw new NullReferenceException(nameof(activatorFactory));
-            }
-
-            var activatorProvider = container.BuildActivatorProvider(activatorFactory);
-            if (activatorProvider == null)
-            {
-                throw new NullReferenceException(nameof(activatorProvider));
-            }
-
-            var serviceResolver = container.BuildServiceResolver(activatorProvider, scopeFactory);
+            var serviceResolver = container.BuildServiceResolver(new CallDependencyElementBuilderFactory(serviceFactory, configuration.Injection));
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));
@@ -65,65 +52,22 @@ namespace Tinja.Core.Extensions
             return serviceResolver;
         }
 
-        internal static IServiceResolver BuildServiceResolver(this IContainer container, IActivatorProvider provider, IServiceLifeScopeFactory factory)
+        internal static IServiceResolver BuildServiceResolver(this IContainer container, ICallDependencyElementBuilderFactory factory)
         {
             if (container == null)
             {
                 throw new NullReferenceException(nameof(container));
             }
 
-            if (provider == null)
-            {
-                throw new NullReferenceException(nameof(provider));
-            }
-
             if (factory == null)
             {
                 throw new NullReferenceException(nameof(factory));
             }
-
-            container.AddSingleton<IActivatorProvider>(resolver => provider);
-            container.AddSingleton<IServiceLifeScopeFactory>(resolver => factory);
 
             container.AddScoped<IServiceResolver>(resolver => resolver);
             container.AddScoped<IServiceLifeScope>(resolver => resolver.Scope);
 
-            return new ServiceResolver(provider, factory);
-        }
-
-        internal static IActivatorFactory BuildActivatorFactory(this IContainer container, IInjectionConfiguration configuration, IServiceDescriptorFactory serviceFactory)
-        {
-            if (configuration == null)
-            {
-                throw new NullReferenceException(nameof(configuration));
-            }
-
-            if (container == null)
-            {
-                throw new NullReferenceException(nameof(container));
-            }
-
-            if (serviceFactory == null)
-            {
-                throw new NullReferenceException(nameof(serviceFactory));
-            }
-
-            return new ActivatorFactory(new CallDependencyElementBuilderFactory(serviceFactory, configuration));
-        }
-
-        internal static IActivatorProvider BuildActivatorProvider(this IContainer container, IActivatorFactory factory)
-        {
-            if (factory == null)
-            {
-                throw new NullReferenceException(nameof(factory));
-            }
-
-            if (container == null)
-            {
-                throw new NullReferenceException(nameof(container));
-            }
-
-            return new ActivatorProvider(factory);
+            return new ServiceResolver(factory);
         }
 
         /// <summary>

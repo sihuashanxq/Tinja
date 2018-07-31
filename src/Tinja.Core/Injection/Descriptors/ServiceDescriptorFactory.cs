@@ -47,7 +47,7 @@ namespace Tinja.Core.Injection.Descriptors
 
                 foreach (var item in _registeredServices[kv.Key].Where(item => item.ImplementationInstance != null))
                 {
-                    serviceResolver.Scope.ServiceRootScope.ResolveCachedService(item.ServiceId, resolver => item.ImplementationInstance);
+                    serviceResolver.Scope.ServiceRootScope.Factory.CreateService(item.ServiceId, resolver => item.ImplementationInstance);
                 }
             }
         }

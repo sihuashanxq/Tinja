@@ -8,18 +8,22 @@ namespace Tinja.Core.Injection
     {
         private bool _isDisposed;
 
+        public IServiceFactory Factory { get; }
+
         public IServiceResolver ServiceResolver { get; }
 
         public IServiceLifeScope ServiceRootScope { get; }
 
-        protected List<IDisposable> DisposableServices { get; }
+        protected internal List<IDisposable> DisposableServices { get; }
 
-        protected Dictionary<long, object> CacheResolvedServices { get; }
+        protected internal Dictionary<long, object> CacheResolvedServices { get; }
 
         public ServiceLifeScope(IServiceResolver serviceResolver, IServiceLifeScope scope)
         {
             ServiceResolver = serviceResolver;
             ServiceRootScope = scope.ServiceRootScope ?? scope;
+
+            Factory = new ServiceFactory(this);
             DisposableServices = new List<IDisposable>();
             CacheResolvedServices = new Dictionary<long, object>();
         }
@@ -28,57 +32,9 @@ namespace Tinja.Core.Injection
         {
             ServiceRootScope = this;
             ServiceResolver = serviceResolver;
+            Factory = new ServiceFactory(this);
             DisposableServices = new List<IDisposable>();
             CacheResolvedServices = new Dictionary<long, object>();
-        }
-
-        public object ResolveService(Func<IServiceResolver, object> factory)
-        {
-            if (_isDisposed)
-            {
-                throw new NotSupportedException("the scope has disposed!");
-            }
-
-            var service = factory(ServiceResolver);
-
-            CaptureDisposableService(service);
-
-            return service;
-        }
-
-        public object ResolveCachedService(long cacheKey, Func<IServiceResolver, object> factory)
-        {
-            if (_isDisposed)
-            {
-                throw new NotSupportedException("the scope has disposed!");
-            }
-
-            if (CacheResolvedServices.TryGetValue(cacheKey, out var service))
-            {
-                return service;
-            }
-
-            lock (CacheResolvedServices)
-            {
-                if (CacheResolvedServices.TryGetValue(cacheKey, out service))
-                {
-                    return service;
-                }
-
-                service = CacheResolvedServices[cacheKey] = factory(ServiceResolver);
-
-                CaptureDisposableService(service);
-
-                return service;
-            }
-        }
-
-        protected virtual void CaptureDisposableService(object service)
-        {
-            if (service is IDisposable disposable)
-            {
-                DisposableServices.Add(disposable);
-            }
         }
 
         ~ServiceLifeScope()

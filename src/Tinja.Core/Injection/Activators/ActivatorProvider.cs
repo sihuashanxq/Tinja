@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
+using Tinja.Abstractions.Injection.Dependency;
 
 namespace Tinja.Core.Injection.Activators
 {
@@ -13,9 +14,9 @@ namespace Tinja.Core.Injection.Activators
 
         private static readonly Func<IServiceResolver, IServiceLifeScope, object> Default = (resolver, scope) => null;
 
-        public ActivatorProvider(IActivatorFactory factory)
+        public ActivatorProvider(IServiceLifeScope serviceScope, ICallDependencyElementBuilderFactory factory)
         {
-            _factory = factory;
+            _factory = new ActivatorFactory(serviceScope, factory);
             _activators = new Dictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();
         }
 

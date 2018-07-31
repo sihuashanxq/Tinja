@@ -15,7 +15,7 @@ namespace ConsoleApp
         {
             var container = new Container();
             var s = new UserRepository();
-            container.AddScoped<IUserService, UserService1>();
+            container.AddSingleton<IUserService, UserService1>();
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
             container.AddScoped(typeof(IUserRepository), typeof(UserRepository));
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();

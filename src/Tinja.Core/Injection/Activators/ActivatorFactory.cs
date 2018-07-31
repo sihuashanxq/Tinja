@@ -7,10 +7,13 @@ namespace Tinja.Core.Injection.Activators
 {
     public class ActivatorFactory : IActivatorFactory
     {
+        private readonly IActivatorBuilder _builder;
+
         private readonly ICallDependencyElementBuilderFactory _callDependencyElementBuilderFactory;
 
-        public ActivatorFactory(ICallDependencyElementBuilderFactory factory)
+        public ActivatorFactory(IServiceLifeScope serviceScope, ICallDependencyElementBuilderFactory factory)
         {
+            _builder = new ActivatorBuilder(serviceScope);
             _callDependencyElementBuilderFactory = factory;
         }
 
@@ -28,7 +31,7 @@ namespace Tinja.Core.Injection.Activators
                 return null;
             }
 
-            return ActivatorBuilder.Default.Build(element);
+            return _builder.Build(element);
         }
     }
 }

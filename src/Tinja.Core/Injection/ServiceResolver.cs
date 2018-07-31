@@ -1,7 +1,8 @@
 ﻿using System;
-using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activators;
+using Tinja.Abstractions.Injection.Dependency;
+using Tinja.Core.Injection.Activators;
 
 namespace Tinja.Core.Injection
 {
@@ -15,32 +16,30 @@ namespace Tinja.Core.Injection
         /// <summary>
         /// <see cref="IActivatorProvider"/>
         /// </summary>
-        protected IActivatorProvider ActivatorProvider { get; }
+        public IActivatorProvider Provider { get; }
 
         /// <summary>
         /// 创建ServiceResolver:root
         /// </summary>
-        /// <param name="serviceActivatorProvider"></param>
-        /// <param name="serviceLifeScopeFactory"></param>
-        internal ServiceResolver(IActivatorProvider serviceActivatorProvider, IServiceLifeScopeFactory serviceLifeScopeFactory)
+        internal ServiceResolver(ICallDependencyElementBuilderFactory factory)
         {
-            ActivatorProvider = serviceActivatorProvider;
-            Scope = serviceLifeScopeFactory.Create(this);
+            Scope = new ServiceLifeScope(this);
+            Provider = new ActivatorProvider(Scope, factory);
         }
 
         /// <summary>
         /// 创建ServiceResolver:Scope
         /// </summary>
-        /// <param name="parent"></param>
-        internal ServiceResolver(IServiceResolver parent)
+        /// <param name="serviceResolver"></param>
+        internal ServiceResolver(IServiceResolver serviceResolver)
         {
-            ActivatorProvider = parent.Resolve<IActivatorProvider>();
-            Scope = parent.Resolve<IServiceLifeScopeFactory>().Create(this, parent.Scope);
+            Provider = serviceResolver.Provider;
+            Scope = new ServiceLifeScope(this, serviceResolver.Scope);
         }
 
         public object Resolve(Type serviceType)
         {
-            return ActivatorProvider.Get(serviceType)?.Invoke(this, Scope);
+            return Provider.Get(serviceType)?.Invoke(this, Scope);
         }
 
         public void Dispose()

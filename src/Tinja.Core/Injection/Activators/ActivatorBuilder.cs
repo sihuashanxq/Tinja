@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
@@ -11,7 +10,22 @@ namespace Tinja.Core.Injection.Activators
 {
     public class ActivatorBuilder : CallDependencyElementVisitor<Expression>, IActivatorBuilder
     {
-        public static readonly IActivatorBuilder Default = new ActivatorBuilder();
+        internal IServiceLifeScope ServiceRootScope { get; }
+
+        public ActivatorBuilder(IServiceLifeScope serviceScope)
+        {
+            if (serviceScope == null)
+            {
+                throw new NullReferenceException(nameof(serviceScope));
+            }
+
+            if (serviceScope.ServiceRootScope == null)
+            {
+                throw new NullReferenceException(nameof(serviceScope.ServiceRootScope));
+            }
+
+            ServiceRootScope = serviceScope.ServiceRootScope;
+        }
 
         public virtual Func<IServiceResolver, IServiceLifeScope, object> Build(CallDepenencyElement element)
         {
@@ -47,7 +61,7 @@ namespace Tinja.Core.Injection.Activators
 
         protected override Expression VisitInstance(InstanceCallDependencyElement element)
         {
-            return Expression.Constant(element.Instance);
+            return CaptureServiceLife(Expression.Constant(element.Instance), element);
         }
 
         protected override Expression VisitDelegate(DelegateCallDepenencyElement element)
@@ -59,7 +73,7 @@ namespace Tinja.Core.Injection.Activators
                 element.Delegate.Method.ReturnType.IsType(typeof(IDisposable)) ||
                 element.LifeStyle != ServiceLifeStyle.Transient)
             {
-                return ResolveService(invocation, element);
+                return CaptureServiceLife(invocation, element);
             }
 
             return invocation;
@@ -100,7 +114,7 @@ namespace Tinja.Core.Injection.Activators
 
             if (element.LifeStyle != ServiceLifeStyle.Transient || element.ImplementionType.IsType<IDisposable>())
             {
-                return ResolveService(memberInit, element);
+                return CaptureServiceLife(memberInit, element);
             }
 
             return memberInit;
@@ -130,7 +144,7 @@ namespace Tinja.Core.Injection.Activators
             return Expression.MemberInit(newExpression, propertyBindings);
         }
 
-        protected virtual Expression ResolveService(Expression serviceExpression, CallDepenencyElement element)
+        protected virtual Expression CaptureServiceLife(Expression serviceExpression, CallDepenencyElement element)
         {
             if (serviceExpression == null)
             {
@@ -150,17 +164,17 @@ namespace Tinja.Core.Injection.Activators
 
             var factory = (Func<IServiceResolver, object>)(resolver => preCompiledFunc(resolver, resolver.Scope));
 
-            switch (element.LifeStyle)
+            if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                case ServiceLifeStyle.Transient:
-                    return Expression.Invoke(ActivatorUtil.ResolveSingletonServiceConstant, ActivatorUtil.ParameterScope, Expression.Constant(factory));
-                case ServiceLifeStyle.Scoped:
-                    return Expression.Invoke(ActivatorUtil.ResolveScopedServiceConstant, Expression.Constant(element.ServiceId), ActivatorUtil.ParameterScope, Expression.Constant(factory));
-                case ServiceLifeStyle.Singleton:
-                    return Expression.Invoke(ActivatorUtil.ResolveSingletonServiceConstant, Expression.Constant(element.ServiceId), ActivatorUtil.ParameterScope, Expression.Constant(factory));
-                default:
-                    throw new ArgumentOutOfRangeException();
+                return Expression.Constant(ServiceRootScope.Factory.CreateService(element.ServiceId, factory));
             }
+
+            if (element.LifeStyle == ServiceLifeStyle.Scoped)
+            {
+                return Expression.Invoke(ActivatorUtil.CreateScopedServiceConstant, Expression.Constant(element.ServiceId), ActivatorUtil.ParameterScope, Expression.Constant(factory));
+            }
+
+            return Expression.Invoke(ActivatorUtil.CreateTransientServieConstant, ActivatorUtil.ParameterScope, Expression.Constant(factory));
         }
     }
 }
