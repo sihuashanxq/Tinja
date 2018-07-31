@@ -12,6 +12,8 @@ namespace Tinja.Abstractions.Injection.Descriptors
         /// </summary>
         public Type ServiceType { get; set; }
 
+        public long ServiceId { get; set; }
+
         /// <summary>
         /// the life style of service 
         /// </summary>

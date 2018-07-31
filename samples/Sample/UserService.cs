@@ -3,7 +3,7 @@ using Tinja.Abstractions.DynamicProxy;
 
 namespace ConsoleApp
 {
-    [Interceptor(typeof(UserServiceDataAnnotationInterceptor), Inherited = true)]
+    //[Interceptor(typeof(UserServiceDataAnnotationInterceptor), Inherited = true)]
     public interface IUserService
     {
         string GetUserName(int id);
@@ -27,7 +27,7 @@ namespace ConsoleApp
 
         public ValueTask<int> GetIdAsync()
         {
-            throw new System.NotImplementedException();
+            return new ValueTask<int>(0);
         }
 
         public virtual string GetUserName(int id)

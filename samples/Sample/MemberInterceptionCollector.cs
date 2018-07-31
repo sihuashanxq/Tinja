@@ -7,11 +7,7 @@ namespace ConsoleApp
     {
         public IEnumerable<InterceptorMetadata> Collect(MemberMetadata metadata)
         {
-            if (metadata.Member.DeclaringType != null &&
-                metadata.Member.DeclaringType.Name.StartsWith("IUserService"))
-            {
-                yield return new InterceptorMetadata(10, typeof(UserServiceInterceptor), metadata.Member);
-            }
+            return new InterceptorMetadata[0];
         }
     }
 }

@@ -6,8 +6,8 @@ namespace Tinja.Core.Injection.Descriptors
 {
     public class ServiceManyDescriptor : ServiceDescriptor
     {
-        public List<ServiceDescriptor> Elements { get; set; }
+        public Type ElementType { get; set; }
 
-        public Type CollectionType { get; set; }
+        public List<ServiceDescriptor> Elements { get; set; }
     }
 }

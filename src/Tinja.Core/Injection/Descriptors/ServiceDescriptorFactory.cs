@@ -1,72 +1,82 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Descriptors;
+using Tinja.Core.Injection.Descriptors.Internals;
 
 namespace Tinja.Core.Injection.Descriptors
 {
     public class ServiceDescriptorFactory : IServiceDescriptorFactory
     {
-        protected Dictionary<Type, List<Component>> Components { get; }
+        private readonly SeviceIdFactory _serviceIdFactory;
+
+        private readonly Dictionary<Type, List<ServiceEntry>> _registeredServices;
 
         internal ServiceDescriptorFactory()
         {
-            Components = new Dictionary<Type, List<Component>>();
+            _serviceIdFactory = new SeviceIdFactory();
+            _registeredServices = new Dictionary<Type, List<ServiceEntry>>();
         }
 
-        public virtual void Populate(ConcurrentDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        internal virtual void Populate(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
         {
+            if (components == null)
+            {
+                throw new NullReferenceException(nameof(components));
+            }
+
+            if (serviceResolver == null)
+            {
+                throw new NullReferenceException(nameof(serviceResolver));
+            }
+
             PopulateBegin(components, serviceResolver);
             PopulateEnd(serviceResolver);
         }
 
-        protected virtual void PopulateBegin(ConcurrentDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        protected virtual void PopulateBegin(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
         {
             foreach (var kv in components)
             {
-                Components[kv.Key] = kv.Value.Select(i => i.Clone()).ToList();
+                _registeredServices[kv.Key] = kv
+                    .Value
+                    .Select(item => new ServiceEntry(_serviceIdFactory.CreateSeviceId(), item))
+                    .ToList();
 
-                foreach (var item in Components[kv.Key])
+                foreach (var item in _registeredServices[kv.Key].Where(item => item.ImplementationInstance != null))
                 {
-                    if (item.ImplementationInstance != null)
-                    {
-                        serviceResolver.Scope.GetOrAddResolvedService(Tuple.Create(item.ServiceType, item.ImplementationInstance), item.LifeStyle, resolver => item.ImplementationInstance);
-                    }
+                    serviceResolver.Scope.ServiceRootScope.ResolveCachedService(item.ServiceId, resolver => item.ImplementationInstance);
                 }
             }
         }
 
         protected virtual void PopulateEnd(IServiceResolver serviceResolver)
         {
-            var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.Resolve(typeof(IProxyTypeFactory));
-  
-            foreach (var kv in Components)
+            var factory = (IProxyTypeFactory)serviceResolver.Resolve(typeof(IProxyTypeFactory));
+
+            foreach (var kv in _registeredServices)
             {
-                foreach (var item in Components[kv.Key])
+                foreach (var item in _registeredServices[kv.Key].Where(item => item.ImplementationType != null))
                 {
-                    if (item.ImplementationType == null)
+                    var proxyImplementationType = factory?.CreateProxyType(item.ImplementationType);
+                    if (proxyImplementationType != null)
                     {
+                        item.ImplementationType = proxyImplementationType;
                         continue;
                     }
 
-                    var proxyType = proxyTypeFactory?.CreateProxyType(item.ImplementationType);
-                    if (proxyType != null)
+                    if (item.ImplementationType != null &&
+                        item.ImplementationType.IsAbstract)
                     {
-                        item.ImplementationType = proxyType;
-                        continue;
+                        throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Abstract when have not Interceptors!");
                     }
 
-                    if (item.ImplementationType != null && item.ImplementationType.IsAbstract)
+                    if (item.ImplementationType != null &&
+                        item.ImplementationType.IsInterface)
                     {
-                        throw new InvalidOperationException($"ImplementionType:{item.ImplementationType.FullName} not can be Abstract when have not Interceptors!");
-                    }
-
-                    if (item.ImplementationType != null && item.ImplementationType.IsInterface)
-                    {
-                        throw new InvalidOperationException($"ImplementionType:{item.ImplementationType.FullName} not can be Interface when have not Interceptors!");
+                        throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Interface when have not Interceptors!");
                     }
                 }
             }
@@ -76,80 +86,75 @@ namespace Tinja.Core.Injection.Descriptors
         {
             return
                 CreateDirectly(serviceType) ??
-                CreateOpenGeneric(serviceType) ??
+                CreateGenerically(serviceType) ??
                 CreateEnumerable(serviceType);
         }
 
-        protected ServiceDescriptor Create(Type serviceType, Component component)
+        protected ServiceDescriptor Create(Type serviceType, ServiceEntry entry)
         {
-            if (component.ImplementationFactory != null)
+            if (entry.ImplementationFactory != null)
             {
                 return new ServiceDelegateDescriptor()
                 {
                     ServiceType = serviceType,
-                    LifeStyle = component.LifeStyle,
-                    Delegate = component.ImplementationFactory
+                    LifeStyle = entry.LifeStyle,
+                    ServiceId = entry.ServiceId,
+                    Delegate = entry.ImplementationFactory
                 };
             }
 
-            if (component.ImplementationInstance != null)
+            if (entry.ImplementationInstance != null)
             {
                 return new ServiceInstanceDescriptor()
                 {
                     ServiceType = serviceType,
-                    LifeStyle = component.LifeStyle,
-                    Instance = component.ImplementationInstance
+                    LifeStyle = entry.LifeStyle,
+                    Instance = entry.ImplementationInstance,
+                    ServiceId = entry.ServiceId
                 };
             }
 
             return new ServiceConstrcutorDescriptor()
             {
                 ServiceType = serviceType,
-                LifeStyle = component.LifeStyle,
-                ImplementationType = MakeGenericImplementionType(serviceType, component.ImplementationType)
+                LifeStyle = entry.LifeStyle,
+                ServiceId = entry.ServiceId,
+                ImplementationType = CreateGenericImplementationType(serviceType, entry.ImplementationType)
             };
         }
 
         protected virtual ServiceDescriptor CreateDirectly(Type serviceType)
         {
-            if (Components.TryGetValue(serviceType, out var components))
+            if (_registeredServices.TryGetValue(serviceType, out var services))
             {
-                if (components == null)
+                var entry = services?.LastOrDefault();
+                if (entry == null)
                 {
                     return null;
                 }
 
-                var component = components.LastOrDefault();
-                if (component == null)
-                {
-                    return null;
-                }
-
-                return Create(serviceType, component);
+                return Create(serviceType, entry);
             }
 
             return null;
         }
 
-        protected virtual ServiceDescriptor CreateOpenGeneric(Type serviceType)
+        protected virtual ServiceDescriptor CreateGenerically(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType)
             {
                 return null;
             }
 
-            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
+            if (_registeredServices.TryGetValue(serviceType.GetGenericTypeDefinition(), out var entries))
             {
-                if (components == null)
+                var entry = entries?.LastOrDefault();
+                if (entry == null)
                 {
                     return null;
                 }
 
-                var component = components.LastOrDefault();
-                if (component != null)
-                {
-                    return Create(serviceType, component);
-                }
+                return Create(serviceType, entry);
             }
 
             return null;
@@ -162,22 +167,15 @@ namespace Tinja.Core.Injection.Descriptors
                 return null;
             }
 
-            var component = new Component()
-            {
-                ServiceType = typeof(IEnumerable<>),
-                ImplementationType = typeof(List<>).MakeGenericType(serviceType.GenericTypeArguments),
-                LifeStyle = ServiceLifeStyle.Scoped
-            };
-
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
             var elements = CreateElements(elementType).Reverse().ToList();
 
             return new ServiceManyDescriptor()
             {
+                Elements = elements,
                 ServiceType = serviceType,
-                CollectionType = MakeGenericImplementionType(serviceType, component.ImplementationType),
-                LifeStyle = component.LifeStyle,
-                Elements = elements
+                ElementType = elementType,
+                LifeStyle = ServiceLifeStyle.Transient
             };
         }
 
@@ -191,14 +189,14 @@ namespace Tinja.Core.Injection.Descriptors
             }
 
             elements.AddRange(CreateElementsDirectly(serviceType));
-            elements.AddRange(CreateElementsOpenGeneric(serviceType));
+            elements.AddRange(CreateElementsGenerically(serviceType));
 
             return elements;
         }
 
         protected virtual IEnumerable<ServiceDescriptor> CreateElementsDirectly(Type serviceType)
         {
-            if (Components.TryGetValue(serviceType, out var components))
+            if (_registeredServices.TryGetValue(serviceType, out var components))
             {
                 return components.Select(i => Create(serviceType, i));
             }
@@ -206,29 +204,29 @@ namespace Tinja.Core.Injection.Descriptors
             return ServiceDescriptor.EmptyDesciptors;
         }
 
-        protected virtual IEnumerable<ServiceDescriptor> CreateElementsOpenGeneric(Type serviceType)
+        protected virtual IEnumerable<ServiceDescriptor> CreateElementsGenerically(Type serviceType)
         {
             if (!serviceType.IsConstructedGenericType)
             {
                 return ServiceDescriptor.EmptyDesciptors;
             }
 
-            if (Components.TryGetValue(serviceType.GetGenericTypeDefinition(), out var components))
+            if (_registeredServices.TryGetValue(serviceType.GetGenericTypeDefinition(), out var entries))
             {
-                return components.Select(i => Create(serviceType, i));
+                return entries.Select(i => Create(serviceType, i));
             }
 
             return ServiceDescriptor.EmptyDesciptors;
         }
 
-        private static Type MakeGenericImplementionType(Type serviceType, Type implementionType)
+        private static Type CreateGenericImplementationType(Type serviceType, Type implementationType)
         {
-            if (!implementionType.IsGenericTypeDefinition || !serviceType.IsConstructedGenericType)
+            if (serviceType.IsConstructedGenericType && implementationType.IsGenericTypeDefinition)
             {
-                return implementionType;
+                return implementationType.MakeGenericType(serviceType.GenericTypeArguments);
             }
 
-            return implementionType.MakeGenericType(serviceType.GenericTypeArguments);
+            return implementationType;
         }
     }
 }

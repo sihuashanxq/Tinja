@@ -6,86 +6,78 @@ namespace Tinja.Core.Injection
 {
     public class ServiceLifeScope : IServiceLifeScope
     {
-        private bool _disposed;
+        private bool _isDisposed;
 
-        private readonly IServiceResolver _resolver;
+        public IServiceResolver ServiceResolver { get; }
 
-        private readonly IServiceLifeScope _rootScope;
+        public IServiceLifeScope ServiceRootScope { get; }
 
-        private readonly List<object> _needCollectedObjects;
+        protected List<IDisposable> DisposableServices { get; }
 
-        private readonly Dictionary<object, object> _scopedSingleObjects;
+        protected Dictionary<long, object> CacheResolvedServices { get; }
 
-        internal ServiceLifeScope(IServiceResolver resolver, IServiceLifeScope root) : this(resolver)
+        public ServiceLifeScope(IServiceResolver serviceResolver, IServiceLifeScope scope)
         {
-            if (!(root is ServiceLifeScope))
-            {
-                _rootScope = root;
-            }
-            else
-            {
-                _rootScope = ((ServiceLifeScope)root)._rootScope ?? root;
-            }
+            ServiceResolver = serviceResolver;
+            ServiceRootScope = scope.ServiceRootScope ?? scope;
+            DisposableServices = new List<IDisposable>();
+            CacheResolvedServices = new Dictionary<long, object>();
         }
 
-        public ServiceLifeScope(IServiceResolver resolver)
+        public ServiceLifeScope(IServiceResolver serviceResolver)
         {
-            _resolver = resolver;
-            _needCollectedObjects = new List<object>();
-            _scopedSingleObjects = new Dictionary<object, object>();
+            ServiceRootScope = this;
+            ServiceResolver = serviceResolver;
+            DisposableServices = new List<IDisposable>();
+            CacheResolvedServices = new Dictionary<long, object>();
         }
 
-        protected virtual object GetOrAddScopedInstance(object cacheKey, Func<IServiceResolver, object> factory)
+        public object ResolveService(Func<IServiceResolver, object> factory)
         {
-            if (_scopedSingleObjects.TryGetValue(cacheKey, out var obj))
+            if (_isDisposed)
             {
-                return obj;
+                throw new NotSupportedException("the scope has disposed!");
             }
 
-            lock (_scopedSingleObjects)
+            var service = factory(ServiceResolver);
+
+            CaptureDisposableService(service);
+
+            return service;
+        }
+
+        public object ResolveCachedService(long cacheKey, Func<IServiceResolver, object> factory)
+        {
+            if (_isDisposed)
             {
-                if (_scopedSingleObjects.TryGetValue(cacheKey, out obj))
+                throw new NotSupportedException("the scope has disposed!");
+            }
+
+            if (CacheResolvedServices.TryGetValue(cacheKey, out var service))
+            {
+                return service;
+            }
+
+            lock (CacheResolvedServices)
+            {
+                if (CacheResolvedServices.TryGetValue(cacheKey, out service))
                 {
-                    return obj;
+                    return service;
                 }
 
-                return _scopedSingleObjects[cacheKey] = factory(_resolver);
+                service = CacheResolvedServices[cacheKey] = factory(ServiceResolver);
+
+                CaptureDisposableService(service);
+
+                return service;
             }
         }
 
-        protected virtual object GetOrAddTransientInstance(object cacheKey, Func<IServiceResolver, object> factory)
+        protected virtual void CaptureDisposableService(object service)
         {
-            var instance = factory(_resolver);
-            if (instance is IDisposable)
+            if (service is IDisposable disposable)
             {
-                _needCollectedObjects.Add(instance);
-            }
-
-            return instance;
-        }
-
-        protected virtual object GetOrAddSingletonInstance(object cacheKey, Func<IServiceResolver, object> factory)
-        {
-            return _rootScope == null
-                ? GetOrAddScopedInstance(cacheKey, factory)
-                : _rootScope.GetOrAddResolvedService(cacheKey, ServiceLifeStyle.Singleton, factory);
-        }
-
-        public object GetOrAddResolvedService(object cacheKey, ServiceLifeStyle lifeStyle, Func<IServiceResolver, object> factory)
-        {
-            if (_disposed)
-            {
-                throw new NotSupportedException("scope has disposed!");
-            }
-
-            switch (lifeStyle)
-            {
-                case ServiceLifeStyle.Transient:
-                    return GetOrAddTransientInstance(cacheKey, factory);
-                case ServiceLifeStyle.Scoped:
-                    return GetOrAddScopedInstance(cacheKey, factory);
-                default:
-                    return GetOrAddSingletonInstance(cacheKey, factory);
+                DisposableServices.Add(disposable);
             }
         }
 
@@ -101,38 +93,28 @@ namespace Tinja.Core.Injection
 
         private void Dispose(bool disposing)
         {
-            if (!disposing || _disposed)
+            if (!disposing || _isDisposed)
             {
                 return;
             }
 
             lock (this)
             {
-                if (_disposed)
+                if (_isDisposed)
                 {
                     return;
                 }
 
-                _disposed = true;
+                _isDisposed = true;
 
-                foreach (var item in _needCollectedObjects)
+                foreach (var item in DisposableServices)
                 {
-                    if (item is IDisposable dispose)
-                    {
-                        dispose.Dispose();
-                    }
+
+                    item.Dispose();
                 }
 
-                foreach (var item in _scopedSingleObjects.Values)
-                {
-                    if (item is IDisposable dispose)
-                    {
-                        dispose.Dispose();
-                    }
-                }
-
-                _needCollectedObjects.Clear();
-                _scopedSingleObjects.Clear();
+                DisposableServices.Clear();
+                CacheResolvedServices.Clear();
             }
         }
     }

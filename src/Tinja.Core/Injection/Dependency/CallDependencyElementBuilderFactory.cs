@@ -9,19 +9,16 @@ namespace Tinja.Core.Injection.Dependency
     /// </summary>
     public class CallDependencyElementBuilderFactory : ICallDependencyElementBuilderFactory
     {
-        private readonly IInjectionConfiguration _configuration;
+        private readonly ICallDependencyElementBuilder _builder;
 
-        private readonly IServiceDescriptorFactory _serviceContextFactory;
-
-        public CallDependencyElementBuilderFactory(IServiceDescriptorFactory serviceContextFactory, IInjectionConfiguration configuration)
+        public CallDependencyElementBuilderFactory(IServiceDescriptorFactory serviceDescriptorFactory, IInjectionConfiguration configuration)
         {
-            _configuration = configuration;
-            _serviceContextFactory = serviceContextFactory;
+            _builder = new CallDependencyElementBuilder(serviceDescriptorFactory, configuration);
         }
 
         public ICallDependencyElementBuilder CreateBuilder()
         {
-            return new CallDependencyElementBuilder(_serviceContextFactory, _configuration);
+            return _builder;
         }
     }
 }

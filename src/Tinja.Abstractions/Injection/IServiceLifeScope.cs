@@ -4,6 +4,12 @@ namespace Tinja.Abstractions.Injection
 {
     public interface IServiceLifeScope : IDisposable
     {
-        object GetOrAddResolvedService(object cacheKey, ServiceLifeStyle life, Func<IServiceResolver, object> factory);
+        IServiceResolver ServiceResolver { get; }
+
+        IServiceLifeScope ServiceRootScope { get; }
+
+        object ResolveService(Func<IServiceResolver, object> factory);
+
+        object ResolveCachedService(long cacheKey, Func<IServiceResolver, object> factory);
     }
 }

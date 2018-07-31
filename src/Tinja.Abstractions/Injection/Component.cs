@@ -60,17 +60,5 @@ namespace Tinja.Abstractions.Injection
         {
             return !(left == right);
         }
-
-        public Component Clone()
-        {
-            return new Component()
-            {
-                ImplementationFactory = ImplementationFactory,
-                LifeStyle = LifeStyle,
-                ImplementationType = ImplementationType,
-                ServiceType = ServiceType,
-                ImplementationInstance = ImplementationInstance
-            };
-        }
     }
 }

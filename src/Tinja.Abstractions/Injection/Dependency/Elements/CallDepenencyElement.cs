@@ -7,6 +7,8 @@ namespace Tinja.Abstractions.Injection.Dependency.Elements
     /// </summary>
     public abstract class CallDepenencyElement
     {
+        public long ServiceId { get; set; }
+
         /// <summary>
         /// the service definition type
         /// </summary>

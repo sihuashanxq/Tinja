@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 
 namespace Tinja.Abstractions.Injection.Dependency.Elements
 {
@@ -9,9 +8,7 @@ namespace Tinja.Abstractions.Injection.Dependency.Elements
     /// </summary>
     public class ManyCallDepenencyElement : CallDepenencyElement
     {
-        public Type ImplementionType { get; set; }
-
-        public ConstructorInfo ConstructorInfo { get; set; }
+        public Type ElementType { get; set; }
 
         public CallDepenencyElement[] Elements { get; set; }
 

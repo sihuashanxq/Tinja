@@ -17,9 +17,9 @@ namespace Tinja.Core.Injection.Dependency
     {
         protected IInjectionConfiguration Configuration { get; }
 
-        protected IServiceDescriptorFactory ServiceDescriptorFactory { get; set; }
-
         protected CallDependencyElementScope CallScope { get; set; }
+
+        protected IServiceDescriptorFactory ServiceDescriptorFactory { get; set; }
 
         public CallDependencyElementBuilder(IServiceDescriptorFactory serviceDescriptorFactory, IInjectionConfiguration configuration)
         {
@@ -67,6 +67,7 @@ namespace Tinja.Core.Injection.Dependency
             return new DelegateCallDepenencyElement()
             {
                 LifeStyle = descriptor.LifeStyle,
+                ServiceId = descriptor.ServiceId,
                 ServiceType = descriptor.ServiceType,
                 Delegate = descriptor.Delegate
             };
@@ -78,7 +79,8 @@ namespace Tinja.Core.Injection.Dependency
             {
                 LifeStyle = descriptor.LifeStyle,
                 ServiceType = descriptor.ServiceType,
-                Instance = descriptor.Instance
+                Instance = descriptor.Instance,
+                ServiceId = descriptor.ServiceId
             };
         }
 
@@ -101,9 +103,8 @@ namespace Tinja.Core.Injection.Dependency
             {
                 Elements = elements.ToArray(),
                 LifeStyle = descriptor.LifeStyle,
+                ElementType = descriptor.ElementType,
                 ServiceType = descriptor.ServiceType,
-                ImplementionType = descriptor.CollectionType,
-                ConstructorInfo = descriptor.CollectionType.GetConstructors().FirstOrDefault(i => i.GetParameters().Length == 0)
             };
         }
 
@@ -128,6 +129,7 @@ namespace Tinja.Core.Injection.Dependency
                 var element = new ConstructorCallDependencyElement()
                 {
                     Parameters = parameterElements,
+                    ServiceId = descriptor.ServiceId,
                     LifeStyle = descriptor.LifeStyle,
                     ServiceType = descriptor.ServiceType,
                     ImplementionType = descriptor.ImplementationType,
@@ -165,7 +167,7 @@ namespace Tinja.Core.Injection.Dependency
             return element;
         }
 
-        protected void BuildPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDepenencyElement> propertyElements)
+        protected void BuildPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDepenencyElement> properties)
         {
             var descriptor = ServiceDescriptorFactory.Create(propertyInfo.PropertyType);
             if (descriptor == null)
@@ -173,18 +175,16 @@ namespace Tinja.Core.Injection.Dependency
                 return;
             }
 
-            CheckCircularDependency(descriptor as ServiceConstrcutorDescriptor);
+            ValidateCircularDependency(descriptor);
 
-            var propertyElement = BuildElement(descriptor);
-            if (propertyElement == null)
+            var element = BuildElement(descriptor);
+            if (element != null)
             {
-                return;
+                properties[propertyInfo] = element;
             }
-
-            propertyElements[propertyInfo] = propertyElement;
         }
 
-        protected bool BuildParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameterElements)
+        protected bool BuildParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDepenencyElement> parameters)
         {
             var descriptor = ServiceDescriptorFactory.Create(parameterInfo.ParameterType);
             if (descriptor == null)
@@ -192,30 +192,23 @@ namespace Tinja.Core.Injection.Dependency
                 return false;
             }
 
-            CheckCircularDependency(descriptor as ServiceConstrcutorDescriptor);
+            ValidateCircularDependency(descriptor);
 
-            var parameterElement = BuildElement(descriptor);
-            if (parameterElement == null)
+            var element = BuildElement(descriptor);
+            if (element != null)
             {
-                return false;
+                parameters[parameterInfo] = element;
+                return true;
             }
 
-            parameterElements[parameterInfo] = parameterElement;
-
-            return true;
+            return false;
         }
 
-        protected void CheckCircularDependency(ServiceConstrcutorDescriptor descriptor)
+        protected void ValidateCircularDependency(ServiceDescriptor descriptor)
         {
-            if (descriptor == null ||
-                descriptor.ImplementationType == null)
+            if (descriptor is ServiceConstrcutorDescriptor ctor && CallScope.Contains(ctor.ImplementationType))
             {
-                return;
-            }
-
-            if (CallScope.Contains(descriptor.ImplementationType))
-            {
-                throw new CallCircularException(descriptor.ImplementationType, $"type:{descriptor.ImplementationType.FullName} exists circular dependencies!");
+                throw new CallCircularException(ctor.ImplementationType, $"type:{ctor.ImplementationType.FullName} exists circular dependencies!");
             }
         }
     }
