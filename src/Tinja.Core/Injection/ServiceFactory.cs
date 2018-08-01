@@ -1,13 +1,14 @@
 ﻿using System;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection
 {
-    public class ServiceFactory : IServiceFactory
+    internal class ServiceFactory : IServiceFactory
     {
         internal ServiceLifeScope Scope { get; }
 
-        public ServiceFactory(ServiceLifeScope scope)
+        internal ServiceFactory(ServiceLifeScope scope)
         {
             Scope = scope;
         }
@@ -15,39 +16,36 @@ namespace Tinja.Core.Injection
         public object CreateService(Func<IServiceResolver, object> factory)
         {
             var service = factory(Scope.ServiceResolver);
-
-            CaptureDisposableService(service);
+            if (service is IDisposable disposable)
+            {
+                Scope.DisposableServices.Add(disposable);
+            }
 
             return service;
         }
 
-        public object CreateService(long serviceId, Func<IServiceResolver, object> factory)
+        public object CreateService(int serviceId, Func<IServiceResolver, object> factory)
         {
-            if (Scope.CacheResolvedServices.TryGetValue(serviceId, out var service))
+            if (Scope.ResolvedServices.TryGetValue(serviceId, out var service))
             {
                 return service;
             }
 
-            lock (Scope.CacheResolvedServices)
+            lock (Scope.ResolvedServices)
             {
-                if (Scope.CacheResolvedServices.TryGetValue(serviceId, out service))
+                if (Scope.ResolvedServices.TryGetValue(serviceId, out service))
                 {
                     return service;
                 }
 
-                service = Scope.CacheResolvedServices[serviceId] = factory(Scope.ServiceResolver);
+                service = Scope.ResolvedServices[serviceId] = factory(Scope.ServiceResolver);
 
-                CaptureDisposableService(service);
+                if (service is IDisposable disposable)
+                {
+                    Scope.DisposableServices.Add(disposable);
+                }
 
                 return service;
-            }
-        }
-
-        protected void CaptureDisposableService(object service)
-        {
-            if (service is IDisposable disposable)
-            {
-                Scope.DisposableServices.Add(disposable);
             }
         }
     }

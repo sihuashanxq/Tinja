@@ -4,7 +4,7 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection
 {
-    public class ServiceLifeScope : IServiceLifeScope
+    internal class ServiceLifeScope : IServiceLifeScope
     {
         private bool _isDisposed;
 
@@ -12,29 +12,29 @@ namespace Tinja.Core.Injection
 
         public IServiceResolver ServiceResolver { get; }
 
-        public IServiceLifeScope ServiceRootScope { get; }
+        public IServiceLifeScope Root { get; }
 
         protected internal List<IDisposable> DisposableServices { get; }
 
-        protected internal Dictionary<long, object> CacheResolvedServices { get; }
+        protected internal Dictionary<int, object> ResolvedServices { get; }
 
         public ServiceLifeScope(IServiceResolver serviceResolver, IServiceLifeScope scope)
         {
             ServiceResolver = serviceResolver;
-            ServiceRootScope = scope.ServiceRootScope ?? scope;
+            Root = scope.Root ?? scope;
 
             Factory = new ServiceFactory(this);
             DisposableServices = new List<IDisposable>();
-            CacheResolvedServices = new Dictionary<long, object>();
+            ResolvedServices = new Dictionary<int, object>();
         }
 
         public ServiceLifeScope(IServiceResolver serviceResolver)
         {
-            ServiceRootScope = this;
+            Root = this;
             ServiceResolver = serviceResolver;
             Factory = new ServiceFactory(this);
             DisposableServices = new List<IDisposable>();
-            CacheResolvedServices = new Dictionary<long, object>();
+            ResolvedServices = new Dictionary<int, object>();
         }
 
         ~ServiceLifeScope()
@@ -70,7 +70,7 @@ namespace Tinja.Core.Injection
                 }
 
                 DisposableServices.Clear();
-                CacheResolvedServices.Clear();
+                ResolvedServices.Clear();
             }
         }
     }

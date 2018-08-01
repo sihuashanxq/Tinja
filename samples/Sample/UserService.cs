@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Core.Injection;
 
 namespace ConsoleApp
 {
@@ -13,7 +15,7 @@ namespace ConsoleApp
         ValueTask<int> GetIdAsync();
     }
 
-    public class UserService1 : IUserService
+    public class UserService1 : IUserService,IDisposable
     {
         public UserService1()
         {
@@ -33,6 +35,11 @@ namespace ConsoleApp
         public virtual string GetUserName(int id)
         {
             return "UserService1:Name:" + id;
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 

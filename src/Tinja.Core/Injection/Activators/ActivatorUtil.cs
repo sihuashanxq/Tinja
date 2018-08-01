@@ -4,12 +4,12 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection.Activators
 {
+    internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, object> factory);
+
+    internal delegate object CreateScopedServiceDelegate(int serviceId, IServiceLifeScope scope, Func<IServiceResolver, object> factory);
+
     internal static class ActivatorUtil
     {
-        internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, object> factory);
-
-        internal delegate object CreateScopedServiceDelegate(long serviceId, IServiceLifeScope scope, Func<IServiceResolver, object> factory);
-
         internal static ParameterExpression ParameterScope { get; }
 
         internal static ParameterExpression ParameterResolver { get; }

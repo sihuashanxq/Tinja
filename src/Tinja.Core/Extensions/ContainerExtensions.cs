@@ -5,15 +5,11 @@ using Tinja.Abstractions.Configurations;
 using Tinja.Abstractions.DynamicProxy.Configurations;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Activators;
 using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.Dependency;
-using Tinja.Abstractions.Injection.Descriptors;
 using Tinja.Core.Configurations;
 using Tinja.Core.Injection;
-using Tinja.Core.Injection.Activators;
 using Tinja.Core.Injection.Dependency;
-using Tinja.Core.Injection.Descriptors;
 
 namespace Tinja.Core.Extensions
 {
@@ -40,8 +36,8 @@ namespace Tinja.Core.Extensions
                 throw new NullReferenceException(nameof(configuration));
             }
 
-            var serviceFactory = new ServiceDescriptorFactory();
-            var serviceResolver = container.BuildServiceResolver(new CallDependencyElementBuilderFactory(serviceFactory, configuration.Injection));
+            var serviceFactory = new ServiceEntryFactory();
+            var serviceResolver = container.BuildServiceResolver(new CallDependElementBuilderFactory(serviceFactory, configuration.Injection));
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));

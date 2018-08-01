@@ -4,8 +4,8 @@ namespace Tinja.Abstractions.Injection
 {
     public interface IServiceLifeScope : IDisposable
     {
-        IServiceFactory Factory { get; }
+        IServiceLifeScope Root { get; }
 
-        IServiceLifeScope ServiceRootScope { get; }
+        IServiceFactory Factory { get; }
     }
 }

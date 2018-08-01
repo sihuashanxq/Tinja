@@ -5,6 +5,6 @@ namespace Tinja.Abstractions.Injection.Activators
 {
     public interface IActivatorBuilder
     {
-        Func<IServiceResolver, IServiceLifeScope, object> Build(CallDepenencyElement element);
+        Func<IServiceResolver, IServiceLifeScope, object> Build(CallDependElement element);
     }
 }

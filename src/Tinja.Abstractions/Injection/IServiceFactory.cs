@@ -5,6 +5,6 @@ namespace Tinja.Abstractions.Injection
     {
         object CreateService(Func<IServiceResolver, object> factory);
 
-        object CreateService(long serviceId, Func<IServiceResolver, object> factory);
+        object CreateService(int serviceId, Func<IServiceResolver, object> factory);
     }
 }

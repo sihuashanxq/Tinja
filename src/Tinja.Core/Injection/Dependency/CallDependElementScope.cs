@@ -6,11 +6,11 @@ namespace Tinja.Core.Injection.Dependency
     /// <summary>
     /// record the call path
     /// </summary>
-    public class CallDependencyElementScope
+    public class CallDependElementScope
     {
         protected Stack<Type> Stack { get; }
 
-        public CallDependencyElementScope()
+        public CallDependElementScope()
         {
             Stack = new Stack<Type>();
         }

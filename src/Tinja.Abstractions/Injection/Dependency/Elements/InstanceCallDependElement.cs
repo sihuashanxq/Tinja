@@ -2,11 +2,11 @@
 {
     /// <inheritdoc />
     /// AddSingleton(typeof(Service),new Service());
-    public class InstanceCallDependencyElement : CallDepenencyElement
+    public class InstanceCallDependElement : CallDependElement
     {
         public object Instance { get; set; }
 
-        public  override TVisitResult Accept<TVisitResult>(CallDependencyElementVisitor<TVisitResult> visitor)
+        public  override TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
         {
             return visitor.VisitInstance(this);
         }

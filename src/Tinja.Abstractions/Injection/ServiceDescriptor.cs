@@ -1,11 +1,13 @@
 ﻿using System;
-using Tinja.Abstractions.Injection;
 
-namespace Tinja.Core.Injection.Descriptors.Internals
+namespace Tinja.Abstractions.Injection
 {
-    public class ServiceEntry
+    /// <summary>
+    /// a descriptor for service
+    /// </summary>
+    public class ServiceDescriptor
     {
-        public long ServiceId { get; set; }
+        public int ServiceId { get; set; }
 
         public Type ServiceType { get; set; }
 
@@ -17,7 +19,7 @@ namespace Tinja.Core.Injection.Descriptors.Internals
 
         public Func<IServiceResolver, object> ImplementationFactory { get; set; }
 
-        public ServiceEntry(long serviceId, Component component)
+        public ServiceDescriptor(int serviceId, Component component)
         {
             if (component == null)
             {

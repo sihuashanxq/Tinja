@@ -6,11 +6,11 @@ namespace Tinja.Abstractions.Injection.Dependency.Elements
     /// <summary>
     /// AddScoped(typeof(Service),resolver=&gt;new Service());
     /// </summary>
-    public class DelegateCallDepenencyElement : CallDepenencyElement
+    public class DelegateCallDependElement : CallDependElement
     {
         public Func<IServiceResolver, object> Delegate { get; set; }
 
-        public override TVisitResult Accept<TVisitResult>(CallDependencyElementVisitor<TVisitResult> visitor)
+        public override TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
         {
             return visitor.VisitDelegate(this);
         }

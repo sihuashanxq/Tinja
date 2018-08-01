@@ -4,10 +4,10 @@ using Tinja.Abstractions.Injection.Dependency.Elements;
 namespace Tinja.Abstractions.Injection.Dependency
 {
     /// <summary>
-    /// an interface for build <see cref="CallDepenencyElement"/>
+    /// an interface for build <see cref="CallDependElement"/>
     /// </summary>
     public interface ICallDependencyElementBuilder
     {
-        CallDepenencyElement Build(Type serviceType);
+        CallDependElement Build(Type serviceType);
     }
 }

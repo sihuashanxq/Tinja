@@ -5,9 +5,9 @@ namespace Tinja.Abstractions.Injection.Dependency.Elements
     /// <summary>
     /// an element that representing an dependency point
     /// </summary>
-    public abstract class CallDepenencyElement
+    public abstract class CallDependElement
     {
-        public long ServiceId { get; set; }
+        public int ServiceId { get; set; }
 
         /// <summary>
         /// the service definition type
@@ -19,7 +19,7 @@ namespace Tinja.Abstractions.Injection.Dependency.Elements
         /// </summary>
         public ServiceLifeStyle LifeStyle { get; set; }
 
-        public virtual TVisitResult Accept<TVisitResult>(CallDependencyElementVisitor<TVisitResult> visitor)
+        public virtual TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
         {
             throw new NotImplementedException();
         }
