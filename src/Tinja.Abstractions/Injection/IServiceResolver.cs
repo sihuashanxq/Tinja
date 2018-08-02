@@ -1,5 +1,5 @@
 ﻿using System;
-using Tinja.Abstractions.Injection.Activators;
+using Tinja.Abstractions.Injection.Activations;
 
 namespace Tinja.Abstractions.Injection
 {
@@ -9,6 +9,6 @@ namespace Tinja.Abstractions.Injection
 
         IActivatorProvider Provider { get; }
 
-        object Resolve(Type serviceType);
+        object ResolveService(Type serviceType);
     }
 }

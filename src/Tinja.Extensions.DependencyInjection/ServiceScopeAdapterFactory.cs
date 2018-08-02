@@ -18,7 +18,7 @@ namespace Tinja.Extensions.DependencyInjection
 
         public IServiceScope CreateScope()
         {
-            return new ServiceScopeAdapter(_serviceResolver.CreateScope().Resolve<IServiceProvider>());
+            return new ServiceScopeAdapter(_serviceResolver.CreateScope().ResolveService<IServiceProvider>());
         }
     }
 }

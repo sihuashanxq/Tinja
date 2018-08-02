@@ -21,7 +21,7 @@ namespace Tinja.Core.DynamicProxy
                 throw new NullReferenceException(nameof(interceptorType));
             }
 
-            return _serviceResolver.ResolveRequired<IInterceptor>(interceptorType);
+            return _serviceResolver.ResolveServiceRequired<IInterceptor>(interceptorType);
         }
     }
 }

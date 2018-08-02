@@ -1,10 +1,9 @@
 ﻿using System;
 using Tinja.Abstractions;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Executors;
+using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Core.DynamicProxy.Executors;
-using Tinja.Core.DynamicProxy.Executors.Internal;
+using Tinja.Core.DynamicProxy.Executions;
 using Tinja.Core.DynamicProxy.Metadatas;
 using Tinja.Core.Extensions;
 
@@ -23,7 +22,7 @@ namespace Tinja.Core.DynamicProxy
             container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
 
             container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
-            container.AddSingleton<IMethodInvokerBuilder, MethodInvokerBuilder>();
+            container.AddSingleton<IMethodInvocationInvokerBuilder, MethodInvocationInvokerBuilder>();
             container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
             container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();

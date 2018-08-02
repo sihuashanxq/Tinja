@@ -6,6 +6,6 @@ namespace Tinja.Abstractions.Injection
     {
         IServiceLifeScope Root { get; }
 
-        IServiceFactory Factory { get; }
+        IServiceCapturedFactory Factory { get; }
     }
 }

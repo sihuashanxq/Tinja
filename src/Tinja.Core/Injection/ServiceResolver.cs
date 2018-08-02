@@ -1,8 +1,8 @@
 ﻿using System;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Activators;
-using Tinja.Abstractions.Injection.Dependency;
-using Tinja.Core.Injection.Activators;
+using Tinja.Abstractions.Injection.Activations;
+using Tinja.Abstractions.Injection.Dependencies;
+using Tinja.Core.Injection.Activations;
 
 namespace Tinja.Core.Injection
 {
@@ -23,6 +23,11 @@ namespace Tinja.Core.Injection
         /// </summary>
         internal ServiceResolver(ICallDependencyElementBuilderFactory factory)
         {
+            if (factory == null)
+            {
+                throw new NullReferenceException(nameof(factory));
+            }
+
             Scope = new ServiceLifeScope(this);
             Provider = new ActivatorProvider(Scope, factory);
         }
@@ -33,11 +38,16 @@ namespace Tinja.Core.Injection
         /// <param name="serviceResolver"></param>
         internal ServiceResolver(IServiceResolver serviceResolver)
         {
+            if (serviceResolver == null)
+            {
+                throw new NullReferenceException(nameof(serviceResolver));
+            }
+
             Provider = serviceResolver.Provider;
-            Scope = new ServiceLifeScope(this, serviceResolver.Scope);
+            Scope = (IServiceLifeScope)serviceResolver.Scope.Factory.CreateCapturedService(resolver => new ServiceLifeScope(this, serviceResolver.Scope));
         }
 
-        public object Resolve(Type serviceType)
+        public object ResolveService(Type serviceType)
         {
             return Provider.Get(serviceType)?.Invoke(this, Scope);
         }

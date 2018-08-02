@@ -47,7 +47,7 @@ namespace Tinja.Extensions.DependencyInjection
         {
             if (descriptor.ImplementationFactory != null)
             {
-                container.AddService(descriptor.ServiceType, resolver => descriptor.ImplementationFactory(resolver.Resolve<IServiceProvider>()), lifeStyle);
+                container.AddService(descriptor.ServiceType, resolver => descriptor.ImplementationFactory(resolver.ResolveService<IServiceProvider>()), lifeStyle);
             }
             else if (descriptor.ImplementationInstance != null)
             {

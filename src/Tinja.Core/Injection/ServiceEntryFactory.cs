@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection;
-using Tinja.Core.Injection.Internals;
 
 namespace Tinja.Core.Injection
 {
@@ -55,7 +54,7 @@ namespace Tinja.Core.Injection
 
             if (descriptors.Length == 0) return;
 
-            var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.Resolve(typeof(IProxyTypeFactory));
+            var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.ResolveService(typeof(IProxyTypeFactory));
             if (proxyTypeFactory != null)
             {
                 foreach (var item in descriptors)

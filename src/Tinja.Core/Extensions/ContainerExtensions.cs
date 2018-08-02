@@ -6,10 +6,10 @@ using Tinja.Abstractions.DynamicProxy.Configurations;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Configurations;
-using Tinja.Abstractions.Injection.Dependency;
+using Tinja.Abstractions.Injection.Dependencies;
 using Tinja.Core.Configurations;
 using Tinja.Core.Injection;
-using Tinja.Core.Injection.Dependency;
+using Tinja.Core.Injection.Dependencies;
 
 namespace Tinja.Core.Extensions
 {

@@ -15,7 +15,7 @@ namespace ConsoleApp
         ValueTask<int> GetIdAsync();
     }
 
-    public class UserService1 : IUserService,IDisposable
+    public class UserService1 : IUserService
     {
         public UserService1()
         {
@@ -75,7 +75,10 @@ namespace ConsoleApp
 
     public class UserRepository : IUserRepository
     {
+        public UserRepository(IUserService n)
+        {
 
+        }
     }
 
     public class IRepository<T>

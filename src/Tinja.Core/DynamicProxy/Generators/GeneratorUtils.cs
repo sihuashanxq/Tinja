@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Core.DynamicProxy.Executors;
+using Tinja.Core.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Generators
 {

@@ -6,13 +6,13 @@ namespace Tinja.Core.Injection
 {
     internal class ServiceLifeScope : IServiceLifeScope
     {
-        private bool _isDisposed;
-
-        public IServiceFactory Factory { get; }
-
-        public IServiceResolver ServiceResolver { get; }
+        internal bool IsDisposed { get; private set; }
 
         public IServiceLifeScope Root { get; }
+
+        public IServiceCapturedFactory Factory { get; }
+
+        public IServiceResolver ServiceResolver { get; }
 
         protected internal List<IDisposable> DisposableServices { get; }
 
@@ -23,7 +23,7 @@ namespace Tinja.Core.Injection
             ServiceResolver = serviceResolver;
             Root = scope.Root ?? scope;
 
-            Factory = new ServiceFactory(this);
+            Factory = new ServiceCapturedFactory(this);
             DisposableServices = new List<IDisposable>();
             ResolvedServices = new Dictionary<int, object>();
         }
@@ -32,7 +32,7 @@ namespace Tinja.Core.Injection
         {
             Root = this;
             ServiceResolver = serviceResolver;
-            Factory = new ServiceFactory(this);
+            Factory = new ServiceCapturedFactory(this);
             DisposableServices = new List<IDisposable>();
             ResolvedServices = new Dictionary<int, object>();
         }
@@ -49,19 +49,19 @@ namespace Tinja.Core.Injection
 
         private void Dispose(bool disposing)
         {
-            if (!disposing || _isDisposed)
+            if (!disposing || IsDisposed)
             {
                 return;
             }
 
             lock (this)
             {
-                if (_isDisposed)
+                if (IsDisposed)
                 {
                     return;
                 }
 
-                _isDisposed = true;
+                IsDisposed = true;
 
                 foreach (var item in DisposableServices)
                 {

@@ -14,7 +14,7 @@ namespace Tinja.Extensions.DependencyInjection
             return container
                   .AddScoped(typeof(IServiceProvider), resolver => new ServiceProviderAdapter(resolver))
                   .BuildServiceResolver()
-                  .Resolve<IServiceProvider>();
+                  .ResolveService<IServiceProvider>();
         }
 
         public IContainer CreateBuilder(IServiceCollection services)

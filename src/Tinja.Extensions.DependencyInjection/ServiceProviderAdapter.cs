@@ -16,7 +16,7 @@ namespace Tinja.Extensions.DependencyInjection
 
         public virtual object GetService(Type serviceType)
         {
-            return _resolver.Resolve(serviceType);
+            return _resolver.ResolveService(serviceType);
         }
 
         ~ServiceProviderAdapter()
