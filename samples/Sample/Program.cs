@@ -16,7 +16,7 @@ namespace ConsoleApp
         {
             var container = new Container();
 
-            container.AddTransient(typeof(IUserService), (r) => new UserService1());
+            container.AddSingleton(typeof(IUserService), new UserService1());
             container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
             container.AddTransient(typeof(IUserRepository), typeof(UserRepository));
             container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
@@ -47,7 +47,7 @@ namespace ConsoleApp
 
             userService.GetUserName(2);
 
-            var type = typeof(IUserRepository);
+            var type = typeof(IUserService);
             var stopWatch = new Stopwatch();
             for (var n = 0; n < 10; n++)
             {

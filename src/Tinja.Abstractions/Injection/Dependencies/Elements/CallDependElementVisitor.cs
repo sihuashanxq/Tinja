@@ -16,12 +16,12 @@
             return element.Accept(this);
         }
 
-        protected internal abstract TVisitResult VisitEnumerable(EnumerableCallDependElement element);
+        protected internal abstract TVisitResult VisitType(TypeCallDependElement element);
 
         protected internal abstract TVisitResult VisitInstance(InstanceCallDependElement element);
 
         protected internal abstract TVisitResult VisitDelegate(DelegateCallDependElement element);
 
-        protected internal abstract TVisitResult VisitType(TypeCallDependElement element);
+        protected internal abstract TVisitResult VisitEnumerable(EnumerableCallDependElement element);
     }
 }

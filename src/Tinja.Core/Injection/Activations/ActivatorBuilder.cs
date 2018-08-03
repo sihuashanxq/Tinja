@@ -12,6 +12,10 @@ namespace Tinja.Core.Injection.Activations
     {
         internal IServiceLifeScope ServiceRootScope { get; }
 
+        internal static ParameterExpression ParameterScope = Expression.Parameter(typeof(IServiceLifeScope));
+
+        internal static ParameterExpression ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
+
         public ActivatorBuilder(IServiceLifeScope serviceScope)
         {
             ServiceRootScope = serviceScope ?? throw new NullReferenceException(nameof(serviceScope));
@@ -24,64 +28,17 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
-            var lambdaBody = Visit(element);
-            if (lambdaBody == null)
+            if (element is DelegateCallDependElement delegateElement)
             {
-                throw new NullReferenceException(nameof(lambdaBody));
+                return BuildDelegateFactory(delegateElement);
             }
 
-            return (Func<IServiceResolver, IServiceLifeScope, object>)
-                Expression
-                    .Lambda(lambdaBody, ActivatorUtil.ParameterResolver, ActivatorUtil.ParameterScope)
-                    .Compile();
-        }
-
-        protected override Expression VisitEnumerable(EnumerableCallDependElement element)
-        {
-            if (element == null)
+            if (element is InstanceCallDependElement instanceElement)
             {
-                throw new NullReferenceException(nameof(element));
+                return BuildInstanceFactory(instanceElement);
             }
 
-            var items = new Expression[element.Items.Length];
-
-            for (var i = 0; i < items.Length; i++)
-            {
-                var elementValue = element.Items[i].Accept(this);
-                if (elementValue.Type.IsNotType(element.Items[i].ServiceType))
-                {
-                    elementValue = Expression.Convert(elementValue, element.Items[i].ServiceType);
-                }
-
-                items[i] = elementValue;
-            }
-
-            return Expression.NewArrayInit(element.ItemType, items);
-        }
-
-        protected override Expression VisitInstance(InstanceCallDependElement element)
-        {
-            if (element == null)
-            {
-                throw new NullReferenceException(nameof(element));
-            }
-
-            return CaptureServiceLife(Expression.Constant(element.Instance), element);
-        }
-
-        protected override Expression VisitDelegate(DelegateCallDependElement element)
-        {
-            if (element == null)
-            {
-                throw new NullReferenceException(nameof(element));
-            }
-
-            if (element.Delegate == null)
-            {
-                throw new NullReferenceException(nameof(element));
-            }
-
-            return CaptureServiceLife(element.Delegate, element);
+            return BuildExpressionFactory(element);
         }
 
         protected override Expression VisitType(TypeCallDependElement element)
@@ -120,16 +77,63 @@ namespace Tinja.Core.Injection.Activations
             var newExpression = Expression.New(element.ConstructorInfo, parameterValues);
             var memberInit = SetProperties(newExpression, element);
 
-            if (element.LifeStyle != ServiceLifeStyle.Transient ||
-                element.ImplementionType.IsType<IDisposable>())
+            if (element.LifeStyle == ServiceLifeStyle.Transient && element.ImplementionType.IsNotType<IDisposable>())
             {
-                return CaptureServiceLife(memberInit, element);
+                return memberInit;
             }
 
-            return memberInit;
+            return CaptureServiceLife(memberInit, element);
         }
 
-        protected virtual Expression SetProperties(NewExpression newExpression, TypeCallDependElement element)
+        protected override Expression VisitInstance(InstanceCallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            return CaptureServiceLife(Expression.Constant(element.Instance), element);
+        }
+
+        protected override Expression VisitDelegate(DelegateCallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            if (element.Delegate == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            return CaptureServiceLife(element.Delegate, element);
+        }
+
+        protected override Expression VisitEnumerable(EnumerableCallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            var items = new Expression[element.Items.Length];
+
+            for (var i = 0; i < items.Length; i++)
+            {
+                var elementValue = element.Items[i].Accept(this);
+                if (elementValue.Type.IsNotType(element.Items[i].ServiceType))
+                {
+                    elementValue = Expression.Convert(elementValue, element.Items[i].ServiceType);
+                }
+
+                items[i] = elementValue;
+            }
+
+            return Expression.NewArrayInit(element.ItemType, items);
+        }
+
+        protected Expression SetProperties(NewExpression newExpression, TypeCallDependElement element)
         {
             if (newExpression == null)
             {
@@ -162,7 +166,7 @@ namespace Tinja.Core.Injection.Activations
             return Expression.MemberInit(newExpression, properties);
         }
 
-        protected virtual Expression CaptureServiceLife(Expression serviceExpression, CallDependElement element)
+        protected Expression CaptureServiceLife(Expression serviceExpression, CallDependElement element)
         {
             if (serviceExpression == null)
             {
@@ -175,14 +179,14 @@ namespace Tinja.Core.Injection.Activations
             }
 
             //optimization
-            var lambda = Expression.Lambda(serviceExpression, ActivatorUtil.ParameterResolver, ActivatorUtil.ParameterScope);
+            var lambda = Expression.Lambda(serviceExpression, ParameterResolver, ParameterScope);
             var compiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)lambda.Compile();
             var valueFactory = (Func<IServiceResolver, object>)(resolver => compiledFunc(resolver, resolver.Scope));
 
             return CaptureServiceLife(valueFactory, element);
         }
 
-        protected virtual Expression CaptureServiceLife(Func<IServiceResolver, object> factory, CallDependElement element)
+        protected Expression CaptureServiceLife(Func<IServiceResolver, object> factory, CallDependElement element)
         {
             if (factory == null)
             {
@@ -196,15 +200,68 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                return Expression.Constant(ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, factory));
+                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, factory);
+
+                return Expression.Constant(service);
             }
 
             if (element.LifeStyle == ServiceLifeStyle.Transient)
             {
-                return Expression.Invoke(ActivatorUtil.CreateCapturedTransientServie, ActivatorUtil.ParameterScope, Expression.Constant(factory));
+                return Expression.Invoke(ActivatorUtil.CreateCapturedTransientServie, ParameterScope, Expression.Constant(factory));
             }
 
-            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceId), ActivatorUtil.ParameterScope, Expression.Constant(factory));
+            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceId), ParameterScope, Expression.Constant(factory));
+        }
+
+        protected Func<IServiceResolver, IServiceLifeScope, object> BuildExpressionFactory(CallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            var lambdaBody = Visit(element);
+            if (lambdaBody == null)
+            {
+                throw new NullReferenceException(nameof(lambdaBody));
+            }
+
+            return (Func<IServiceResolver, IServiceLifeScope, object>)
+                Expression.Lambda(lambdaBody, ParameterResolver, ParameterScope).Compile();
+        }
+
+        protected Func<IServiceResolver, IServiceLifeScope, object> BuildDelegateFactory(DelegateCallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            if (element.LifeStyle == ServiceLifeStyle.Singleton)
+            {
+                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, element.Delegate);
+
+                return (r, s) => service;
+            }
+
+            if (element.LifeStyle == ServiceLifeStyle.Transient)
+            {
+                return (r, s) => element.Delegate(r);
+            }
+
+            return (r, s) => s.Factory.CreateCapturedService(element.ServiceId, element.Delegate);
+        }
+
+        protected Func<IServiceResolver, IServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)
+        {
+            if (element == null)
+            {
+                throw new NullReferenceException(nameof(element));
+            }
+
+            ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, r => element.Instance);
+
+            return (r, s) => element.Instance;
         }
     }
 }
