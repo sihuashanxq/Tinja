@@ -24,9 +24,35 @@ namespace Tinja.Core.DynamicProxy
                     return ShoudMethodProxy(methodInfo);
                 case PropertyInfo propertyInfo:
                     return ShouldPropertyProxy(propertyInfo);
+                case EventInfo eventInfo:
+                    return ShowEventProxy(eventInfo);
                 default:
-                    return false;
+                    return true;
             }
+        }
+
+        protected virtual bool ShowEventProxy(EventInfo eventInfo)
+        {
+            if (eventInfo == null)
+            {
+                return false;
+            }
+
+            if (IsInterfaceOrAbstractMethod(eventInfo.RaiseMethod) ||
+                IsInterfaceOrAbstractMethod(eventInfo.AddMethod) ||
+                IsInterfaceOrAbstractMethod(eventInfo.RemoveMethod))
+            {
+                return true;
+            }
+
+            if (MethodOverridable(eventInfo.RaiseMethod) ||
+                MethodOverridable(eventInfo.AddMethod) ||
+                MethodOverridable(eventInfo.RemoveMethod))
+            {
+                return _provider.GetMetadatas(eventInfo).Any();
+            }
+
+            return false;
         }
 
         protected virtual bool ShoudMethodProxy(MethodInfo methodInfo)
@@ -57,12 +83,8 @@ namespace Tinja.Core.DynamicProxy
                 return true;
             }
 
-            if (MethodOverridable(propertyInfo.GetMethod))
-            {
-                return _provider.GetMetadatas(propertyInfo).Any();
-            }
-
-            if (MethodOverridable(propertyInfo.SetMethod))
+            if (MethodOverridable(propertyInfo.GetMethod) ||
+                MethodOverridable(propertyInfo.SetMethod))
             {
                 return _provider.GetMetadatas(propertyInfo).Any();
             }

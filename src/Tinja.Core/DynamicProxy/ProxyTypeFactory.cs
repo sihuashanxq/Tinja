@@ -53,10 +53,10 @@ namespace Tinja.Core.DynamicProxy
 
             if (typeInfo.IsInterface)
             {
-                return new InterfaceProxyTypeGenerator(typeInfo, metadatas).CreateProxyType();
+                return new InterfaceProxyTypeGenerator(typeInfo, metadatas).BuildProxyType();
             }
 
-            return new ClassProxyTypeGenerator(typeInfo, metadatas).CreateProxyType();
+            return new ClassProxyTypeGenerator(typeInfo, metadatas).BuildProxyType();
         }
 
         protected virtual bool ShouldProxy(MemberInfo memberInfo)

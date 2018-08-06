@@ -34,28 +34,28 @@ namespace Tinja.Core.DynamicProxy.Generators
             Fields = new Dictionary<string, FieldBuilder>();
         }
 
-        public virtual Type CreateProxyType()
+        public virtual Type BuildProxyType()
         {
-            DefineTypeBuilder();
+            BuildTypeBuilder();
 
-            DefineTypeFields();
+            BuildTypeFields();
 
-            DefineTypeEvents();
+            BuildTypeEvents();
 
-            DefineTypeMethods();
+            BuildTypeMethods();
 
-            DefineTypeProperties();
+            BuildTypeProperties();
 
-            DefineTypeConstrcutors();
+            BuildTypeConstrcutors();
 
             return TypeBuilder.CreateType();
         }
 
-        protected virtual void DefineTypeBuilder()
+        protected virtual void BuildTypeBuilder()
         {
             if (TargetType.IsValueType)
             {
-                throw new NotSupportedException($"implemention type:{TargetType.FullName} must not be value type");
+                throw new NotSupportedException($"implementation type:{TargetType.FullName} must not be value type");
             }
 
             TypeBuilder = GeneratorUtils
@@ -72,19 +72,24 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         #region Field
 
-        protected virtual void DefineTypeFields()
+        protected virtual void BuildTypeFields()
         {
-            DefineField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            DefineField("__accessor", typeof(IInterceptorAccessor), FieldAttributes.Private);
+            BuildField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
+            BuildField("__accessor", typeof(IInterceptorAccessor), FieldAttributes.Private);
 
-            foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
             {
-                DefineField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+                BuildField(GetMemberIdentifier(item), typeof(EventInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
 
             foreach (var item in Members.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                DefineField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                BuildField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+            }
+
+            foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
+            {
+                BuildField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
         }
 
@@ -98,7 +103,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             return GetField(GetMemberIdentifier(memberInfo));
         }
 
-        public FieldBuilder DefineField(string field, Type fieldType, FieldAttributes attributes)
+        public FieldBuilder BuildField(string field, Type fieldType, FieldAttributes attributes)
         {
             if (!Fields.ContainsKey(field))
             {
@@ -112,41 +117,164 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         #region Method
 
-        protected virtual void DefineTypeMethods()
+        protected virtual void BuildTypeMethods()
         {
             foreach (var item in Members.Where(i => i.IsMethod))
             {
-                DefineTypeMethod(item.Member.AsMethod());
+                BuildMethodBody(item.Member.AsMethod());
             }
         }
 
-        /// <summary>
-        /// Create Method
-        /// </summary>
-        /// <param name="methodInfo"></param>
-        protected virtual MethodBuilder DefineTypeMethod(MethodInfo methodInfo)
+        #region Method
+
+        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo)
         {
-            return null;
+            var methodBudiler = TypeBuilder.DefineMethod(methodInfo);
+            var ilGen = methodBudiler.GetILGenerator();
+            var parameters = methodInfo.GetParameters();
+
+            var arguments = ilGen.DeclareLocal(typeof(object[]));
+            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+
+            ilGen.MakeArgumentArray(parameters);
+            ilGen.SetVariableValue(arguments);
+
+            //this.__executor
+            ilGen.LoadThisField(GetField("__executor"));
+
+            //this.executor.Execute(new MethodInvocation)
+            ilGen.This();
+
+            ilGen.LoadStaticField(GetField(methodInfo));
+
+            ilGen.LoadMethodGenericArguments(methodInfo);
+
+            //new Parameters[]
+            ilGen.LoadVariable(arguments);
+
+            ilGen.LoadThisField(GetField("__accessor"));
+            ilGen.LoadStaticField(GetField(methodInfo));
+
+            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
+            ilGen.New(GeneratorUtils.NewMethodInvocation);
+
+            ilGen.InvokeMethodInvocation(methodInfo);
+
+            ilGen.SetVariableValue(methodReturnValue);
+
+            //update ref out
+            ilGen.SetRefArgumentsWithArray(parameters, arguments);
+
+            ilGen.LoadVariable(methodReturnValue);
+            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+            ilGen.Return();
+
+            return methodBudiler;
         }
 
-        protected virtual MethodBuilder DefineTypePropertyMethod(MethodInfo methodInfo, PropertyInfo property)
+        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, PropertyInfo property)
         {
-            return null;
+            var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
+            var ilGen = methodBuilder.GetILGenerator();
+            var parameters = methodInfo.GetParameters();
+
+            var arguments = ilGen.DeclareLocal(typeof(object[]));
+            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+
+            ilGen.MakeArgumentArray(parameters);
+            ilGen.SetVariableValue(arguments);
+
+            //this.__executor
+            ilGen.LoadThisField(GetField("__executor"));
+
+            //this.executor.Execute(new MethodInvocation)
+            ilGen.This();
+            ilGen.LoadStaticField(GetField(methodInfo));
+
+            ilGen.LoadMethodGenericArguments(methodInfo);
+
+            //new Parameters[]
+            ilGen.LoadVariable(arguments);
+
+            ilGen.LoadThisField(GetField("__accessor"));
+            ilGen.LoadStaticField(GetField(property));
+            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
+
+            ilGen.LoadStaticField(GetField(property));
+            ilGen.New(GeneratorUtils.NewMethodPropertyInvocation);
+
+            ilGen.InvokeMethodInvocation(methodInfo);
+            ilGen.SetVariableValue(methodReturnValue);
+
+            //update ref out
+            ilGen.SetRefArgumentsWithArray(parameters, arguments);
+
+            ilGen.LoadVariable(methodReturnValue);
+            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+            ilGen.Return();
+
+            return methodBuilder;
         }
+
+        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, EventInfo eventInfo)
+        {
+            var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
+            var ilGen = methodBuilder.GetILGenerator();
+            var parameters = methodInfo.GetParameters();
+
+            var arguments = ilGen.DeclareLocal(typeof(object[]));
+            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+
+            ilGen.MakeArgumentArray(parameters);
+            ilGen.SetVariableValue(arguments);
+
+            //this.__executor
+            ilGen.LoadThisField(GetField("__executor"));
+
+            //this.executor.Execute(new MethodInvocation)
+            ilGen.This();
+            ilGen.LoadStaticField(GetField(methodInfo));
+
+            ilGen.LoadMethodGenericArguments(methodInfo);
+
+            //new Parameters[]
+            ilGen.LoadVariable(arguments);
+
+            ilGen.LoadThisField(GetField("__accessor"));
+            ilGen.LoadStaticField(GetField(eventInfo));
+            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
+
+            ilGen.LoadStaticField(GetField(eventInfo));
+            ilGen.New(GeneratorUtils.NewMethodEventInvocation);
+
+            ilGen.InvokeMethodInvocation(methodInfo);
+            ilGen.SetVariableValue(methodReturnValue);
+
+            //update ref out
+            ilGen.SetRefArgumentsWithArray(parameters, arguments);
+
+            ilGen.LoadVariable(methodReturnValue);
+            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
+            ilGen.Return();
+
+            return methodBuilder;
+        }
+
+        #endregion
 
         #endregion
 
         #region Property
 
-        protected virtual void DefineTypeProperties()
+        protected virtual void BuildTypeProperties()
         {
             foreach (var item in Members.Where(i => i.IsProperty))
             {
-                DefineTypeProperty(item.Member.AsProperty());
+                BuildTypeProperty(item.Member.AsProperty());
             }
         }
 
-        protected virtual PropertyBuilder DefineTypeProperty(PropertyInfo propertyInfo)
+        protected virtual PropertyBuilder BuildTypeProperty(PropertyInfo propertyInfo)
         {
             var propertyBuilder = TypeBuilder
                 .DefineProperty(
@@ -159,7 +287,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             if (propertyInfo.CanWrite)
             {
-                var setter = DefineTypePropertyMethod(propertyInfo.SetMethod, propertyInfo);
+                var setter = BuildMethodBody(propertyInfo.SetMethod, propertyInfo);
                 if (setter == null)
                 {
                     throw new NullReferenceException(nameof(setter));
@@ -170,7 +298,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             if (propertyInfo.CanRead)
             {
-                var getter = DefineTypePropertyMethod(propertyInfo.GetMethod, propertyInfo);
+                var getter = BuildMethodBody(propertyInfo.GetMethod, propertyInfo);
                 if (getter == null)
                 {
                     throw new NullReferenceException(nameof(getter));
@@ -186,7 +314,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         #region  Event
 
-        protected virtual void DefineTypeEvents()
+        protected virtual void BuildTypeEvents()
         {
             foreach (var @event in Members.Where(i => i.IsEvent).Select(i => i.Member as EventInfo))
             {
@@ -199,17 +327,17 @@ namespace Tinja.Core.DynamicProxy.Generators
 
                 if (@event.AddMethod != null)
                 {
-                    builder.SetAddOnMethod(DefineTypeMethod(@event.AddMethod));
+                    builder.SetAddOnMethod(BuildMethodBody(@event.AddMethod, @event));
                 }
 
                 if (@event.RaiseMethod != null)
                 {
-                    builder.SetRaiseMethod(DefineTypeMethod(@event.RaiseMethod));
+                    builder.SetRaiseMethod(BuildMethodBody(@event.RaiseMethod, @event));
                 }
 
                 if (@event.RemoveMethod != null)
                 {
-                    builder.SetRemoveOnMethod(DefineTypeMethod(@event.RemoveMethod));
+                    builder.SetRemoveOnMethod(BuildMethodBody(@event.RemoveMethod, @event));
                 }
             }
         }
@@ -218,29 +346,21 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         #region Constructors
 
-        protected virtual void DefineTypeConstrcutors()
+        protected virtual void BuildTypeConstrcutors()
         {
-            DefineTypeDefaultConstructor();
-            DefineTypeStaticConstrcutor();
+            BuildTypeStaticConstrcutor();
         }
 
-        protected virtual void DefineTypeDefaultConstructor()
-        {
-            var ilGen = TypeBuilder
-                .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, ExtraConstrcutorParameterTypes)
-                .GetILGenerator();
-
-            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
-            ilGen.SetThisField(GetField("__accessor"), () => ilGen.LoadArgument(2));
-
-            ilGen.Return();
-        }
-
-        protected virtual void DefineTypeStaticConstrcutor()
+        protected virtual void BuildTypeStaticConstrcutor()
         {
             var ilGen = TypeBuilder
                 .DefineConstructor(MethodAttributes.Public | MethodAttributes.Static, CallingConventions.Standard, Type.EmptyTypes)
                 .GetILGenerator();
+
+            foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
+            {
+                ilGen.SetStaticField(GetField(item), _ => ilGen.LoadEventInfo(item));
+            }
 
             foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {

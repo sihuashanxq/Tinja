@@ -32,7 +32,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             typeof(IInterceptor[])
         });
 
-        internal static readonly ConstructorInfo NewPropertyMethodInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
+        internal static readonly ConstructorInfo NewMethodPropertyInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
         {
             typeof(object),
             typeof(MethodInfo),
@@ -40,6 +40,16 @@ namespace Tinja.Core.DynamicProxy.Generators
             typeof(object[]),
             typeof(IInterceptor[]),
             typeof(PropertyInfo)
+        });
+
+        internal static readonly ConstructorInfo NewMethodEventInvocation = typeof(MethodEventInvocation).GetConstructor(new[]
+        {
+            typeof(object),
+            typeof(MethodInfo),
+            typeof(Type[]),
+            typeof(object[]),
+            typeof(IInterceptor[]),
+            typeof(EventInfo)
         });
 
         static GeneratorUtils()

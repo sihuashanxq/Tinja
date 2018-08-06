@@ -12,11 +12,7 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
 
         public virtual IEnumerable<MemberMetadata> Collect(Type typeInfo)
         {
-            var interfaces = typeInfo.GetInterfaces();
-            if (interfaces == null)
-            {
-                interfaces = Type.EmptyTypes;
-            }
+            var interfaces = typeInfo.GetInterfaces() ?? Type.EmptyTypes;
 
             foreach (var item in CollectEvents(typeInfo, interfaces))
             {
@@ -34,11 +30,17 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
             }
         }
 
-        protected abstract IEnumerable<MemberMetadata> CollectMethods(Type typeInfo, Type[] interfaces);
-
-        protected abstract IEnumerable<MemberMetadata> CollectProperties(Type typeInfo, Type[] interfaces);
-
         protected virtual IEnumerable<MemberMetadata> CollectEvents(Type typeInfo, Type[] interfaces)
+        {
+            return MemberMetadata.EmptyMembers;
+        }
+
+        protected virtual IEnumerable<MemberMetadata> CollectMethods(Type typeInfo, Type[] interfaces)
+        {
+            return MemberMetadata.EmptyMembers;
+        }
+
+        protected virtual IEnumerable<MemberMetadata> CollectProperties(Type typeInfo, Type[] interfaces)
         {
             return MemberMetadata.EmptyMembers;
         }

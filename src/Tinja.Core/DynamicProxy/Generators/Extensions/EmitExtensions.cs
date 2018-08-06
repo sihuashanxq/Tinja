@@ -13,6 +13,8 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
         internal static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod("GetTypeFromHandle", new[] { typeof(RuntimeTypeHandle) });
 
+        internal static readonly MethodInfo GetEvent = typeof(Type).GetMethod("GetEvent", new[] { typeof(string)});
+
         internal static readonly MethodInfo GetProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
 
         internal static ILGenerator Box(this ILGenerator ilGen, Type boxType)
@@ -55,6 +57,23 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             ilGen.Emit(OpCodes.Unbox_Any, valueType);
             return ilGen;
+        }
+
+        internal static void LoadEventInfo(this ILGenerator ilGen, EventInfo eventInfo)
+        {
+            if (ilGen == null)
+            {
+                throw new NullReferenceException(nameof(ilGen));
+            }
+
+            if (eventInfo == null)
+            {
+                throw new NullReferenceException(nameof(eventInfo));
+            }
+
+            ilGen.Emit(OpCodes.Ldtoken, eventInfo.DeclaringType);
+            ilGen.Emit(OpCodes.Ldstr, eventInfo.Name);
+            ilGen.Emit(OpCodes.Call, GetEvent);
         }
 
         internal static void LoadMethodInfo(this ILGenerator ilGen, MethodInfo methodInfo)

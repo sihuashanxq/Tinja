@@ -30,19 +30,19 @@ namespace Tinja.Core.DynamicProxy.Metadatas
         {
             foreach (var eventInfo in typeInfo.GetEvents(BindingFlag))
             {
-                if (eventInfo.AddMethod != null && eventInfo.AddMethod.IsAbstract)
+                if (eventInfo.AddMethod != null && eventInfo.AddMethod.IsOverrideable())
                 {
                     yield return CreateMemberMetadata(eventInfo, interfaces);
                     continue;
                 }
 
-                if (eventInfo.RemoveMethod != null && eventInfo.RemoveMethod.IsAbstract)
+                if (eventInfo.RemoveMethod != null && eventInfo.RemoveMethod.IsOverrideable())
                 {
                     yield return CreateMemberMetadata(eventInfo, interfaces);
                     continue;
                 }
 
-                if (eventInfo.RaiseMethod != null && eventInfo.RaiseMethod.IsAbstract)
+                if (eventInfo.RaiseMethod != null && eventInfo.RaiseMethod.IsOverrideable())
                 {
                     yield return CreateMemberMetadata(eventInfo, interfaces);
                 }

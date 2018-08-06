@@ -39,6 +39,11 @@ namespace Tinja.Abstractions.Extensions
             return m as MethodInfo;
         }
 
+        public static EventInfo AsEvent(this MemberInfo m)
+        {
+            return m as EventInfo;
+        }
+
         public static bool IsVoid(this Type type)
         {
             return type == typeof(void);
