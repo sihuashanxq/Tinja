@@ -20,21 +20,21 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public ObjectMethodExecutor(MethodInfo methodInfo)
         {
-            MethodInfo = methodInfo;
+            MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
 
-            if (methodInfo.ReturnType.IsValueTask())
+            if (MethodInfo.ReturnType.IsValueTask())
             {
-                MethodExecutor = CreateValueTaskAsyncExecutor(methodInfo);
-                return;
+                MethodExecutor = CreateValueTaskAsyncExecutor(MethodInfo);
             }
 
-            if (methodInfo.ReturnType.IsTask())
+            else if (MethodInfo.ReturnType.IsTask())
             {
-                MethodExecutor = CreateTaskAsyncExecutor(methodInfo);
-                return;
+                MethodExecutor = CreateTaskAsyncExecutor(MethodInfo);
             }
-
-            MethodExecutor = CreateAsyncExecutorWrapper(MethodInfo);
+            else
+            {
+                MethodExecutor = CreateAsyncExecutorWrapper(MethodInfo);
+            }
         }
 
         public Task<object> ExecuteAsync(object instance, object[] paramterValues)

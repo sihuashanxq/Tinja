@@ -45,38 +45,33 @@ namespace Tinja.Core.DynamicProxy
 
             lock (this)
             {
-                var interceptors = new List<InterceptorEntry>();
-                var interceptorMetadatas = _metadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
+                var entries = new List<InterceptorEntry>();
+                var metadatas = _metadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
 
-                foreach (var metadata in interceptorMetadatas)
+                foreach (var metadata in metadatas.Where(item => item != null))
                 {
-                    if (metadata == null)
-                    {
-                        continue;
-                    }
-
-                    if (!_interceptors.TryGetValue(metadata.InterceptorType, out var item))
+                    if (!_interceptors.TryGetValue(metadata.InterceptorType, out var entry))
                     {
                         var interceptor = _interceptorFactory.Create(metadata.InterceptorType);
                         if (interceptor == null)
                         {
-                            throw new NullReferenceException(nameof(interceptor));
+                            throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
                         }
 
-                        item = new InterceptorEntry((IInterceptor)interceptor, metadata);
+                        entry = new InterceptorEntry(interceptor, metadata);
                     }
 
-                    interceptors.Add(item);
+                    entries.Add(entry);
                 }
 
-                return _memberInterceptors[memberInfo] = GetInterceptors(memberInfo, interceptors);
+                return _memberInterceptors[memberInfo] = GetInterceptors(memberInfo, entries);
             }
         }
 
-        private IInterceptor[] GetInterceptors(MemberInfo memberInfo, IEnumerable<InterceptorEntry> interceptors)
+        private IInterceptor[] GetInterceptors(MemberInfo memberInfo, IEnumerable<InterceptorEntry> entries)
         {
             //sort
-            var sortedInterceptors = interceptors
+            var sortedInterceptors = entries
                 .OrderByDescending(item => item.Metadata.Order)
                 .Select(item => item.Interceptor)
                 .ToArray();

@@ -20,7 +20,6 @@ namespace Tinja.Core.Injection.Activations
 
         static ActivatorUtil()
         {
-
             CreateCapturedScopedServiceFunc = (serviceId, scope, factory) => scope.Factory.CreateCapturedService(serviceId, factory);
             CreateCapturedTransientServiceFunc = (scope, factory) => scope.Factory.CreateCapturedService(factory);
 

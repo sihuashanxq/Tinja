@@ -22,15 +22,20 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public IMethodInvocationInvoker Build(MethodInfo methodInfo)
         {
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             if (_invokers.TryGetValue(methodInfo, out var invoker))
             {
                 return invoker;
             }
 
-            return _invokers[methodInfo] = BuildMethodInterceptionInvoker(methodInfo);
+            return _invokers[methodInfo] = BuildMethodInvocationInvoker(methodInfo);
         }
 
-        protected virtual IMethodInvocationInvoker BuildMethodInterceptionInvoker(MethodInfo methodInfo)
+        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(MethodInfo methodInfo)
         {
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
@@ -40,7 +45,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             return new MethodInvocationInvoker(invocation =>
             {
-                var stack = CreateExecuteStack(executor);
+                var stack = CreateMethodExecuteStack(executor);
                 if (!stack.Any())
                 {
                     throw new InvalidOperationException("build invoker failed!");
@@ -64,7 +69,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             });
         }
 
-        private static Stack<Func<IMethodInvocation, Task>> CreateExecuteStack(IObjectMethodExecutor executor)
+        private static Stack<Func<IMethodInvocation, Task>> CreateMethodExecuteStack(IObjectMethodExecutor executor)
         {
             var stack = new Stack<Func<IMethodInvocation, Task>>();
 
@@ -76,7 +81,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                     return;
                 }
 
-                inv.SetResultValue(await executor.ExecuteAsync(inv.Instance, inv.Arguments));
+                inv.SetResultValue(await executor.ExecuteAsync(inv.Instance, inv.ArgumentValues));
             });
 
             return stack;

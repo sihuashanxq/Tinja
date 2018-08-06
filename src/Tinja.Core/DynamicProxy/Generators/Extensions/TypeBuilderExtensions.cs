@@ -3,6 +3,8 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.Extensions;
+using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
@@ -59,7 +61,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             foreach (var customAttriute in typeInfo
                 .CustomAttributes
-                .Where(item => item.AttributeType != typeof(InterceptorAttribute)))
+                .Where(item => item.AttributeType.IsNotType<InjectAttribute>() && item.AttributeType.IsNotType<InterceptorAttribute>()))
             {
                 var attributeBuilder = GeneratorUtils.CreateCustomAttribute(customAttriute);
                 if (attributeBuilder != null)

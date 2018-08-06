@@ -8,10 +8,12 @@ namespace Tinja.Core.DynamicProxy.Executions
     {
         public PropertyInfo Property { get; }
 
-        public MethodPropertyInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors, PropertyInfo propertyInfo)
-            : base(instance, methodInfo, genericArguments, arguments, interceptors)
+        public override MethodInvocationType InvocationType => MethodInvocationType.Property;
+
+        public MethodPropertyInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] argumentValues, IInterceptor[] interceptors, PropertyInfo propertyInfo)
+            : base(instance, methodInfo, genericArguments, argumentValues, interceptors)
         {
-            Property = propertyInfo;
+            Property = propertyInfo ?? throw new NullReferenceException(nameof(propertyInfo));
         }
     }
 }

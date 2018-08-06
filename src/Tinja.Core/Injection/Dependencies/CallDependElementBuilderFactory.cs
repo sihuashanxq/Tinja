@@ -16,18 +16,8 @@ namespace Tinja.Core.Injection.Dependencies
 
         public CallDependElementBuilderFactory(IServiceEntryFactory serviceEntryFactory, IInjectionConfiguration injectionConfiguration)
         {
-            if (serviceEntryFactory == null)
-            {
-                throw new NullReferenceException(nameof(serviceEntryFactory));
-            }
-
-            if (injectionConfiguration == null)
-            {
-                throw new NullReferenceException(nameof(injectionConfiguration));
-            }
-
-            _serviceEntryFactory = serviceEntryFactory;
-            _injectionConfiguration = injectionConfiguration;
+            _serviceEntryFactory = serviceEntryFactory ?? throw new NullReferenceException(nameof(serviceEntryFactory));
+            _injectionConfiguration = injectionConfiguration ?? throw new NullReferenceException(nameof(injectionConfiguration));
         }
 
         public ICallDependencyElementBuilder CreateBuilder()

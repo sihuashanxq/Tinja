@@ -11,7 +11,7 @@
     {
         protected ConcurrentDictionary<string, object> Values { get; }
 
-        public Configuration()
+        protected Configuration()
         {
             Values = new ConcurrentDictionary<string, object>();
         }
@@ -28,7 +28,7 @@
                 throw new NullReferenceException(nameof(key));
             }
 
-            return Values.TryRemove(key, out var _);
+            return Values.TryRemove(key, out _);
         }
 
         public virtual IEnumerable<object> Get()
@@ -38,14 +38,19 @@
 
         public virtual TValue Get<TValue>(string key)
         {
+            if (key == null)
+            {
+                throw new NullReferenceException(nameof(key));
+            }
+
             if (Values.TryGetValue(key, out var value))
             {
-                if (value is TValue)
+                if (value is TValue tValue)
                 {
-                    return (TValue)value;
+                    return tValue;
                 }
 
-                if (value is null)
+                if (value == null)
                 {
                     return default(TValue);
                 }

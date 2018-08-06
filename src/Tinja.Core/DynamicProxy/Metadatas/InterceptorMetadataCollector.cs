@@ -11,7 +11,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
     {
         protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Cache { get; }
 
-        public InterceptorMetadataCollector(IMemberMetadataProvider memberCollectorFactory)
+        public InterceptorMetadataCollector()
         {
             Cache = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>>();
         }

@@ -24,8 +24,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             foreach (var customAttriute in parameterInfo
                 .CustomAttributes
-                .Where(item => !item.AttributeType.IsType(typeof(InjectAttribute)) &&
-                               !item.AttributeType.IsType(typeof(InterceptorAttribute))))
+                .Where(item => item.AttributeType.IsNotType<InjectAttribute>() && item.AttributeType.IsNotType<InterceptorAttribute>()))
             {
                 var attrBuilder = GeneratorUtils.CreateCustomAttribute(customAttriute);
                 if (attrBuilder != null)

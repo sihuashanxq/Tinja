@@ -9,7 +9,7 @@ namespace Tinja.Core.Injection
 
         internal ServiceCapturedFactory(ServiceLifeScope scope)
         {
-            Scope = scope;
+            Scope = scope ?? throw new NullReferenceException(nameof(scope));
         }
 
         public object CreateCapturedService(Func<IServiceResolver, object> factory)

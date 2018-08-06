@@ -9,33 +9,35 @@ namespace Tinja.Core.DynamicProxy.Executions
     {
         public object Instance { get; }
 
-        public object[] Arguments { get; }
-
         public MethodInfo MethodInfo { get; }
 
-        public object Result { get; protected set; }
+        public object[] ArgumentValues { get; }
 
         public IInterceptor[] Interceptors { get; }
 
-        public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] arguments, IInterceptor[] interceptors)
+        public object Result { get; protected set; }
+
+        public virtual MethodInvocationType InvocationType => MethodInvocationType.Method;
+
+        public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] argumentValues, IInterceptor[] interceptors)
         {
-            Instance = instance;
-            Arguments = arguments;
-            MethodInfo = methodInfo;
+            Instance = instance ?? throw new NullReferenceException(nameof(instance));
+            MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
             Interceptors = interceptors;
+            ArgumentValues = argumentValues;
 
             if (MethodInfo.IsGenericMethod)
             {
                 if (genericArguments == null)
                 {
-                    throw new InvalidCastException("MakeGenericMethod Faild!");
+                    throw new InvalidOperationException("MakeGenericMethod failed!");
                 }
 
                 MethodInfo = MethodInfo.MakeGenericMethod(genericArguments);
             }
         }
 
-        public bool SetResultValue(object value)
+        public virtual bool SetResultValue(object value)
         {
             if (MethodInfo.IsVoidMethod())
             {

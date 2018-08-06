@@ -16,6 +16,11 @@ namespace Tinja.Core.DynamicProxy
 
         public IEnumerable<IInterceptorSelector> GetSelectors(MemberInfo memberInfo)
         {
+            if (memberInfo == null)
+            {
+                return new IInterceptorSelector[0];
+            }
+
             return _selectors.Where(item => item.Supported(memberInfo));
         }
     }

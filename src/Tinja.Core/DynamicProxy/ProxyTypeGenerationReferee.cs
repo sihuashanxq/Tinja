@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace Tinja.Core.DynamicProxy
 {
@@ -20,14 +19,14 @@ namespace Tinja.Core.DynamicProxy
         {
             switch (memberInfo)
             {
+                case EventInfo eventInfo:
+                    return ShowEventProxy(eventInfo);
                 case MethodInfo methodInfo:
                     return ShoudMethodProxy(methodInfo);
                 case PropertyInfo propertyInfo:
                     return ShouldPropertyProxy(propertyInfo);
-                case EventInfo eventInfo:
-                    return ShowEventProxy(eventInfo);
                 default:
-                    return true;
+                    return false;
             }
         }
 

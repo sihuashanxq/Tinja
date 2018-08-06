@@ -20,19 +20,19 @@ namespace Tinja.Core.DynamicProxy.Metadatas
 
         public IEnumerable<InterceptorMetadata> GetMetadatas(MemberInfo memberInfo)
         {
-            var allMembers = _provider.GetMemberMetadatas(memberInfo.DeclaringType);
-            if (allMembers == null)
+            var typeMemberMetadatas = _provider.GetMemberMetadatas(memberInfo.DeclaringType);
+            if (typeMemberMetadatas == null)
             {
-                throw new NullReferenceException(nameof(allMembers));
+                throw new NullReferenceException(nameof(typeMemberMetadatas));
             }
-
-            var member = allMembers.FirstOrDefault(item => item.Member == memberInfo);
-            if (member == null)
+            
+            var memberMetadata = typeMemberMetadatas.FirstOrDefault(item => item.Member == memberInfo);
+            if (memberMetadata == null)
             {
                 return new InterceptorMetadata[0];
             }
 
-            return _collectors.SelectMany(item => item.Collect(member));
+            return _collectors.SelectMany(item => item.Collect(memberMetadata));
         }
     }
 }

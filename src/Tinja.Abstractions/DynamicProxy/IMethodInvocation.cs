@@ -6,14 +6,16 @@ namespace Tinja.Abstractions.DynamicProxy
     {
         object Result { get; }
 
-        object Instance { get; }
+        bool SetResultValue(object value);
 
-        object[] Arguments { get; }
+        object Instance { get; }
 
         MethodInfo MethodInfo { get; }
 
-        bool SetResultValue(object value);
+        object[] ArgumentValues { get; }
 
         IInterceptor[] Interceptors { get; }
+
+        MethodInvocationType InvocationType { get; }
     }
 }
