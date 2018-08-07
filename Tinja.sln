@@ -21,6 +21,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Abstractions", "src\T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tinja.Core", "src\Tinja.Core\Tinja.Core.csproj", "{F9433573-5985-4542-AF06-19C8D2813F13}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "performance", "performance", "{54ADC922-23EA-442B-85DD-B522AC11FA35}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinjaBenchmark", "performance\TinjaBenchmark\TinjaBenchmark.csproj", "{50B66615-E501-4991-BE88-C078B6AE161B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,10 @@ Global
 		{F9433573-5985-4542-AF06-19C8D2813F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9433573-5985-4542-AF06-19C8D2813F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9433573-5985-4542-AF06-19C8D2813F13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50B66615-E501-4991-BE88-C078B6AE161B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50B66615-E501-4991-BE88-C078B6AE161B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50B66615-E501-4991-BE88-C078B6AE161B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50B66615-E501-4991-BE88-C078B6AE161B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -62,6 +70,7 @@ Global
 		{00AC7E13-581C-40D1-92F3-3BB4B65F9B12} = {488D2C35-7FD6-4E31-8B9F-CA60A8B24CE7}
 		{18BE3DA4-4D26-46B4-8ECD-39EADA74E96A} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
 		{F9433573-5985-4542-AF06-19C8D2813F13} = {35ED0E0C-137C-4342-AFC6-7B286709E096}
+		{50B66615-E501-4991-BE88-C078B6AE161B} = {54ADC922-23EA-442B-85DD-B522AC11FA35}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {35E9D448-2743-4065-ABF5-A70451F5FE50}
