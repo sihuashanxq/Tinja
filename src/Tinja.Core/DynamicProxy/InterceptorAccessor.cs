@@ -4,41 +4,48 @@ using System.Linq;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.Extensions;
+using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy
 {
-    /// <summary>
-    /// Transient
-    /// </summary>
     public class InterceptorAccessor : IInterceptorAccessor
     {
-        private readonly IInterceptorFactory _interceptorFactory;
+        private bool _initialized;
 
-        private readonly IInterceptorSelectorProvider _selectorProvider;
+        internal IServiceResolver ServieResolver { get; }
 
-        private readonly IInterceptorMetadataProvider _metadataProvider;
+        internal IInterceptorFactory InterceptorFactory { get; set; }
 
-        private readonly Dictionary<Type, InterceptorEntry> _interceptors;
+        internal IInterceptorSelectorProvider InterceptorSelectorProvider { get; set; }
 
-        private readonly Dictionary<MemberInfo, IInterceptor[]> _memberInterceptors;
+        internal IInterceptorMetadataProvider InterceptorMetadataProvider { get; set; }
 
-        public InterceptorAccessor(
-            IInterceptorFactory interceptorFactory,
-            IInterceptorSelectorProvider selectorProvider,
-            IInterceptorMetadataProvider metadataProvider
-        )
+        internal Dictionary<Type, InterceptorEntry> TypeInterceptors { get; set; }
+
+        internal Dictionary<MemberInfo, IInterceptor[]> MemberInterceptors { get; set; }
+
+        public InterceptorAccessor(IServiceResolver serviceResolver)
         {
-            _selectorProvider = selectorProvider ?? throw new NullReferenceException(nameof(selectorProvider));
-            _metadataProvider = metadataProvider ?? throw new NullReferenceException(nameof(selectorProvider));
-            _interceptorFactory = interceptorFactory ?? throw new NullReferenceException(nameof(interceptorFactory));
-
-            _interceptors = new Dictionary<Type, InterceptorEntry>();
-            _memberInterceptors = new Dictionary<MemberInfo, IInterceptor[]>();
+            ServieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
         }
 
         public IInterceptor[] GetOrCreateInterceptors(MemberInfo memberInfo)
         {
-            if (_memberInterceptors.TryGetValue(memberInfo, out var memberInterceptors))
+            if (!_initialized)
+            {
+                lock (this)
+                {
+                    _initialized = true;
+                    TypeInterceptors = new Dictionary<Type, InterceptorEntry>();
+                    MemberInterceptors = new Dictionary<MemberInfo, IInterceptor[]>();
+                    InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
+                    InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
+                    InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+                }
+            }
+
+            if (MemberInterceptors.TryGetValue(memberInfo, out var memberInterceptors))
             {
                 return memberInterceptors;
             }
@@ -46,13 +53,13 @@ namespace Tinja.Core.DynamicProxy
             lock (this)
             {
                 var entries = new List<InterceptorEntry>();
-                var metadatas = _metadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
+                var metadatas = InterceptorMetadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
 
                 foreach (var metadata in metadatas.Where(item => item != null))
                 {
-                    if (!_interceptors.TryGetValue(metadata.InterceptorType, out var entry))
+                    if (!TypeInterceptors.TryGetValue(metadata.InterceptorType, out var entry))
                     {
-                        var interceptor = _interceptorFactory.Create(metadata.InterceptorType);
+                        var interceptor = InterceptorFactory.Create(metadata.InterceptorType);
                         if (interceptor == null)
                         {
                             throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
@@ -64,22 +71,32 @@ namespace Tinja.Core.DynamicProxy
                     entries.Add(entry);
                 }
 
-                return _memberInterceptors[memberInfo] = GetInterceptors(memberInfo, entries);
+                return MemberInterceptors[memberInfo] = GetInterceptors(memberInfo, entries);
             }
         }
 
         private IInterceptor[] GetInterceptors(MemberInfo memberInfo, IEnumerable<InterceptorEntry> entries)
         {
-            //sort
-            var sortedInterceptors = entries
-                .OrderByDescending(item => item.Metadata.Order)
-                .Select(item => item.Interceptor)
-                .ToArray();
+            if (memberInfo == null)
+            {
+                throw new NullReferenceException(nameof(memberInfo));
+            }
 
-            //select
-            return _selectorProvider
-                .GetSelectors(memberInfo)
-                .Aggregate(sortedInterceptors, (current, selector) => selector.Select(memberInfo, current));
+            if (entries == null)
+            {
+                throw new NullReferenceException(nameof(entries));
+            }
+
+            //sort
+            var selectors = InterceptorSelectorProvider.GetSelectors(memberInfo);
+            if (selectors == null)
+            {
+                return entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor).ToArray();
+            }
+
+            var interceptors = entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor);
+
+            return selectors.Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current)).ToArray();
         }
     }
 }
