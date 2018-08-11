@@ -178,6 +178,16 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
+            if (element.ServiceType.IsType<IServiceResolver>())
+            {
+                return ParameterResolver;
+            }
+
+            if (element.ServiceType.IsType<IServiceLifeScope>())
+            {
+                return ParameterScope;
+            }
+
             //optimization
             var lambda = Expression.Lambda(serviceExpression, ParameterResolver, ParameterScope);
             var compiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)lambda.Compile();
@@ -196,6 +206,16 @@ namespace Tinja.Core.Injection.Activations
             if (element == null)
             {
                 throw new NullReferenceException(nameof(element));
+            }
+
+            if (element.ServiceType.IsType<IServiceLifeScope>())
+            {
+                return ParameterScope;
+            }
+
+            if (element.ServiceType.IsType<IServiceResolver>())
+            {
+                return ParameterResolver;
             }
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
@@ -237,6 +257,16 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
+            if (element.ServiceType.IsType<IServiceLifeScope>())
+            {
+                return (r, s) => s;
+            }
+
+            if (element.ServiceType.IsType<IServiceResolver>())
+            {
+                return (r, s) => r;
+            }
+ 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
                 var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, element.Delegate);

@@ -29,8 +29,8 @@ namespace Tinja.Core.Injection
             ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
 
             Factory = new ServiceCapturedFactory(this);
-            DisposableServices = new List<IDisposable>();
             ResolvedServices = new Dictionary<int, object>();
+            DisposableServices = new List<IDisposable>() { serviceResolver };
         }
 
         public ServiceLifeScope(IServiceResolver serviceResolver)
@@ -38,8 +38,8 @@ namespace Tinja.Core.Injection
             Root = this;
             ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
             Factory = new ServiceCapturedFactory(this);
-            DisposableServices = new List<IDisposable>();
             ResolvedServices = new Dictionary<int, object>();
+            DisposableServices = new List<IDisposable>() { serviceResolver };
         }
 
         ~ServiceLifeScope()
