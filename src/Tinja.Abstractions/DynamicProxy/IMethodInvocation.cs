@@ -4,9 +4,7 @@ namespace Tinja.Abstractions.DynamicProxy
 {
     public interface IMethodInvocation
     {
-        object Result { get; }
-
-        bool SetResultValue(object value);
+        object Result { get; set; }
 
         object Instance { get; }
 

@@ -16,15 +16,14 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public virtual TResult Execute<TResult>(IMethodInvocation inv)
         {
-            var task = ExecuteCore(inv);
-            if (task == null)
-            {
-                throw new NullReferenceException(nameof(task));
-            }
+            ExecuteCore(inv);
+            return ((Task<TResult>)inv.Result).Result;
+        }
 
-            task.Wait();
-
-            return (TResult)inv.Result;
+        public virtual Task ExecuteVoidAsync(IMethodInvocation inv)
+        {
+            ExecuteCore(inv);
+            return inv.Result as Task;
         }
 
         public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation inv)
@@ -34,29 +33,28 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public virtual Task<TResult> ExecuteAsync<TResult>(IMethodInvocation inv)
         {
-            var task = ExecuteCore(inv);
-            if (task == null)
-            {
-                throw new NullReferenceException(nameof(task));
-            }
-
-            var taskAwaiter = task.GetAwaiter();
-            var taskCompletionSource = new TaskCompletionSource<TResult>();
-
-            taskAwaiter.OnCompleted(() => taskCompletionSource.SetResult((TResult)inv.Result));
-
-            return taskCompletionSource.Task;
+            ExecuteCore(inv);
+            return (Task<TResult>)inv.Result;
         }
 
-        protected Task ExecuteCore(IMethodInvocation invocation)
+        protected void ExecuteCore(IMethodInvocation invocation)
         {
-            var invoker = _builder.Build(invocation.MethodInfo);
+            var invoker = _builder.Build(invocation);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));
             }
 
-            return invoker.InvokeAsync(invocation);
+            var task = invoker.InvokeAsync(invocation);
+            if (task == null)
+            {
+                throw new NullReferenceException(nameof(task));
+            }
+
+            if (task.Exception != null)
+            {
+                throw task.Exception;
+            }
         }
     }
 }

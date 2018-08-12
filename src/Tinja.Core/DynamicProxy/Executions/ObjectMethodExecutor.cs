@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -14,7 +13,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 {
     internal class ObjectMethodExecutor : IObjectMethodExecutor
     {
-        protected Func<object, object[], Task<object>> MethodExecutor { get; }
+        protected Func<object, object[], Task> MethodExecutor { get; }
 
         public MethodInfo MethodInfo { get; }
 
@@ -22,12 +21,7 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
 
-            if (MethodInfo.ReturnType.IsValueTask())
-            {
-                MethodExecutor = CreateValueTaskAsyncExecutor(MethodInfo);
-            }
-
-            else if (MethodInfo.ReturnType.IsTask())
+            if (MethodInfo.ReturnType.IsTask() || MethodInfo.ReturnType.IsValueTask())
             {
                 MethodExecutor = CreateTaskAsyncExecutor(MethodInfo);
             }
@@ -37,176 +31,93 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
         }
 
-        public Task<object> ExecuteAsync(object instance, object[] paramterValues)
+        public Task ExecuteAsync(object instance, object[] paramterValues)
         {
             return MethodExecutor(instance, paramterValues);
         }
 
-        private static Func<object, object[], Task<object>> CreateAsyncExecutorWrapper(MethodInfo methodInfo)
+        private static Func<object, object[], Task> CreateAsyncExecutorWrapper(MethodInfo methodInfo)
         {
-            var instance = Expression.Parameter(typeof(object), "instance");
-            var parametersParameter = Expression.Parameter(typeof(object[]), "parameters");
-
-            var invoker = CreateMethodInvoker(methodInfo);
-            var invocation = Expression.Invoke(Expression.Constant(invoker), instance, parametersParameter);
-
-            var executor = Expression.Lambda(invocation, instance, parametersParameter).Compile();
-
-            return (obj, paramterValues) => Task.FromResult(((Func<object, object[], object>)executor)(obj, paramterValues));
-        }
-
-        private static Func<object, object[], Task<object>> CreateTaskAsyncExecutor(MethodInfo methodInfo)
-        {
-            var instance = Expression.Parameter(typeof(object), "instance");
-            var taskCompletionSourceType = typeof(TaskCompletionSource<object>);
-            var tcs = Expression.Parameter(taskCompletionSourceType, "tcs");
-            var parametersParameter = Expression.Parameter(typeof(object[]), "parameters");
-
-            var invoker = CreateMethodInvoker(methodInfo);
-            var methodInvocation = Expression.Invoke(Expression.Constant(invoker), instance, parametersParameter);
-
-            var isVoidMethod = methodInfo.ReturnType == typeof(Task);
-            var awaiterType = isVoidMethod
-                ? typeof(TaskAwaiter)
-                : typeof(TaskAwaiter<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments().FirstOrDefault());
-
-            var task = Expression.Variable(methodInfo.ReturnType, "task");
-            var awaiter = Expression.Variable(awaiterType, "awaiter");
-            var getAwaiter = Expression.Call(task, methodInfo.ReturnType.GetMethod("GetAwaiter"));
-            var getException = Expression.MakeMemberAccess(task, methodInfo.ReturnType.GetProperty("Exception"));
-
-            var lambdaBody = Expression.Block(
-                new[] { task, awaiter },
-                Expression.Assign(task, Expression.Convert(methodInvocation, task.Type)),
-                Expression.Assign(awaiter, getAwaiter),
-                Expression.Call(
-                    awaiter,
-                    awaiterType.GetMethod("OnCompleted"),
-                    Expression.Lambda<Action>(
-                         Expression.IfThenElse(
-                            Expression.NotEqual(getException, Expression.Constant(null)),
-                            Expression.Call(
-                                tcs,
-                                taskCompletionSourceType.GetMethod("SetException", new[] { typeof(Exception) }),
-                                getException
-                            ),
-                            Expression.Call(
-                                tcs,
-                                taskCompletionSourceType.GetMethod("SetResult"),
-                                isVoidMethod
-                                    ? (Expression)Expression.Constant(null)
-                                    : Expression.Convert(Expression.Call(awaiter, awaiterType.GetMethod("GetResult")), typeof(object))
-                            )
-                        )
-                    )
-                ),
-                Expression.Label(Expression.Label())
-            );
-
-            var lambda = Expression.Lambda(lambdaBody, instance, parametersParameter, tcs);
-            var executor = (Action<object, object[], TaskCompletionSource<object>>)lambda.Compile();
-
-            return (obj, args) =>
+            if (methodInfo == null)
             {
-                var taskCompletionSource = new TaskCompletionSource<object>();
+                throw new NullReferenceException(nameof(methodInfo));
+            }
 
-                executor(obj, args, taskCompletionSource);
-
-                return taskCompletionSource.Task;
-            };
-        }
-
-        private static Func<object, object[], Task<object>> CreateValueTaskAsyncExecutor(MethodInfo methodInfo)
-        {
-            var instance = Expression.Parameter(typeof(object), "instance");
-            var taskCompletionSourceType = typeof(TaskCompletionSource<object>);
-            var tcs = Expression.Parameter(taskCompletionSourceType, "tcs");
-            var parametersParameter = Expression.Parameter(typeof(object[]), "parameters");
-
-            var invoker = CreateMethodInvoker(methodInfo);
-            var methodInvocation = Expression.Invoke(Expression.Constant(invoker), instance, parametersParameter);
-
-            var awaiterType = typeof(TaskAwaiter<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments());
-            var task = Expression.Variable(typeof(Task<>).MakeGenericType(methodInfo.ReturnType.GetGenericArguments()), "task");
-            var awaiter = Expression.Variable(awaiterType, "awaiter");
-            var getAwaiter = Expression.Call(task, task.Type.GetMethod("GetAwaiter"));
-            var getException = Expression.MakeMemberAccess(task, task.Type.GetProperty("Exception"));
-
-            var lambdaBody = Expression.Block(
-                new[] { task, awaiter },
-                Expression.Assign(task, Expression.Convert(methodInvocation, task.Type)),
-                Expression.Assign(awaiter, getAwaiter),
-
-                Expression.Call(
-                    awaiter,
-                    awaiterType.GetMethod("OnCompleted"),
-                    Expression.Lambda<Action>(
-                         Expression.IfThenElse(
-                            Expression.NotEqual(getException, Expression.Constant(null)),
-                            Expression.Call(
-                                tcs,
-                                taskCompletionSourceType.GetMethod("SetException", new[] { typeof(Exception) }),
-                                getException
-                            ),
-                            Expression.Call(
-                                tcs,
-                                taskCompletionSourceType.GetMethod("SetResult"),
-                                Expression.Convert(Expression.Call(awaiter, awaiterType.GetMethod("GetResult")), typeof(object))
-                            )
-                        )
-                    )
-                ),
-                Expression.Label(Expression.Label())
-            );
-
-            var lambda = Expression.Lambda(lambdaBody, instance, parametersParameter, tcs);
-            var executor = (Action<object, object[], TaskCompletionSource<object>>)lambda.Compile();
-
-            return (obj, args) =>
+            var invokeDelegate = CreateMethodInvokDelegate(methodInfo);
+            if (invokeDelegate == null)
             {
-                var taskCompletionSource = new TaskCompletionSource<object>();
+                throw new NullReferenceException(nameof(invokeDelegate));
+            }
 
-                executor(obj, args, taskCompletionSource);
+            var instance = Expression.Parameter(typeof(object), "instance");
+            var parameter = Expression.Parameter(typeof(object[]), "parameters");
+            var invocation = Expression.Invoke(Expression.Constant(invokeDelegate), instance, parameter);
+            var executor = Expression.Lambda(invocation, instance, parameter).Compile();
 
-                return taskCompletionSource.Task;
-            };
+            return (obj, args) => Task.FromResult(((Func<object, object[], object>)executor)(obj, args));
         }
 
-        private static Func<object, object[], object> CreateMethodInvoker(MethodInfo methodInfo)
+        private static Func<object, object[], Task> CreateTaskAsyncExecutor(MethodInfo methodInfo)
         {
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
+            var invokeDelegate = CreateMethodInvokDelegate(methodInfo);
+            if (invokeDelegate == null)
+            {
+                throw new NullReferenceException(nameof(invokeDelegate));
+            }
+
+            var instance = Expression.Parameter(typeof(object), "instance");
+            var parameters = Expression.Parameter(typeof(object[]), "parameters");
+            var invocation = Expression.Invoke(Expression.Constant(invokeDelegate), instance, parameters);
+            var asResult = Expression.Convert(invocation, typeof(Task));
+
+            return (Func<object, object[], Task>)Expression.Lambda(asResult, instance, parameters).Compile();
+        }
+
+        private static Func<object, object[], object> CreateMethodInvokDelegate(MethodInfo methodInfo)
+        {
+            if (methodInfo == null)
+            {
+                throw new NullReferenceException(nameof(methodInfo));
+            }
+
             var dynamicMethod = new DynamicMethod(methodInfo.Name, typeof(object), new[] { typeof(object), typeof(object[]) });
-            var parameterInfos = methodInfo.GetParameters();
-            var map = new Dictionary<int, LocalBuilder>();
-            var ilGen = dynamicMethod.GetILGenerator();
-            var resultValue = CreateResultValueVariable(ilGen, methodInfo);
+            var parameters = methodInfo.GetParameters();
+            var varBuilders = new Dictionary<int, LocalBuilder>();
+            var ilGenerator = dynamicMethod.GetILGenerator();
+            var resultValue = CreateResultValueVariable(ilGenerator, methodInfo);
 
-            ilGen.LoadArgument(0);
-            for (var i = 0; i < parameterInfos.Length; i++)
+            ilGenerator.LoadArgument(0);
+            for (var i = 0; i < parameters.Length; i++)
             {
-                var parameterInfo = parameterInfos[i];
-                if (!parameterInfo.ParameterType.IsByRef)
+                var parameter = parameters[i];
+                if (parameter.ParameterType.IsByRef)
                 {
-                    ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterInfo.ParameterType);
+                    varBuilders[i] = ilGenerator.DeclareLocal(parameter.ParameterType.GetElementType());
+
+                    ilGenerator.LoadArrayElement(_ => ilGenerator.LoadArgument(1), i, parameter.ParameterType);
+                    ilGenerator.SetVariableValue(varBuilders[i]);
+                    ilGenerator.LoadVariableRef(varBuilders[i]);
                     continue;
                 }
 
-                map[i] = ilGen.DeclareLocal(parameterInfo.ParameterType.GetElementType());
-
-                ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterInfo.ParameterType);
-                ilGen.SetVariableValue(map[i]);
-                ilGen.LoadVariableRef(map[i]);
+                ilGenerator.LoadArrayElement(_ => ilGenerator.LoadArgument(1), i, parameter.ParameterType);
             }
 
-            ilGen.Call(methodInfo);
-            ilGen.Emit(methodInfo.ReturnType.IsVoid() ? OpCodes.Ldnull : OpCodes.Nop);
+            ilGenerator.Call(methodInfo);
+            ilGenerator.Emit(methodInfo.ReturnType.IsVoid() ? OpCodes.Ldnull : OpCodes.Nop);
 
-            ilGen.SetVariableValue(resultValue);
+            ilGenerator.SetVariableValue(resultValue);
 
-            foreach (var kv in map)
+            foreach (var kv in varBuilders)
             {
-                ilGen.SetArrayElement(
-                    _ => ilGen.LoadArgument(1),
-                    _ => ilGen.Emit(OpCodes.Ldloc, kv.Value),
+                ilGenerator.SetArrayElement(
+                    _ => ilGenerator.LoadArgument(1),
+                    _ => ilGenerator.Emit(OpCodes.Ldloc, kv.Value),
                     kv.Key,
                     kv.Value.LocalType
                 );
@@ -214,15 +125,15 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             if (methodInfo.ReturnType.IsValueTask())
             {
-                ilGen.LoadVariableRef(resultValue);
-                ilGen.Call(methodInfo.ReturnType.GetMethod("AsTask"));
+                ilGenerator.LoadVariableRef(resultValue);
+                ilGenerator.Call(methodInfo.ReturnType.GetMethod("AsTask"));
             }
             else
             {
-                ilGen.LoadVariable(resultValue);
+                ilGenerator.LoadVariable(resultValue);
             }
 
-            ilGen.Return();
+            ilGenerator.Return();
 
             return (Func<object, object[], object>)dynamicMethod.CreateDelegate(typeof(Func<object, object[], object>));
         }

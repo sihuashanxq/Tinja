@@ -13,8 +13,6 @@ namespace ConsoleApp
             await next(invocation);
 
             Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.MethodInfo.Name }:executed :return{invocation.Result}->{invocation.Result.ToString() + "Interceptor"}");
-
-            invocation.SetResultValue(invocation.Result.ToString() + "Interceptor");
         }
     }
 

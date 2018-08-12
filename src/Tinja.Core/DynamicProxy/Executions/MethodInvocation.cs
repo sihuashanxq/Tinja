@@ -15,7 +15,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public IInterceptor[] Interceptors { get; }
 
-        public object Result { get; protected set; }
+        public object Result { get; set; }
 
         public virtual MethodInvocationType InvocationType => MethodInvocationType.Method;
 
@@ -35,17 +35,6 @@ namespace Tinja.Core.DynamicProxy.Executions
 
                 MethodInfo = MethodInfo.MakeGenericMethod(genericArguments);
             }
-        }
-
-        public virtual bool SetResultValue(object value)
-        {
-            if (MethodInfo.IsVoidMethod())
-            {
-                return false;
-            }
-
-            Result = value;
-            return true;
         }
     }
 }

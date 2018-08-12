@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.Extensions;
 
@@ -13,7 +14,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
         internal static readonly MethodInfo GetTypeFromHandle = typeof(Type).GetMethod("GetTypeFromHandle", new[] { typeof(RuntimeTypeHandle) });
 
-        internal static readonly MethodInfo GetEvent = typeof(Type).GetMethod("GetEvent", new[] { typeof(string)});
+        internal static readonly MethodInfo GetEvent = typeof(Type).GetMethod("GetEvent", new[] { typeof(string) });
 
         internal static readonly MethodInfo GetProperty = typeof(Type).GetMethod("GetProperty", new[] { typeof(string), typeof(BindingFlags) });
 
@@ -764,6 +765,8 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
         internal static MethodInfo MethodInvocationAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsync");
 
+        internal static MethodInfo MethodInvocationVoidAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsyncVoid");
+
         internal static MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteValueTaskAsync");
 
         internal static ILGenerator InvokeMethodInvocation(this ILGenerator ilGen, MethodInfo methodInfo)
@@ -776,6 +779,11 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             if (methodInfo == null)
             {
                 throw new NullReferenceException(nameof(methodInfo));
+            }
+
+            if (methodInfo.ReturnType == typeof(Task))
+            {
+                return ilGen.Call(MethodInvocationVoidAsyncExecute);
             }
 
             if (methodInfo.ReturnType.IsValueTask())

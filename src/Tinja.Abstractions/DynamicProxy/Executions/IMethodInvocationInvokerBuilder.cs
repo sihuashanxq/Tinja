@@ -6,6 +6,6 @@ namespace Tinja.Abstractions.DynamicProxy.Executions
 {
     public interface IMethodInvocationInvokerBuilder
     {
-        IMethodInvocationInvoker Build(MethodInfo methodInfo);
+        IMethodInvocationInvoker Build(IMethodInvocation invocation);
     }
 }

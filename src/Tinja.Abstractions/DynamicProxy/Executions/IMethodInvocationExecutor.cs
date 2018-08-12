@@ -6,6 +6,8 @@ namespace Tinja.Abstractions.DynamicProxy.Executions
     {
         TResult Execute<TResult>(IMethodInvocation methodInvocation);
 
+        Task ExecuteVoidAsync(IMethodInvocation methodInvocation);
+
         Task<TResult> ExecuteAsync<TResult>(IMethodInvocation methodInvocation);
 
         ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation methodInvocation);

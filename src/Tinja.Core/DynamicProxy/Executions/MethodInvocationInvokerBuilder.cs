@@ -20,24 +20,24 @@ namespace Tinja.Core.DynamicProxy.Executions
             _invokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
         }
 
-        public IMethodInvocationInvoker Build(MethodInfo methodInfo)
+        public IMethodInvocationInvoker Build(IMethodInvocation invocation)
         {
-            if (methodInfo == null)
+            if (invocation == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new NullReferenceException(nameof(invocation));
             }
 
-            if (_invokers.TryGetValue(methodInfo, out var invoker))
+            if (_invokers.TryGetValue(invocation.MethodInfo, out var invoker))
             {
                 return invoker;
             }
 
-            return _invokers[methodInfo] = BuildMethodInvocationInvoker(methodInfo);
+            return _invokers[invocation.MethodInfo] = BuildMethodInvocationInvoker(invocation);
         }
 
-        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(MethodInfo methodInfo)
+        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(IMethodInvocation invo)
         {
-            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(invo.MethodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
@@ -62,7 +62,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                     var next = stack.Pop();
                     var item = invocation.Interceptors[i];
 
-                    stack.Push(async inv => await item.InvokeAsync(inv, next));
+                    stack.Push(inv => item.InvokeAsync(inv, next));
                 }
 
                 return stack.Pop()(invocation);
@@ -73,15 +73,14 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             var stack = new Stack<Func<IMethodInvocation, Task>>();
 
-            stack.Push(async inv =>
+            stack.Push(inv =>
             {
                 if (inv.MethodInfo.IsAbstract || inv.MethodInfo.DeclaringType.IsInterface)
                 {
-                    await Task.CompletedTask;
-                    return;
+                    return Task.CompletedTask;
                 }
 
-                inv.SetResultValue(await executor.ExecuteAsync(inv.Instance, inv.ArgumentValues));
+                return (Task)(inv.Result = executor.ExecuteAsync(inv.Instance, inv.ArgumentValues));
             });
 
             return stack;
