@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Core.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Generators
@@ -21,7 +21,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         internal static Dictionary<Type, int> ProxyIndexs { get; }
 
-        internal static readonly MethodInfo GetOrCreateInterceptors = typeof(InterceptorAccessor).GetMethod("GetOrCreateInterceptors");
+        internal static readonly MethodInfo BuildMethodInvocationInvoker = typeof(IMethodInvocationInvokerBuilder).GetMethod("Build");
 
         internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
         {
@@ -29,27 +29,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             typeof(MethodInfo),
             typeof(Type[]),
             typeof(object[]),
-            typeof(IInterceptor[])
-        });
-
-        internal static readonly ConstructorInfo NewMethodPropertyInvocation = typeof(MethodPropertyInvocation).GetConstructor(new[]
-        {
-            typeof(object),
-            typeof(MethodInfo),
-            typeof(Type[]),
-            typeof(object[]),
-            typeof(IInterceptor[]),
-            typeof(PropertyInfo)
-        });
-
-        internal static readonly ConstructorInfo NewMethodEventInvocation = typeof(MethodEventInvocation).GetConstructor(new[]
-        {
-            typeof(object),
-            typeof(MethodInfo),
-            typeof(Type[]),
-            typeof(object[]),
-            typeof(IInterceptor[]),
-            typeof(EventInfo)
+            typeof(MemberInfo)
         });
 
         static GeneratorUtils()

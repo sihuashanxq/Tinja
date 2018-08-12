@@ -5,19 +5,33 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Executions;
+using Tinja.Abstractions.DynamicProxy.Metadatas;
+using Tinja.Abstractions.Extensions;
+using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
     public class MethodInvocationInvokerBuilder : IMethodInvocationInvokerBuilder
     {
-        private readonly IObjectMethodExecutorProvider _methodExecutorProvider;
+        private bool _initialized;
 
-        private readonly Dictionary<MethodInfo, IMethodInvocationInvoker> _invokers;
+        internal IServiceResolver ServieResolver { get; set; }
 
-        public MethodInvocationInvokerBuilder(IObjectMethodExecutorProvider methodExecutorProvider)
+        internal IInterceptorFactory InterceptorFactory { get; set; }
+
+        internal IObjectMethodExecutorProvider MethodExecutorProvider { get; set; }
+
+        internal IInterceptorSelectorProvider InterceptorSelectorProvider { get; set; }
+
+        internal IInterceptorMetadataProvider InterceptorMetadataProvider { get; set; }
+
+        internal Dictionary<Type, InterceptorEntry> Interceptors { get; set; }
+
+        internal Dictionary<MethodInfo, IMethodInvocationInvoker> Invokers { get; set; }
+
+        public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
-            _methodExecutorProvider = methodExecutorProvider;
-            _invokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
+            ServieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
         }
 
         public IMethodInvocationInvoker Build(IMethodInvocation invocation)
@@ -27,46 +41,108 @@ namespace Tinja.Core.DynamicProxy.Executions
                 throw new NullReferenceException(nameof(invocation));
             }
 
-            if (_invokers.TryGetValue(invocation.MethodInfo, out var invoker))
+            if (!_initialized)
+            {
+                lock (this)
+                {
+                    _initialized = true;
+                    Interceptors = new Dictionary<Type, InterceptorEntry>();
+                    Invokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
+                    InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
+                    MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
+                    InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
+                    InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+                }
+            }
+
+            if (Invokers.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return _invokers[invocation.MethodInfo] = BuildMethodInvocationInvoker(invocation);
+            return Invokers[invocation.Method] = BuildMethodInvocationInvoker(invocation);
         }
 
-        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(IMethodInvocation invo)
+        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(IMethodInvocation invocation)
         {
-            var executor = _methodExecutorProvider.GetExecutor(invo.MethodInfo);
+            var executor = MethodExecutorProvider.GetExecutor(invocation.Method);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
             }
 
-            return new MethodInvocationInvoker(invocation =>
+            var callStack = CreateMethodExecuteStack(executor);
+            if (!callStack.Any())
             {
-                var stack = CreateMethodExecuteStack(executor);
-                if (!stack.Any())
+                throw new InvalidOperationException("build invoker failed!");
+            }
+
+            var interceptors = GetInterceptors(invocation.TargetMember);
+            if (interceptors == null || interceptors.Length == 0)
+            {
+                return new MethodInvocationInvoker(callStack.Pop());
+            }
+
+            for (var i = interceptors.Length - 1; i >= 0; i--)
+            {
+                var next = callStack.Pop();
+                var item = interceptors[i];
+
+                callStack.Push(inv => item.InvokeAsync(inv, next));
+            }
+
+            return new MethodInvocationInvoker(callStack.Pop());
+        }
+
+        protected virtual IInterceptor[] GetInterceptors(MemberInfo memberInfo)
+        {
+            lock (Interceptors)
+            {
+                var entries = new List<InterceptorEntry>();
+                var metadatas = InterceptorMetadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
+
+                foreach (var metadata in metadatas.Where(item => item != null))
                 {
-                    throw new InvalidOperationException("build invoker failed!");
+                    if (!Interceptors.TryGetValue(metadata.InterceptorType, out var entry))
+                    {
+                        var interceptor = InterceptorFactory.Create(metadata.InterceptorType);
+                        if (interceptor == null)
+                        {
+                            throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
+                        }
+
+                        entry = new InterceptorEntry(interceptor, metadata);
+                    }
+
+                    entries.Add(entry);
                 }
 
-                if (invocation.Interceptors == null ||
-                    invocation.Interceptors.Length == 0)
-                {
-                    return stack.Pop()(invocation);
-                }
+                return GetInterceptors(memberInfo, entries);
+            }
+        }
 
-                for (var i = invocation.Interceptors.Length - 1; i >= 0; i--)
-                {
-                    var next = stack.Pop();
-                    var item = invocation.Interceptors[i];
+        private IInterceptor[] GetInterceptors(MemberInfo memberInfo, IEnumerable<InterceptorEntry> entries)
+        {
+            if (memberInfo == null)
+            {
+                throw new NullReferenceException(nameof(memberInfo));
+            }
 
-                    stack.Push(inv => item.InvokeAsync(inv, next));
-                }
+            if (entries == null)
+            {
+                throw new NullReferenceException(nameof(entries));
+            }
 
-                return stack.Pop()(invocation);
-            });
+            //sort
+            var selectors = InterceptorSelectorProvider.GetSelectors(memberInfo);
+            if (selectors == null)
+            {
+                return entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor).ToArray();
+            }
+
+            var interceptors = entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor);
+
+            return selectors.Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current)).ToArray();
         }
 
         private static Stack<Func<IMethodInvocation, Task>> CreateMethodExecuteStack(IObjectMethodExecutor executor)
@@ -75,12 +151,12 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             stack.Push(inv =>
             {
-                if (inv.MethodInfo.IsAbstract || inv.MethodInfo.DeclaringType.IsInterface)
+                if (inv.Method.IsAbstract || inv.Method.DeclaringType.IsInterface)
                 {
                     return Task.CompletedTask;
                 }
 
-                return (Task)(inv.Result = executor.ExecuteAsync(inv.Instance, inv.ArgumentValues));
+                return (Task)(inv.ResultValue = executor.ExecuteAsync(inv.ProxyInstance, inv.Parameters));
             });
 
             return stack;

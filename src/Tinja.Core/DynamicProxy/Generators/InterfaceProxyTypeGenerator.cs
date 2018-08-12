@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
-using Tinja.Abstractions.Extensions;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Generators
@@ -29,7 +27,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                 .GetILGenerator();
 
             ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
-            ilGen.SetThisField(GetField("__accessor"), () => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(2));
 
             ilGen.Return();
         }

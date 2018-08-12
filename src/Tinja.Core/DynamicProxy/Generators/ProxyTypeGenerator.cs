@@ -24,7 +24,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected virtual Type[] ExtraConstrcutorParameterTypes => new[]
         {
             typeof(IMethodInvocationExecutor),
-            typeof(IInterceptorAccessor)
+            typeof(IMethodInvocationInvokerBuilder)
         };
 
         protected ProxyTypeGenerator(Type targetType, IEnumerable<MemberMetadata> members)
@@ -75,7 +75,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         protected virtual void BuildTypeFields()
         {
             BuildField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            BuildField("__accessor", typeof(IInterceptorAccessor), FieldAttributes.Private);
+            BuildField("__builder", typeof(IMethodInvocationInvokerBuilder), FieldAttributes.Private);
 
             foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
             {
@@ -89,6 +89,16 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
+                if (item.CanWrite)
+                {
+                    BuildField(GetMemberIdentifier(item.SetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                }
+
+                if (item.CanRead)
+                {
+                    BuildField(GetMemberIdentifier(item.GetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                }
+
                 BuildField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
         }
@@ -121,20 +131,21 @@ namespace Tinja.Core.DynamicProxy.Generators
         {
             foreach (var item in Members.Where(i => i.IsMethod))
             {
-                BuildMethodBody(item.Member.AsMethod());
+                BuildMethodBody(item.Member.AsMethod(), item.Member.AsMethod());
             }
         }
 
         #region Method
 
-        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo)
+        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, MemberInfo targetMember)
         {
-            var methodBudiler = TypeBuilder.DefineMethod(methodInfo);
-            var ilGen = methodBudiler.GetILGenerator();
+            var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
+            var ilGen = methodBuilder.GetILGenerator();
             var parameters = methodInfo.GetParameters();
 
             var arguments = ilGen.DeclareLocal(typeof(object[]));
             var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
+            var methodInvocation = ilGen.DeclareLocal(typeof(IMethodInvocation));
 
             ilGen.MakeArgumentArray(parameters);
             ilGen.SetVariableValue(arguments);
@@ -144,108 +155,21 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             //this.executor.Execute(new MethodInvocation)
             ilGen.This();
-
             ilGen.LoadStaticField(GetField(methodInfo));
-
             ilGen.LoadMethodGenericArguments(methodInfo);
 
             //new Parameters[]
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadThisField(GetField("__accessor"));
-            ilGen.LoadStaticField(GetField(methodInfo));
-
-            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
+            ilGen.LoadStaticField(GetField(targetMember));
             ilGen.New(GeneratorUtils.NewMethodInvocation);
+            ilGen.SetVariableValue(methodInvocation);
 
-            ilGen.InvokeMethodInvocation(methodInfo);
+            ilGen.LoadThisField(GetField("__builder"));
+            ilGen.LoadVariable(methodInvocation);
 
-            ilGen.SetVariableValue(methodReturnValue);
-
-            //update ref out
-            ilGen.SetRefArgumentsWithArray(parameters, arguments);
-
-            ilGen.LoadVariable(methodReturnValue);
-            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-            ilGen.Return();
-
-            return methodBudiler;
-        }
-
-        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, PropertyInfo property)
-        {
-            var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
-            var ilGen = methodBuilder.GetILGenerator();
-            var parameters = methodInfo.GetParameters();
-
-            var arguments = ilGen.DeclareLocal(typeof(object[]));
-            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
-
-            ilGen.MakeArgumentArray(parameters);
-            ilGen.SetVariableValue(arguments);
-
-            //this.__executor
-            ilGen.LoadThisField(GetField("__executor"));
-
-            //this.executor.Execute(new MethodInvocation)
-            ilGen.This();
-            ilGen.LoadStaticField(GetField(methodInfo));
-
-            ilGen.LoadMethodGenericArguments(methodInfo);
-
-            //new Parameters[]
-            ilGen.LoadVariable(arguments);
-
-            ilGen.LoadThisField(GetField("__accessor"));
-            ilGen.LoadStaticField(GetField(property));
-            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
-
-            ilGen.LoadStaticField(GetField(property));
-            ilGen.New(GeneratorUtils.NewMethodPropertyInvocation);
-
-            ilGen.InvokeMethodInvocation(methodInfo);
-            ilGen.SetVariableValue(methodReturnValue);
-
-            //update ref out
-            ilGen.SetRefArgumentsWithArray(parameters, arguments);
-
-            ilGen.LoadVariable(methodReturnValue);
-            ilGen.Emit(methodInfo.IsVoidMethod() ? OpCodes.Pop : OpCodes.Nop);
-            ilGen.Return();
-
-            return methodBuilder;
-        }
-
-        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, EventInfo eventInfo)
-        {
-            var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
-            var ilGen = methodBuilder.GetILGenerator();
-            var parameters = methodInfo.GetParameters();
-
-            var arguments = ilGen.DeclareLocal(typeof(object[]));
-            var methodReturnValue = ilGen.DeclareLocal(methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType);
-
-            ilGen.MakeArgumentArray(parameters);
-            ilGen.SetVariableValue(arguments);
-
-            //this.__executor
-            ilGen.LoadThisField(GetField("__executor"));
-
-            //this.executor.Execute(new MethodInvocation)
-            ilGen.This();
-            ilGen.LoadStaticField(GetField(methodInfo));
-
-            ilGen.LoadMethodGenericArguments(methodInfo);
-
-            //new Parameters[]
-            ilGen.LoadVariable(arguments);
-
-            ilGen.LoadThisField(GetField("__accessor"));
-            ilGen.LoadStaticField(GetField(eventInfo));
-            ilGen.Call(GeneratorUtils.GetOrCreateInterceptors);
-
-            ilGen.LoadStaticField(GetField(eventInfo));
-            ilGen.New(GeneratorUtils.NewMethodEventInvocation);
+            ilGen.CallVirt(GeneratorUtils.BuildMethodInvocationInvoker);
+            ilGen.LoadVariable(methodInvocation);
 
             ilGen.InvokeMethodInvocation(methodInfo);
             ilGen.SetVariableValue(methodReturnValue);
@@ -364,6 +288,16 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
+                if (item.CanWrite)
+                {
+                    ilGen.SetStaticField(GetField(item.SetMethod), _ => ilGen.LoadMethodInfo(item.SetMethod));
+                }
+
+                if (item.CanRead)
+                {
+                    ilGen.SetStaticField(GetField(item.GetMethod), _ => ilGen.LoadMethodInfo(item.GetMethod));
+                }
+
                 ilGen.SetStaticField(GetField(item), _ => ilGen.LoadPropertyInfo(item));
             }
 

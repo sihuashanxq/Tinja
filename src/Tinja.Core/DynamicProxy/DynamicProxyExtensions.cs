@@ -19,12 +19,12 @@ namespace Tinja.Core.DynamicProxy
             }
 
             container.AddScoped<IInterceptorFactory, InterceptorFactory>();
-            container.AddTransient<IInterceptorAccessor, InterceptorAccessor>();
 
-            container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
-            container.AddSingleton<IMethodInvocationInvokerBuilder, MethodInvocationInvokerBuilder>();
-            container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
+            container.AddTransient<IMethodInvocationInvokerBuilder, MethodInvocationInvokerBuilder>();
+
             container.AddSingleton<IMethodInvocationExecutor, MethodInvocationExecutor>();
+            container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
+            container.AddSingleton<IMemberMetadataProvider, MemberMetadataProvider>();
             container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
             container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();

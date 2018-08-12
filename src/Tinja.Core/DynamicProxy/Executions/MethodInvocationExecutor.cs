@@ -7,39 +7,61 @@ namespace Tinja.Core.DynamicProxy.Executions
 {
     public class MethodInvocationExecutor : IMethodInvocationExecutor
     {
-        private readonly IMethodInvocationInvokerBuilder _builder;
-
-        public MethodInvocationExecutor(IMethodInvocationInvokerBuilder builder)
+        public virtual TResult Execute<TResult>(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
-            _builder = builder ?? throw new NullReferenceException(nameof(builder));
+            var value = ExecuteMethodInvocation(invoker, invocation);
+            if (value is Task<TResult> tTask)
+            {
+                return tTask.Result;
+            }
+
+            if (value is Task<object> oTask)
+            {
+                return (TResult)oTask.Result;
+            }
+
+            if (value is TResult tResult)
+            {
+                return tResult;
+            }
+
+            throw new InvalidCastException($"Method:{invocation.Method}return value must be a Task<T> or T");
         }
 
-        public virtual TResult Execute<TResult>(IMethodInvocation inv)
+        public virtual Task ExecuteVoidAsync(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
-            ExecuteCore(inv);
-            return ((Task<TResult>)inv.Result).Result;
+            var value = ExecuteMethodInvocation(invoker, invocation);
+            if (value is Task task)
+            {
+                return task;
+            }
+
+            throw new InvalidCastException($"Method:{invocation.Method}return value must be a Task");
         }
 
-        public virtual Task ExecuteVoidAsync(IMethodInvocation inv)
+        public virtual Task<TResult> ExecuteAsync<TResult>(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
-            ExecuteCore(inv);
-            return inv.Result as Task;
+            var value = ExecuteMethodInvocation(invoker, invocation);
+            if (value is Task<TResult> task)
+            {
+                return task;
+            }
+
+            if (value is TResult tResult)
+            {
+                return Task.FromResult(tResult);
+            }
+
+            throw new InvalidCastException($"Method:{invocation.Method}return value must be a Task<T> or T");
         }
 
-        public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocation inv)
+        public virtual ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
-            return new ValueTask<TResult>(ExecuteAsync<TResult>(inv));
+            return new ValueTask<TResult>(ExecuteAsync<TResult>(invoker, invocation));
         }
 
-        public virtual Task<TResult> ExecuteAsync<TResult>(IMethodInvocation inv)
+        protected object ExecuteMethodInvocation(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
-            ExecuteCore(inv);
-            return (Task<TResult>)inv.Result;
-        }
-
-        protected void ExecuteCore(IMethodInvocation invocation)
-        {
-            var invoker = _builder.Build(invocation);
             if (invoker == null)
             {
                 throw new NullReferenceException(nameof(invoker));
@@ -55,6 +77,8 @@ namespace Tinja.Core.DynamicProxy.Executions
             {
                 throw task.Exception;
             }
+
+            return invocation.ResultValue;
         }
     }
 }

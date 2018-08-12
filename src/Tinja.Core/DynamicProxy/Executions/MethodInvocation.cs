@@ -1,39 +1,36 @@
 ﻿using System;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
     public class MethodInvocation : IMethodInvocation
     {
-        public object Instance { get; }
+        public MethodInfo Method { get; }
 
-        public MethodInfo MethodInfo { get; }
+        public object[] Parameters { get; }
 
-        public object[] ArgumentValues { get; }
+        public object ProxyInstance { get; }
 
-        public IInterceptor[] Interceptors { get; }
+        public MemberInfo TargetMember { get; }
 
-        public object Result { get; set; }
+        public object ResultValue { get; set; }
 
-        public virtual MethodInvocationType InvocationType => MethodInvocationType.Method;
-
-        public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] argumentValues, IInterceptor[] interceptors)
+        public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] argumentValues, MemberInfo targetMember)
         {
-            Instance = instance ?? throw new NullReferenceException(nameof(instance));
-            MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
-            Interceptors = interceptors;
-            ArgumentValues = argumentValues;
+            ProxyInstance = instance ?? throw new NullReferenceException(nameof(instance));
+            Method = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
+            Parameters = argumentValues ?? throw new NullReferenceException(nameof(argumentValues));
+            TargetMember = targetMember ?? throw new NullReferenceException(nameof(targetMember));
 
-            if (MethodInfo.IsGenericMethod)
+            if (Method.IsGenericMethod)
             {
                 if (genericArguments == null)
                 {
                     throw new InvalidOperationException("MakeGenericMethod failed!");
                 }
 
-                MethodInfo = MethodInfo.MakeGenericMethod(genericArguments);
+                Method = Method.MakeGenericMethod(genericArguments);
             }
         }
     }

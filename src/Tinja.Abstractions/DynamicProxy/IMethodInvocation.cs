@@ -4,16 +4,14 @@ namespace Tinja.Abstractions.DynamicProxy
 {
     public interface IMethodInvocation
     {
-        object Result { get; set; }
+        MethodInfo Method { get; }
 
-        object Instance { get; }
+        object[] Parameters { get; }
 
-        MethodInfo MethodInfo { get; }
+        object ProxyInstance { get; }
 
-        object[] ArgumentValues { get; }
+        MemberInfo TargetMember { get; }
 
-        IInterceptor[] Interceptors { get; }
-
-        MethodInvocationType InvocationType { get; }
+        object ResultValue { get; set; }
     }
 }
