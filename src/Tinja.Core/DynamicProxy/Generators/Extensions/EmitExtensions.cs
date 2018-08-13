@@ -765,7 +765,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
         internal static MethodInfo MethodInvocationAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsync");
 
-        internal static MethodInfo MethodInvocationVoidAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteAsyncVoid");
+        internal static MethodInfo MethodInvocationVoidAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteVoidAsync");
 
         internal static MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteValueTaskAsync");
 

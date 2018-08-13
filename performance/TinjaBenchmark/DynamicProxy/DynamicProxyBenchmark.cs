@@ -50,9 +50,22 @@ namespace TinjaBenchmark.DynamicProxy
         }
 
         [Benchmark]
+        public Task<int> ExecWithNoneIntercptorAsync()
+        {
+            return _noneInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
         public void ExecWithOneIntercptor()
         {
             _oneInterceptorService.Method();
+        }
+
+
+        [Benchmark]
+        public Task<int> ExecWithOneIntercptorAsync()
+        {
+            return _oneInterceptorService.MethodAsync();
         }
 
         [Benchmark]
@@ -62,9 +75,21 @@ namespace TinjaBenchmark.DynamicProxy
         }
 
         [Benchmark]
+        public Task<int> ExecWithTwoIntercptorsAsync()
+        {
+            return _twoInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
         public void ExecWithThreeIntercptors()
         {
             _threeInterceptorService.Method();
+        }
+
+        [Benchmark]
+        public Task<int> ExecWithThreeIntercptorsAsync()
+        {
+            return _threeInterceptorService.MethodAsync();
         }
 
         public class NoneInterceptorService
@@ -72,6 +97,11 @@ namespace TinjaBenchmark.DynamicProxy
             public virtual void Method()
             {
 
+            }
+
+            public virtual Task<int> MethodAsync()
+            {
+                return Task.FromResult(1);
             }
         }
 
@@ -81,6 +111,12 @@ namespace TinjaBenchmark.DynamicProxy
             public virtual void Method()
             {
 
+            }
+
+            [Interceptor(typeof(InterceptorA))]
+            public virtual Task<int> MethodAsync()
+            {
+                return Task.FromResult(1);
             }
         }
 
@@ -92,6 +128,13 @@ namespace TinjaBenchmark.DynamicProxy
             {
 
             }
+
+            [Interceptor(typeof(InterceptorA))]
+            [Interceptor(typeof(InterceptorB))]
+            public virtual Task<int> MethodAsync()
+            {
+                return Task.FromResult(1);
+            }
         }
 
         public class ThreeInterceptorService
@@ -102,6 +145,14 @@ namespace TinjaBenchmark.DynamicProxy
             public virtual void Method()
             {
 
+            }
+
+            [Interceptor(typeof(InterceptorA))]
+            [Interceptor(typeof(InterceptorB))]
+            [Interceptor(typeof(InterceptorC))]
+            public virtual Task<int> MethodAsync()
+            {
+                return Task.FromResult(2);
             }
         }
 
