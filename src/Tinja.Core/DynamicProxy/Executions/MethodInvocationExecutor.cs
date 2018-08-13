@@ -28,6 +28,11 @@ namespace Tinja.Core.DynamicProxy.Executions
             return await GetResultAsync<TResult>(invocation);
         }
 
+        public async ValueTask ExecuteValueTaskVoidAsync(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
+        {
+            await ExecuteVoidAsync(invoker, invocation);
+        }
+
         public async ValueTask<TResult> ExecuteValueTaskAsync<TResult>(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
             return await ExecuteAsync<TResult>(invoker, invocation);

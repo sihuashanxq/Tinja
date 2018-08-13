@@ -769,6 +769,8 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
         internal static MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteValueTaskAsync");
 
+        internal static MethodInfo MethodInvocationValueTaskVoidAsyncExecute = typeof(IMethodInvocationExecutor).GetMethod("ExecuteValueTaskVoidAsync");
+
         internal static ILGenerator InvokeMethodInvocation(this ILGenerator ilGen, MethodInfo methodInfo)
         {
             if (ilGen == null)
@@ -786,7 +788,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
                 return ilGen.Call(MethodInvocationVoidAsyncExecute);
             }
 
-            if (methodInfo.ReturnType.IsValueTask())
+            if (methodInfo.ReturnType == typeof(ValueTask))
+            {
+                return ilGen.Call(MethodInvocationValueTaskVoidAsyncExecute);
+            }
+
+            if (methodInfo.ReturnType.IsValueTaskT())
             {
                 return ilGen.CallVirt(MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
             }

@@ -61,6 +61,11 @@ namespace Tinja.Abstractions.Extensions
 
         public static bool IsValueTask(this Type type)
         {
+            return type == typeof(ValueTask) || IsValueTaskT(type);
+        }
+
+        public static bool IsValueTaskT(this Type type)
+        {
             return type.IsGenericType && type.GetGenericTypeDefinition().IsType(typeof(ValueTask<>));
         }
 
