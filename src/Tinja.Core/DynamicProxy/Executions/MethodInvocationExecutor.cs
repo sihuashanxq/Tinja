@@ -45,6 +45,11 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return taskResult.Result;
             }
 
+            if (invocation.ResultValue is Task<object> taskObjectResult)
+            {
+                return (TResult)taskObjectResult.Result;
+            }
+
             if (invocation.ResultValue is TResult tResult)
             {
                 return tResult;

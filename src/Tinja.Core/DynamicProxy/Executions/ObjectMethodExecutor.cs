@@ -131,6 +131,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             else
             {
                 ilGenerator.LoadVariable(resultValue);
+                ilGenerator.Box(methodInfo.ReturnType);
             }
 
             ilGenerator.Return();
