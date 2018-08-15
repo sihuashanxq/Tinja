@@ -2,6 +2,14 @@
 {
     public interface IMethodInvocationInvokerBuilder
     {
-        IMethodInvocationInvoker Build(IMethodInvocation invocation);
+        IMethodInvocationInvoker BuildInvoker<TResult>(IMethodInvocation invocation);
+
+        IMethodInvocationInvoker BuildTaskAsyncInvoker(IMethodInvocation invocation);
+
+        IMethodInvocationInvoker BuildTaskAsyncInvoker<TResult>(IMethodInvocation invocation);
+
+        IMethodInvocationInvoker BuildValueTaskAsyncInvoker(IMethodInvocation invocation);
+
+        IMethodInvocationInvoker BuildValueTaskAsyncInvoker<TResult>(IMethodInvocation invocation);
     }
 }

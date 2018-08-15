@@ -7,6 +7,7 @@ using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
+using Tinja.Core.DynamicProxy.Executions;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Generators
@@ -23,8 +24,8 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected virtual Type[] ExtraConstrcutorParameterTypes => new[]
         {
-            typeof(IMethodInvocationExecutor),
-            typeof(IMethodInvocationInvokerBuilder)
+            typeof(MethodInvocationExecutor),
+            typeof(MethodInvocationInvokerBuilder)
         };
 
         protected ProxyTypeGenerator(Type targetType, IEnumerable<MemberMetadata> members)
@@ -74,8 +75,8 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected virtual void BuildTypeFields()
         {
-            BuildField("__executor", typeof(IMethodInvocationExecutor), FieldAttributes.Private);
-            BuildField("__builder", typeof(IMethodInvocationInvokerBuilder), FieldAttributes.Private);
+            BuildField("__executor", typeof(MethodInvocationExecutor), FieldAttributes.Private);
+            BuildField("__builder", typeof(MethodInvocationInvokerBuilder), FieldAttributes.Private);
 
             foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
             {
@@ -168,10 +169,10 @@ namespace Tinja.Core.DynamicProxy.Generators
             ilGen.LoadThisField(GetField("__builder"));
             ilGen.LoadVariable(methodInvocation);
 
-            ilGen.CallVirt(GeneratorUtils.BuildMethodInvocationInvoker);
+            ilGen.InvokeBuildInvokerMethod(methodInfo);
             ilGen.LoadVariable(methodInvocation);
 
-            ilGen.InvokeMethodInvocation(methodInfo);
+            ilGen.InvokeExecuteMethodInvocationMethod(methodInfo);
             ilGen.SetVariableValue(methodReturnValue);
 
             //update ref out

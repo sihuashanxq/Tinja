@@ -43,6 +43,12 @@ namespace TinjaBenchmark.DynamicProxy
             _threeInterceptorService = _serviceResolver.ResolveService<ThreeInterceptorService>();
         }
 
+        [Benchmark(Description = "未拦截")]
+        public void None()
+        {
+
+        }
+
         [Benchmark]
         public void ExecWithNoneIntercptor()
         {
@@ -50,9 +56,33 @@ namespace TinjaBenchmark.DynamicProxy
         }
 
         [Benchmark]
-        public Task<int> ExecWithNoneIntercptorAsync()
+        public Task ExecWithNoneIntercptorAsync_Task()
         {
             return _noneInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
+        public Task<int> ExecWithNoneIntercptorAsync_Task_Int32()
+        {
+            return _noneInterceptorService.MethodAsyncT();
+        }
+
+        [Benchmark]
+        public ValueTask ExecWithNoneIntercptorAsync_ValueTask()
+        {
+            return _noneInterceptorService.MethodValueTaskAsync();
+        }
+
+        [Benchmark]
+        public ValueTask<int> ExecWithNoneIntercptorAsync_ValueTask_Int32()
+        {
+            return _noneInterceptorService.MethodValueTaskAsyncT();
+        }
+
+        [Benchmark(Description = "1个拦截器")]
+        public void One()
+        {
+
         }
 
         [Benchmark]
@@ -61,11 +91,34 @@ namespace TinjaBenchmark.DynamicProxy
             _oneInterceptorService.Method();
         }
 
-
         [Benchmark]
-        public Task<int> ExecWithOneIntercptorAsync()
+        public Task ExecWithOneIntercptorAsync_Task()
         {
             return _oneInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
+        public Task<int> ExecWithOneIntercptorAsync_Task_Int32()
+        {
+            return _oneInterceptorService.MethodAsyncT();
+        }
+
+        [Benchmark]
+        public ValueTask ExecWithOneIntercptorAsync_ValueTask()
+        {
+            return _oneInterceptorService.MethodValueTaskAsync();
+        }
+
+        [Benchmark]
+        public ValueTask<int> ExecWithOneIntercptorAsync_ValueTask_Int32()
+        {
+            return _oneInterceptorService.MethodValueTaskAsyncT();
+        }
+
+        [Benchmark(Description = "2个拦截器")]
+        public void Two()
+        {
+
         }
 
         [Benchmark]
@@ -75,9 +128,34 @@ namespace TinjaBenchmark.DynamicProxy
         }
 
         [Benchmark]
-        public Task<int> ExecWithTwoIntercptorsAsync()
+        public Task ExecWithTwoIntercptorsAsync_Task()
         {
             return _twoInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
+        public Task<int> ExecWithTwoIntercptorsAsync_Task_Int32()
+        {
+            return _twoInterceptorService.MethodAsyncT();
+        }
+
+        [Benchmark]
+        public ValueTask ExecWithTwoIntercptorsAsync_ValueTask()
+        {
+            return _twoInterceptorService.MethodValueTaskAsync();
+        }
+
+
+        [Benchmark]
+        public ValueTask<int> ExecWithTwoIntercptorsAsync_ValueTask_Int32()
+        {
+            return _twoInterceptorService.MethodValueTaskAsyncT();
+        }
+
+        [Benchmark(Description = "3个拦截器")]
+        public void Three()
+        {
+
         }
 
         [Benchmark]
@@ -87,9 +165,27 @@ namespace TinjaBenchmark.DynamicProxy
         }
 
         [Benchmark]
-        public Task<int> ExecWithThreeIntercptorsAsync()
+        public Task ExecWithThreeIntercptorsAsync_Task()
         {
             return _threeInterceptorService.MethodAsync();
+        }
+
+        [Benchmark]
+        public Task<int> ExecWithThreeIntercptorsAsync_Task_Int32()
+        {
+            return _threeInterceptorService.MethodAsyncT();
+        }
+
+        [Benchmark]
+        public ValueTask ExecWithThreeIntercptorsAsync_ValueTask()
+        {
+            return _threeInterceptorService.MethodValueTaskAsync();
+        }
+
+        [Benchmark]
+        public ValueTask<int> ExecWithThreeIntercptorsAsync_ValueTask_Int32()
+        {
+            return _threeInterceptorService.MethodValueTaskAsyncT();
         }
 
         public class NoneInterceptorService
@@ -99,60 +195,114 @@ namespace TinjaBenchmark.DynamicProxy
 
             }
 
-            public virtual Task<int> MethodAsync()
+            public virtual Task MethodAsync()
+            {
+                return Task.CompletedTask;
+            }
+
+            public virtual Task<int> MethodAsyncT()
             {
                 return Task.FromResult(1);
             }
+
+            public virtual ValueTask MethodValueTaskAsync()
+            {
+                return new ValueTask(Task.CompletedTask);
+            }
+
+            public virtual ValueTask<int> MethodValueTaskAsyncT()
+            {
+                return new ValueTask<int>(1);
+            }
         }
 
+        [Interceptor(typeof(InterceptorA))]
         public class OneInterceptorService
         {
-            [Interceptor(typeof(InterceptorA))]
             public virtual void Method()
             {
 
             }
 
-            [Interceptor(typeof(InterceptorA))]
-            public virtual Task<int> MethodAsync()
+            public virtual Task MethodAsync()
+            {
+                return Task.CompletedTask;
+            }
+
+            public virtual Task<int> MethodAsyncT()
             {
                 return Task.FromResult(1);
             }
+
+            public virtual ValueTask MethodValueTaskAsync()
+            {
+                return new ValueTask(Task.CompletedTask);
+            }
+
+            public virtual ValueTask<int> MethodValueTaskAsyncT()
+            {
+                return new ValueTask<int>(1);
+            }
         }
 
+        [Interceptor(typeof(InterceptorA))]
+        [Interceptor(typeof(InterceptorB))]
         public class TwoInterceptorService
         {
-            [Interceptor(typeof(InterceptorA))]
-            [Interceptor(typeof(InterceptorB))]
             public virtual void Method()
             {
 
             }
 
-            [Interceptor(typeof(InterceptorA))]
-            [Interceptor(typeof(InterceptorB))]
-            public virtual Task<int> MethodAsync()
+            public virtual Task MethodAsync()
+            {
+                return Task.CompletedTask;
+            }
+
+            public virtual Task<int> MethodAsyncT()
             {
                 return Task.FromResult(1);
             }
+
+            public virtual ValueTask MethodValueTaskAsync()
+            {
+                return new ValueTask(Task.CompletedTask);
+            }
+
+            public virtual ValueTask<int> MethodValueTaskAsyncT()
+            {
+                return new ValueTask<int>(1);
+            }
         }
 
+        [Interceptor(typeof(InterceptorA))]
+        [Interceptor(typeof(InterceptorB))]
+        [Interceptor(typeof(InterceptorC))]
         public class ThreeInterceptorService
         {
-            [Interceptor(typeof(InterceptorA))]
-            [Interceptor(typeof(InterceptorB))]
-            [Interceptor(typeof(InterceptorC))]
             public virtual void Method()
             {
 
             }
 
-            [Interceptor(typeof(InterceptorA))]
-            [Interceptor(typeof(InterceptorB))]
-            [Interceptor(typeof(InterceptorC))]
-            public virtual Task<int> MethodAsync()
+            public virtual Task MethodAsync()
             {
-                return Task.FromResult(2);
+                return Task.CompletedTask;
+            }
+
+            public virtual Task<int> MethodAsyncT()
+            {
+                return Task.FromResult(1);
+            }
+
+            public virtual ValueTask MethodValueTaskAsync()
+            {
+                return new ValueTask(Task.CompletedTask);
+            }
+
+            public virtual ValueTask<int> MethodValueTaskAsyncT()
+            {
+                return new ValueTask<int>(1);
             }
         }
 

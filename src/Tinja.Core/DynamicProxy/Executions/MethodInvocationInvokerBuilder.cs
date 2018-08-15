@@ -11,7 +11,7 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
-    public class MethodInvocationInvokerBuilder : IMethodInvocationInvokerBuilder
+    public class MethodInvocationInvokerBuilder
     {
         private bool _initialized;
 
@@ -27,51 +27,99 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         internal Dictionary<Type, InterceptorEntry> Interceptors { get; set; }
 
-        internal Dictionary<MethodInfo, IMethodInvocationInvoker> Invokers { get; set; }
+        internal Dictionary<MethodInfo, IMethodInvocationInvoker> MethodInvokers { get; set; }
 
         public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
             ServieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
         }
 
-        public IMethodInvocationInvoker Build(IMethodInvocation invocation)
+        private void Prepare()
         {
-            if (invocation == null)
+            if (_initialized)
             {
-                throw new NullReferenceException(nameof(invocation));
+                return;
             }
 
-            if (!_initialized)
+            lock (this)
             {
-                lock (this)
+                if (_initialized)
                 {
-                    _initialized = true;
-                    Interceptors = new Dictionary<Type, InterceptorEntry>();
-                    Invokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
-                    InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
-                    MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
-                    InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
-                    InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+                    return;
                 }
-            }
 
-            if (Invokers.TryGetValue(invocation.Method, out var invoker))
+                _initialized = true;
+                Interceptors = new Dictionary<Type, InterceptorEntry>();
+                MethodInvokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
+                InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
+                MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
+                InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
+                InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+            }
+        }
+
+        public IMethodInvocationInvoker BuildInvoker<TResult>(IMethodInvocation invocation)
+        {
+            Prepare();
+
+            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return Invokers[invocation.Method] = BuildMethodInvocationInvoker(invocation);
+            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateMethodCallStack<TResult>(invocation.Method));
         }
 
-        protected virtual IMethodInvocationInvoker BuildMethodInvocationInvoker(IMethodInvocation invocation)
+        public IMethodInvocationInvoker BuildTaskAsyncInvoker(IMethodInvocation invocation)
         {
-            var executor = MethodExecutorProvider.GetExecutor(invocation.Method);
-            if (executor == null)
+            Prepare();
+
+            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
             {
-                throw new NullReferenceException(nameof(executor));
+                return invoker;
             }
 
-            var callStack = CreateMethodExecuteStack(executor);
+            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack(invocation.Method));
+        }
+
+        public IMethodInvocationInvoker BuildTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
+        {
+            Prepare();
+
+            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            {
+                return invoker;
+            }
+
+            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack<TResult>(invocation.Method));
+        }
+
+        public IMethodInvocationInvoker BuildValueTaskAsyncInvoker(IMethodInvocation invocation)
+        {
+            Prepare();
+
+            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            {
+                return invoker;
+            }
+
+            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack(invocation.Method));
+        }
+
+        public IMethodInvocationInvoker BuildValueTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
+        {
+            Prepare();
+
+            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            {
+                return invoker;
+            }
+
+            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack<TResult>(invocation.Method));
+        }
+
+        private IMethodInvocationInvoker BuildInvoker(IMethodInvocation invocation, Stack<Func<IMethodInvocation, Task>> callStack)
+        {
             if (!callStack.Any())
             {
                 throw new InvalidOperationException("build invoker failed!");
@@ -94,7 +142,107 @@ namespace Tinja.Core.DynamicProxy.Executions
             return new MethodInvocationInvoker(callStack.Pop());
         }
 
-        protected virtual IInterceptor[] GetInterceptors(MemberInfo memberInfo)
+        private Stack<Func<IMethodInvocation, Task>> CreateMethodCallStack<TResult>(MethodInfo methodInfo)
+        {
+            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            {
+                return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
+            }
+
+            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            if (executor == null)
+            {
+                throw new NullReferenceException(nameof(executor));
+            }
+
+            if (methodInfo.IsVoidMethod())
+            {
+
+                return new Stack<Func<IMethodInvocation, Task>>()
+                    .PushContine(inv =>
+                {
+                    executor.Execute<TResult>(inv.ProxyInstance, inv.Parameters);
+                    return Task.CompletedTask;
+                });
+            }
+
+            return new Stack<Func<IMethodInvocation, Task>>()
+                .PushContine(inv =>
+            {
+                inv.ResultValue = executor.Execute<TResult>(inv.ProxyInstance, inv.Parameters);
+                return Task.CompletedTask;
+            });
+        }
+
+        private Stack<Func<IMethodInvocation, Task>> CreateTaskAsyncMethodCallStack(MethodInfo methodInfo)
+        {
+            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            {
+                return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
+            }
+
+            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            if (executor == null)
+            {
+                throw new NullReferenceException(nameof(executor));
+            }
+
+            return new Stack<Func<IMethodInvocation, Task>>()
+                .PushContine(inv => executor.Execute<Task>(inv.ProxyInstance, inv.Parameters));
+        }
+
+        private Stack<Func<IMethodInvocation, Task>> CreateTaskAsyncMethodCallStack<TResult>(MethodInfo methodInfo)
+        {
+            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            {
+                return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
+            }
+
+            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            if (executor == null)
+            {
+                throw new NullReferenceException(nameof(executor));
+            }
+
+            return new Stack<Func<IMethodInvocation, Task>>()
+                .PushContine(inv => (Task)(inv.ResultValue = executor.Execute<Task<TResult>>(inv.ProxyInstance, inv.Parameters)));
+        }
+
+        private Stack<Func<IMethodInvocation, Task>> CreateValueTaskAsyncMethodCallStack(MethodInfo methodInfo)
+        {
+            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            {
+                return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
+            }
+
+            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            if (executor == null)
+            {
+                throw new NullReferenceException(nameof(executor));
+            }
+
+            return new Stack<Func<IMethodInvocation, Task>>()
+                .PushContine(inv => executor.Execute<ValueTask>(inv.ProxyInstance, inv.Parameters).AsTask());
+        }
+
+        private Stack<Func<IMethodInvocation, Task>> CreateValueTaskAsyncMethodCallStack<TResult>(MethodInfo methodInfo)
+        {
+            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            {
+                return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
+            }
+
+            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            if (executor == null)
+            {
+                throw new NullReferenceException(nameof(executor));
+            }
+
+            return new Stack<Func<IMethodInvocation, Task>>()
+                .PushContine(inv => (Task<TResult>)(inv.ResultValue = executor.Execute<ValueTask<TResult>>(inv.ProxyInstance, inv.Parameters).AsTask()));
+        }
+
+        private IInterceptor[] GetInterceptors(MemberInfo memberInfo)
         {
             lock (Interceptors)
             {
@@ -144,20 +292,13 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             return selectors.Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current)).ToArray();
         }
+    }
 
-        private static Stack<Func<IMethodInvocation, Task>> CreateMethodExecuteStack(IObjectMethodExecutor executor)
+    internal static class StackExtensions
+    {
+        internal static Stack<T> PushContine<T>(this Stack<T> stack, T item)
         {
-            var stack = new Stack<Func<IMethodInvocation, Task>>();
-
-            stack.Push(inv =>
-            {
-                if (inv.Method.IsAbstract || inv.Method.DeclaringType.IsInterface)
-                {
-                    return Task.CompletedTask;
-                }
-
-                return (Task)(inv.ResultValue = executor.ExecuteAsync(inv.ProxyInstance, inv.Parameters));
-            });
+            stack.Push(item);
 
             return stack;
         }
