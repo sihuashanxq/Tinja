@@ -36,8 +36,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                 .DefineParameters(parameterInfos, parameterInfos.Length + ExtraConstrcutorParameterTypes.Length)
                 .GetILGenerator();
 
-            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
-            ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(1));
 
             var args = new Action<int>[parameterTypes.Length];
             if (args.Length == 0)

@@ -24,7 +24,6 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected virtual Type[] ExtraConstrcutorParameterTypes => new[]
         {
-            typeof(MethodInvocationExecutor),
             typeof(MethodInvocationInvokerBuilder)
         };
 
@@ -75,7 +74,6 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         protected virtual void BuildTypeFields()
         {
-            BuildField("__executor", typeof(MethodInvocationExecutor), FieldAttributes.Private);
             BuildField("__builder", typeof(MethodInvocationInvokerBuilder), FieldAttributes.Private);
 
             foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
@@ -151,10 +149,6 @@ namespace Tinja.Core.DynamicProxy.Generators
             ilGen.MakeArgumentArray(parameters);
             ilGen.SetVariableValue(arguments);
 
-            //this.__executor
-            ilGen.LoadThisField(GetField("__executor"));
-
-            //this.executor.Execute(new MethodInvocation)
             ilGen.This();
             ilGen.LoadStaticField(GetField(methodInfo));
             ilGen.LoadMethodGenericArguments(methodInfo);

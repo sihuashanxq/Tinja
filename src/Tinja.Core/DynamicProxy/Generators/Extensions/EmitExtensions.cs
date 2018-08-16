@@ -762,50 +762,6 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return ilGen;
         }
 
-        internal static MethodInfo MethodInvocationExecute = typeof(MethodInvocationExecutor)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "Execute" && !item.IsVoidMethod());
-
-        internal static MethodInfo MethodVoidInvocationExecute = typeof(MethodInvocationExecutor)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "Execute" && item.IsVoidMethod());
-
-        internal static MethodInfo MethodInvocationAsyncExecute = typeof(MethodInvocationExecutor)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "ExecuteAsync" && item.IsGenericMethod);
-
-        internal static MethodInfo MethodInvocationVoidAsyncExecute = typeof(MethodInvocationExecutor).
-            GetMethods()
-            .FirstOrDefault(item => item.Name == "ExecuteAsync" && !item.IsGenericMethod);
-
-        internal static MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(MethodInvocationExecutor)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "ExecuteValueTaskAsync" && item.IsGenericMethod);
-
-        internal static MethodInfo MethodInvocationValueTaskVoidAsyncExecute = typeof(MethodInvocationExecutor)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "ExecuteValueTaskAsync" && !item.IsGenericMethod);
-
-        internal static MethodInfo MethodBuildInvoker = typeof(MethodInvocationInvokerBuilder)
-            .GetMethod("BuildInvoker");
-
-        internal static MethodInfo MethodBuildAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "BuildTaskAsyncInvoker" && item.IsGenericMethod);
-
-        internal static MethodInfo MethodBuildAsyncVoidInvoker = typeof(MethodInvocationInvokerBuilder)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "BuildTaskAsyncInvoker" && !item.IsGenericMethod);
-
-        internal static MethodInfo MethodBuildValueTaskAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "BuildValueTaskAsyncInvoker" && item.IsGenericMethod);
-
-        internal static MethodInfo MethodBuildVoidValueTaskAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
-            .GetMethods()
-            .FirstOrDefault(item => item.Name == "BuildValueTaskAsyncInvoker" && !item.IsGenericMethod);
-
-
         internal static ILGenerator InvokeBuildInvokerMethod(this ILGenerator ilGen, MethodInfo methodInfo)
         {
             if (ilGen == null)
@@ -820,30 +776,30 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             if (methodInfo.IsVoidMethod())
             {
-                return ilGen.Call(MethodBuildInvoker.MakeGenericMethod(typeof(object)));
+                return ilGen.Call(GeneratorUtils.MethodBuildInvoker.MakeGenericMethod(typeof(object)));
             }
 
             if (methodInfo.ReturnType == typeof(Task))
             {
-                return ilGen.Call(MethodBuildAsyncVoidInvoker);
+                return ilGen.Call(GeneratorUtils.MethodBuildAsyncVoidInvoker);
             }
 
             if (methodInfo.ReturnType.IsTask())
             {
-                return ilGen.Call(MethodBuildAsyncInvoker.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
+                return ilGen.Call(GeneratorUtils.MethodBuildAsyncInvoker.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
             }
 
             if (methodInfo.ReturnType == typeof(ValueTask))
             {
-                return ilGen.Call(MethodBuildVoidValueTaskAsyncInvoker);
+                return ilGen.Call(GeneratorUtils.MethodBuildVoidValueTaskAsyncInvoker);
             }
 
             if (methodInfo.ReturnType.IsValueTask())
             {
-                return ilGen.Call(MethodBuildValueTaskAsyncInvoker.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
+                return ilGen.Call(GeneratorUtils.MethodBuildValueTaskAsyncInvoker.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
             }
 
-            return ilGen.Call(MethodBuildInvoker.MakeGenericMethod(methodInfo.ReturnType));
+            return ilGen.Call(GeneratorUtils.MethodBuildInvoker.MakeGenericMethod(methodInfo.ReturnType));
         }
 
         internal static ILGenerator InvokeExecuteMethodInvocationMethod(this ILGenerator ilGen, MethodInfo methodInfo)
@@ -860,32 +816,32 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             if (methodInfo.ReturnType == typeof(Task))
             {
-                return ilGen.Call(MethodInvocationVoidAsyncExecute);
+                return ilGen.Call(GeneratorUtils.MethodInvocationVoidAsyncExecute);
             }
 
             if (methodInfo.ReturnType.IsTask())
             {
-                return ilGen.CallVirt(MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
+                return ilGen.CallVirt(GeneratorUtils.MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
             }
 
             if (methodInfo.ReturnType == typeof(ValueTask))
             {
-                return ilGen.Call(MethodInvocationValueTaskVoidAsyncExecute);
+                return ilGen.Call(GeneratorUtils.MethodInvocationValueTaskVoidAsyncExecute);
             }
 
             if (methodInfo.ReturnType.IsValueTask())
             {
-                return ilGen.Call(MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
+                return ilGen.Call(GeneratorUtils.MethodInvocationValueTaskAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().Single()));
             }
 
             if (methodInfo.IsVoidMethod())
             {
-                ilGen.Call(MethodVoidInvocationExecute);
+                ilGen.Call(GeneratorUtils.MethodVoidInvocationExecute);
                 ilGen.Emit(OpCodes.Ldnull);
                 return ilGen;
             }
 
-            return ilGen.Call(MethodInvocationExecute.MakeGenericMethod(methodInfo.ReturnType));
+            return ilGen.Call(GeneratorUtils.MethodInvocationExecute.MakeGenericMethod(methodInfo.ReturnType));
         }
     }
 }

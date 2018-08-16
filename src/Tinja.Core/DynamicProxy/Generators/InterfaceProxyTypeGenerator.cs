@@ -26,8 +26,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                 .DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, ExtraConstrcutorParameterTypes)
                 .GetILGenerator();
 
-            ilGen.SetThisField(GetField("__executor"), () => ilGen.LoadArgument(1));
-            ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(2));
+            ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(1));
 
             ilGen.Return();
         }

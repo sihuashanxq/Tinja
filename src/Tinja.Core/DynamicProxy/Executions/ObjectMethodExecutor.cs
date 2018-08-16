@@ -33,8 +33,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             var valueType = methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType;
-            var parameters = methodInfo.GetParameters();
-            var localBuilders = new Dictionary<int, LocalBuilder>();
+            var refLocalBuilders = new Dictionary<int, LocalBuilder>();
 
             var dyMethod = new DynamicMethod(methodInfo.Name, valueType, new[] { typeof(object), typeof(object[]) });
             var ilGenerator = dyMethod.GetILGenerator();
@@ -42,41 +41,59 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             ilGenerator.LoadArgument(0);
 
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                if (!parameter.ParameterType.IsByRef)
-                {
-                    ilGenerator.LoadArrayElement(_ => ilGenerator.LoadArgument(1), i, parameter.ParameterType);
-                    continue;
-                }
-
-                localBuilders[i] = ilGenerator.DeclareLocal(parameter.ParameterType.GetElementType());
-
-                ilGenerator.LoadArrayElement(_ => ilGenerator.LoadArgument(1), i, parameter.ParameterType);
-                ilGenerator.SetVariableValue(localBuilders[i]);
-                ilGenerator.LoadVariableRef(localBuilders[i]);
-            }
+            LoadMethodArguments(ilGenerator, methodInfo, refLocalBuilders);
 
             ilGenerator.Call(methodInfo);
             ilGenerator.Emit(methodInfo.ReturnType.IsVoid() ? OpCodes.Ldnull : OpCodes.Nop);
 
             ilGenerator.SetVariableValue(returnValue);
 
-            foreach (var kv in localBuilders)
-            {
-                ilGenerator.SetArrayElement(
-                    _ => ilGenerator.LoadArgument(1),
-                    _ => ilGenerator.Emit(OpCodes.Ldloc, kv.Value),
-                    kv.Key,
-                    kv.Value.LocalType
-                );
-            }
+            SetMethodRefArguments(ilGenerator, refLocalBuilders);
 
             ilGenerator.LoadVariable(returnValue);
             ilGenerator.Return();
 
             return dyMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object[]), valueType));
+        }
+
+        internal static void SetMethodRefArguments(ILGenerator ilGen, Dictionary<int, LocalBuilder> refLocalBuilders)
+        {
+            foreach (var item in refLocalBuilders)
+            {
+                ilGen.SetArrayElement(
+                    _ => ilGen.LoadArgument(1),
+                    _ => ilGen.Emit(OpCodes.Ldloc, item.Value),
+                    item.Key,
+                    item.Value.LocalType
+                );
+            }
+        }
+
+        internal static void LoadMethodArguments(ILGenerator ilGen, MethodInfo methodInfo, Dictionary<int, LocalBuilder> refLocalBuilders)
+        {
+            var parameterInfos = methodInfo.GetParameters();
+            if (parameterInfos.Length == 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < parameterInfos.Length; i++)
+            {
+                var parameterInfo = parameterInfos[i];
+                var parameterType = parameterInfo.ParameterType;
+                if (parameterType.IsByRef)
+                {
+                    var elementType = parameterType.GetElementType();
+                    refLocalBuilders[i] = ilGen.DeclareLocal(elementType);
+
+                    ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterType);
+                    ilGen.SetVariableValue(refLocalBuilders[i]);
+                    ilGen.LoadVariableRef(refLocalBuilders[i]);
+                    continue;
+                }
+
+                ilGen.LoadArrayElement(_ => ilGen.LoadArgument(1), i, parameterType);
+            }
         }
     }
 }

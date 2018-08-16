@@ -5,13 +5,14 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Executions;
+using Tinja.Abstractions.Extensions;
 using Tinja.Core.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Generators
 {
     public static class GeneratorUtils
     {
-        private const string AssemblyName = "Tinja.Interception.DynamicProxy";
+        private const string AssemblyName = "Tinja.Core.DynamicProxy";
 
         private const string ModuleName = "ProxyModules";
 
@@ -20,8 +21,6 @@ namespace Tinja.Core.DynamicProxy.Generators
         internal static AssemblyBuilder AssemblyBuilder { get; }
 
         internal static Dictionary<Type, int> ProxyIndexs { get; }
-
-        internal static readonly MethodInfo BuildMethodInvocationInvoker = typeof(IMethodInvocationInvokerBuilder).GetMethod("Build");
 
         internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
         {
@@ -32,32 +31,75 @@ namespace Tinja.Core.DynamicProxy.Generators
             typeof(MemberInfo)
         });
 
+        internal static readonly MethodInfo MethodInvocationExecute = typeof(MethodInvocationExecutor)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "Execute" && !item.IsVoidMethod());
+
+        internal static readonly MethodInfo MethodVoidInvocationExecute = typeof(MethodInvocationExecutor)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "Execute" && item.IsVoidMethod());
+
+        internal static readonly MethodInfo MethodInvocationAsyncExecute = typeof(MethodInvocationExecutor)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "ExecuteAsync" && item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodInvocationVoidAsyncExecute = typeof(MethodInvocationExecutor).
+            GetMethods()
+            .FirstOrDefault(item => item.Name == "ExecuteAsync" && !item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodInvocationValueTaskAsyncExecute = typeof(MethodInvocationExecutor)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "ExecuteValueTaskAsync" && item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodInvocationValueTaskVoidAsyncExecute = typeof(MethodInvocationExecutor)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "ExecuteValueTaskAsync" && !item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodBuildInvoker = typeof(MethodInvocationInvokerBuilder)
+            .GetMethod("BuildInvoker");
+
+        internal static readonly MethodInfo MethodBuildAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "BuildTaskAsyncInvoker" && item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodBuildAsyncVoidInvoker = typeof(MethodInvocationInvokerBuilder)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "BuildTaskAsyncInvoker" && !item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodBuildValueTaskAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "BuildValueTaskAsyncInvoker" && item.IsGenericMethod);
+
+        internal static readonly MethodInfo MethodBuildVoidValueTaskAsyncInvoker = typeof(MethodInvocationInvokerBuilder)
+            .GetMethods()
+            .FirstOrDefault(item => item.Name == "BuildValueTaskAsyncInvoker" && !item.IsGenericMethod);
+
         static GeneratorUtils()
         {
+            ProxyIndexs = new Dictionary<Type, int>();
             AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(AssemblyName), AssemblyBuilderAccess.Run);
             ModuleBuilder = AssemblyBuilder.DefineDynamicModule(ModuleName);
-            ProxyIndexs = new Dictionary<Type, int>();
         }
 
-        public static string GetProxyTypeName(Type proxyTargetType)
+        internal static string GetProxyTypeName(Type type)
         {
             lock (ProxyIndexs)
             {
-                var order = ProxyIndexs.GetValueOrDefault(proxyTargetType);
+                var order = ProxyIndexs.GetValueOrDefault(type);
                 if (order == 0)
                 {
-                    ProxyIndexs[proxyTargetType] = 1;
+                    ProxyIndexs[type] = 1;
                 }
                 else
                 {
-                    ProxyIndexs[proxyTargetType] = order + 1;
+                    ProxyIndexs[type] = order + 1;
                 }
 
-                return proxyTargetType.FullName + "." + proxyTargetType.Name + "_proxy_" + order;
+                return type.FullName + "." + type.Name + "_proxy_" + order;
             }
         }
 
-        public static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
+        internal static CustomAttributeBuilder CreateCustomAttribute(CustomAttributeData customAttribute)
         {
             if (customAttribute.NamedArguments == null)
             {
