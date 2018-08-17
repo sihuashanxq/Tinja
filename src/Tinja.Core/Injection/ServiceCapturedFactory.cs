@@ -28,26 +28,26 @@ namespace Tinja.Core.Injection
             return service;
         }
 
-        public object CreateCapturedService(int serviceId, Func<IServiceResolver, object> factory)
+        public object CreateCapturedService(int serviceCacheId, Func<IServiceResolver, object> factory)
         {
             if (Scope.IsDisposed)
             {
                 throw new InvalidOperationException($"this scope is disposed!");
             }
 
-            if (Scope.ResolvedServices.TryGetValue(serviceId, out var service))
+            if (Scope.ResolvedServices.TryGetValue(serviceCacheId, out var service))
             {
                 return service;
             }
 
             lock (Scope.ResolvedServices)
             {
-                if (Scope.ResolvedServices.TryGetValue(serviceId, out service))
+                if (Scope.ResolvedServices.TryGetValue(serviceCacheId, out service))
                 {
                     return service;
                 }
 
-                service = Scope.ResolvedServices[serviceId] = factory(Scope.ServiceResolver);
+                service = Scope.ResolvedServices[serviceCacheId] = factory(Scope.ServiceResolver);
 
                 if (service is IDisposable disposable)
                 {

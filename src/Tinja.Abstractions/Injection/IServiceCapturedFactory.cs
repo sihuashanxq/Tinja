@@ -6,6 +6,6 @@ namespace Tinja.Abstractions.Injection
     {
         object CreateCapturedService(Func<IServiceResolver, object> factory);
 
-        object CreateCapturedService(int serviceId, Func<IServiceResolver, object> factory);
+        object CreateCapturedService(int serviceCacheId, Func<IServiceResolver, object> factory);
     }
 }

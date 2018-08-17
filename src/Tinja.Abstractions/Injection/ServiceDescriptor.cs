@@ -7,8 +7,6 @@ namespace Tinja.Abstractions.Injection
     /// </summary>
     public class ServiceDescriptor
     {
-        public int ServiceId { get; set; }
-
         public Type ServiceType { get; set; }
 
         public Type ImplementationType { get; set; }
@@ -19,14 +17,13 @@ namespace Tinja.Abstractions.Injection
 
         public Func<IServiceResolver, object> ImplementationFactory { get; set; }
 
-        public ServiceDescriptor(int serviceId, Component component)
+        public ServiceDescriptor(Component component)
         {
             if (component == null)
             {
                 throw new NullReferenceException(nameof(component));
             }
 
-            ServiceId = serviceId;
             LifeStyle = component.LifeStyle;
             ServiceType = component.ServiceType;
             ImplementationType = component.ImplementationType;

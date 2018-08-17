@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.Injection;
 
@@ -8,13 +9,13 @@ namespace Tinja.Core.Injection
 {
     public class ServiceEntryFactory : IServiceEntryFactory
     {
-        private readonly ServiceIdFactory _serviceIdFactory;
+        private readonly ServiceCacheIdProvider _serviceCacheIdProvider;
 
         private readonly Dictionary<Type, List<ServiceDescriptor>> _descriptors;
 
         internal ServiceEntryFactory()
         {
-            _serviceIdFactory = new ServiceIdFactory();
+            _serviceCacheIdProvider = new ServiceCacheIdProvider();
             _descriptors = new Dictionary<Type, List<ServiceDescriptor>>();
         }
 
@@ -40,7 +41,7 @@ namespace Tinja.Core.Injection
             {
                 _descriptors[item.Key] = item
                     .Value
-                    .Select(component => new ServiceDescriptor(_serviceIdFactory.CreateSeviceId(), component))
+                    .Select(component => new ServiceDescriptor(component))
                     .ToList();
             }
         }
@@ -107,8 +108,8 @@ namespace Tinja.Core.Injection
                 {
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
-                    ServiceId = descriptor.ServiceId,
-                    Delegate = descriptor.ImplementationFactory
+                    Delegate = descriptor.ImplementationFactory,
+                    ServiceCacheId = GetServiceCacheId(descriptor.ImplementationFactory, descriptor.LifeStyle)
                 };
             }
 
@@ -119,16 +120,22 @@ namespace Tinja.Core.Injection
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
                     Instance = descriptor.ImplementationInstance,
-                    ServiceId = descriptor.ServiceId
+                    ServiceCacheId = GetServiceCacheId(descriptor.ImplementationInstance, descriptor.LifeStyle)
                 };
+            }
+
+            var implementationType = CreateGenericImplementationType(serviceType, descriptor.ImplementationType);
+            if (implementationType == null)
+            {
+                throw new NullReferenceException(nameof(implementationType));
             }
 
             return new ServiceTypeEntry()
             {
                 ServiceType = serviceType,
                 LifeStyle = descriptor.LifeStyle,
-                ServiceId = descriptor.ServiceId,
-                ImplementationType = CreateGenericImplementationType(serviceType, descriptor.ImplementationType)
+                ImplementationType = implementationType,
+                ServiceCacheId = GetServiceCacheId(implementationType, descriptor.LifeStyle)
             };
         }
 
@@ -230,12 +237,37 @@ namespace Tinja.Core.Injection
 
         private static Type CreateGenericImplementationType(Type serviceType, Type implementationType)
         {
+            if (serviceType == null)
+            {
+                throw new NullReferenceException(nameof(serviceType));
+            }
+
+            if (implementationType == null)
+            {
+                throw new NullReferenceException(nameof(implementationType));
+            }
+
             if (serviceType.IsConstructedGenericType && implementationType.IsGenericTypeDefinition)
             {
                 return implementationType.MakeGenericType(serviceType.GenericTypeArguments);
             }
 
             return implementationType;
+        }
+
+        private int GetServiceCacheId(object serviceKey, ServiceLifeStyle lifeStyle)
+        {
+            if (lifeStyle == ServiceLifeStyle.Transient)
+            {
+                return -1;
+            }
+
+            if (serviceKey == null)
+            {
+                throw new NullReferenceException(nameof(serviceKey));
+            }
+
+            return _serviceCacheIdProvider.GetServiceCacheId(serviceKey);
         }
     }
 }

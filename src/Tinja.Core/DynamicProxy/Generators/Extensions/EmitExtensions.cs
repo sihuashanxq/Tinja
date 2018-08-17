@@ -821,7 +821,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             if (methodInfo.ReturnType.IsTask())
             {
-                return ilGen.CallVirt(GeneratorUtils.MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
+                return ilGen.Call(GeneratorUtils.MethodInvocationAsyncExecute.MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments().SingleOrDefault() ?? typeof(object)));
             }
 
             if (methodInfo.ReturnType == typeof(ValueTask))

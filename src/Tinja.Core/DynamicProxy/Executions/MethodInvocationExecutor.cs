@@ -11,6 +11,13 @@ namespace Tinja.Core.DynamicProxy.Executions
             invoker.InvokeAsync(invocation).Wait();
         }
 
+        public static TResult Execute<TResult>(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
+        {
+            invoker.InvokeAsync(invocation).Wait();
+
+            return (TResult)invocation.ResultValue;
+        }
+
         public static Task ExecuteAsync(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
             return invoker.InvokeAsync(invocation);

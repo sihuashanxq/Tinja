@@ -67,7 +67,7 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 Delegate = entry.Delegate,
                 LifeStyle = entry.LifeStyle,
-                ServiceId = entry.ServiceId,
+                ServiceCacheId = entry.ServiceCacheId,
                 ServiceType = entry.ServiceType
             };
         }
@@ -79,7 +79,7 @@ namespace Tinja.Core.Injection.Dependencies
                 Instance = entry.Instance,
                 LifeStyle = entry.LifeStyle,
                 ServiceType = entry.ServiceType,
-                ServiceId = entry.ServiceId
+                ServiceCacheId = entry.ServiceCacheId
             };
         }
 
@@ -128,7 +128,7 @@ namespace Tinja.Core.Injection.Dependencies
                 var dependElement = new TypeCallDependElement()
                 {
                     Parameters = parameterElements,
-                    ServiceId = entry.ServiceId,
+                    ServiceCacheId = entry.ServiceCacheId,
                     LifeStyle = entry.LifeStyle,
                     ServiceType = entry.ServiceType,
                     ImplementionType = entry.ImplementationType,

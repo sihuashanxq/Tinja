@@ -6,7 +6,7 @@ namespace Tinja.Core.Injection.Activations
 {
     internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, object> factory);
 
-    internal delegate object CreateScopedServiceDelegate(int serviceId, IServiceLifeScope scope, Func<IServiceResolver, object> factory);
+    internal delegate object CreateScopedServiceDelegate(int serviceCacheId, IServiceLifeScope scope, Func<IServiceResolver, object> factory);
 
     internal static class ActivatorUtil
     {

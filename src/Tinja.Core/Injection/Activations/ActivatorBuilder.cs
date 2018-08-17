@@ -220,7 +220,7 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, factory);
+                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, factory);
 
                 return Expression.Constant(service);
             }
@@ -230,7 +230,7 @@ namespace Tinja.Core.Injection.Activations
                 return Expression.Invoke(ActivatorUtil.CreateCapturedTransientServie, ParameterScope, Expression.Constant(factory));
             }
 
-            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceId), ParameterScope, Expression.Constant(factory));
+            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceCacheId), ParameterScope, Expression.Constant(factory));
         }
 
         protected Func<IServiceResolver, IServiceLifeScope, object> BuildExpressionFactory(CallDependElement element)
@@ -269,7 +269,7 @@ namespace Tinja.Core.Injection.Activations
  
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, element.Delegate);
+                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
 
                 return (r, s) => service;
             }
@@ -279,7 +279,7 @@ namespace Tinja.Core.Injection.Activations
                 return (r, s) => element.Delegate(r);
             }
 
-            return (r, s) => s.Factory.CreateCapturedService(element.ServiceId, element.Delegate);
+            return (r, s) => s.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
         }
 
         protected Func<IServiceResolver, IServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)
@@ -289,7 +289,7 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
-            ServiceRootScope.Factory.CreateCapturedService(element.ServiceId, r => element.Instance);
+            ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, r => element.Instance);
 
             return (r, s) => element.Instance;
         }
