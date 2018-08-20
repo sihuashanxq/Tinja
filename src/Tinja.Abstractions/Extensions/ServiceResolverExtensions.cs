@@ -5,29 +5,29 @@ namespace Tinja.Abstractions.Extensions
 {
     public static class ServiceResolverExtensions
     {
-        public static TType ResolveService<TType>(this IServiceResolver resolver)
+        public static TType ResolveService<TType>(this IServiceResolver serviceResolver)
         {
-            return (TType)resolver.ResolveService(typeof(TType));
+            return (TType)serviceResolver.ResolveService(typeof(TType));
         }
 
-        public static TType ResolveService<TType>(this IServiceResolver resolver, Type serviceType)
+        public static TType ResolveService<TType>(this IServiceResolver serviceResolver, Type serviceType)
         {
-            return (TType)resolver.ResolveService(serviceType);
+            return (TType)serviceResolver.ResolveService(serviceType);
         }
 
-        public static object ResolveServiceRequired(this IServiceResolver resolver, Type serviceType)
+        public static object ResolveServiceRequired(this IServiceResolver serviceResolver, Type serviceType)
         {
-            return resolver.ResolveService(serviceType) ?? throw new InvalidOperationException();
+            return serviceResolver.ResolveService(serviceType) ?? throw new InvalidOperationException();
         }
 
-        public static TType ResolveServiceRequired<TType>(this IServiceResolver resolver, Type serviceType)
+        public static TType ResolveServiceRequired<TType>(this IServiceResolver serviceResolver, Type serviceType)
         {
-            return (TType)resolver.ResolveServiceRequired(serviceType);
+            return (TType)serviceResolver.ResolveServiceRequired(serviceType);
         }
 
-        public static TType ResolveServiceRequired<TType>(this IServiceResolver resolver)
+        public static TType ResolveServiceRequired<TType>(this IServiceResolver serviceResolver)
         {
-            return (TType)resolver.ResolveServiceRequired(typeof(TType));
+            return (TType)serviceResolver.ResolveServiceRequired(typeof(TType));
         }
     }
 }

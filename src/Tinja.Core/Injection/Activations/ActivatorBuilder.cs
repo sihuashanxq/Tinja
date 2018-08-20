@@ -266,17 +266,12 @@ namespace Tinja.Core.Injection.Activations
             {
                 return (r, s) => r;
             }
- 
+
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
                 var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
 
                 return (r, s) => service;
-            }
-
-            if (element.LifeStyle == ServiceLifeStyle.Transient)
-            {
-                return (r, s) => element.Delegate(r);
             }
 
             return (r, s) => s.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);

@@ -6,18 +6,25 @@ namespace AspnetCore.Controllers
     [Route("api/[controller]")]
     public class ValuesController : Controller
     {
+        private readonly IService _service;
+
+        public ValuesController(IService service)
+        {
+            _service = service;
+        }
+
         // GET api/values
         [HttpGet]
         public IEnumerable<string> Get()
         {
-            return new string[] { "value1", "value2" };
+            return new string[] { _service.GetType().FullName };
         }
 
         // GET api/values/5
         [HttpGet("{id}")]
         public string Get(int id)
         {
-            return "value";
+            return _service.GetType().FullName;
         }
 
         // POST api/values

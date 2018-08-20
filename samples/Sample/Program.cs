@@ -14,52 +14,23 @@ namespace ConsoleApp
     {
         static void Main()
         {
-            var container = new Container();
+            var serviceResolver = new Container()
+                .AddScoped<IUserService,UserService>()
+                .AddTransient<UserServiceInterceptor, UserServiceInterceptor>()
+                .AddTransient<UserServiceInterceptor2, UserServiceInterceptor2>()
+                .AddTransient<IInterceptorMetadataCollector, InterceptorMetadataCollector>()
+                .UseDynamicProxy()
+                .BuildServiceResolver();
 
-            container.AddSingleton(typeof(IUserService), new UserService1());
-            container.AddTransient(typeof(IRepository<>), typeof(Repository<>));
-            container.AddTransient(typeof(IUserRepository), typeof(UserRepository));
-            container.AddTransient<UserServiceDataAnnotationInterceptor, UserServiceDataAnnotationInterceptor>();
-            container.AddTransient<UserServiceInterceptor, UserServiceInterceptor>();
-            container.AddTransient<IInterceptorMetadataCollector, MemberInterceptionCollector>();
-
-            var resolver = container.UseDynamicProxy().BuildServiceResolver();
-
-            IUserService u1 = null, u2 = null, u3 = null;
-
-            Task.Run(() => { u1 = resolver.ResolveService<IUserService>(); });
-            Task.Run(() => { u2 = resolver.ResolveService<IUserService>(); });
-            Task.Run(() => { u3 = resolver.ResolveService<IUserService>(); });
-
-            Console.WriteLine(u1 == u2);
-            Console.WriteLine(u2 == u3);
-            var userServices = resolver.ResolveService<IEnumerable<IUserService>>();
-            var userService = resolver.ResolveServiceRequired<IUserService>();
-            var userRepository = resolver.ResolveService<IUserRepository>();
-            var name = userService.GetIdAsync();
-
-            Console.WriteLine("name:" + name);
-
-            using (var scope = resolver.CreateScope())
+            using (var scopeResolver = serviceResolver.CreateScope())
             {
-                var repository = resolver.ResolveService<IRepository<IUserService>>();
-            }
-
-            userService.GetUserName(2);
-
-            var type = typeof(IUserService);
-            var stopWatch = new Stopwatch();
-            for (var n = 0; n < 10; n++)
-            {
-                stopWatch.Restart();
-                for (var i = 0; i < 100000000; i++)
+                var userService = scopeResolver.ResolveService<IUserService>();
+                if (userService == null)
                 {
-                    resolver.ResolveService(type);
+                    throw new NullReferenceException(nameof(userService));
                 }
 
-                stopWatch.Stop();
-
-                Console.WriteLine(stopWatch.ElapsedMilliseconds);
+                Console.WriteLine(userService.GetString(2));
             }
 
             Console.ReadLine();

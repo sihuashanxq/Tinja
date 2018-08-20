@@ -7,6 +7,16 @@ using Tinja.Extensions.DependencyInjection;
 
 namespace AspnetCore
 {
+    public interface IService
+    {
+
+    }
+
+    public class Service : IService
+    {
+
+    }
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -20,6 +30,7 @@ namespace AspnetCore
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddTransient(typeof(IService), typeof(Service));
 
             return services.BuildContainer().BuildServiceProvider();
         }

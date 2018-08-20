@@ -50,6 +50,7 @@ namespace Tinja.Core.Injection
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         private void Dispose(bool disposing)
@@ -70,7 +71,6 @@ namespace Tinja.Core.Injection
 
                 foreach (var item in DisposableServices)
                 {
-
                     item.Dispose();
                 }
 

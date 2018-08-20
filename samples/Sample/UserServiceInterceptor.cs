@@ -12,11 +12,11 @@ namespace ConsoleApp
 
             await next(invocation);
 
-            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.Method.Name }:executed :return{invocation.ResultValue}->{invocation.ResultValue.ToString() + "Interceptor"}");
+            Console.WriteLine($"InterceptorType:{GetType().FullName}::::{invocation.Method.Name }:executed");
         }
     }
 
-    public class UserServiceDataAnnotationInterceptor : IInterceptor
+    public class UserServiceInterceptor2 : IInterceptor
     {
         public async Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)
         {

@@ -3,7 +3,7 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.Extensions
 {
-    public static class ServiceResolverExtensions
+    public static class ServiceScopeResolverExtensions
     {
         public static IServiceResolver CreateScope(this IServiceResolver resolver)
         {

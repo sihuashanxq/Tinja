@@ -105,11 +105,13 @@ namespace Tinja.Test
             {
                 invocation.ResultValue = 1024;
             }
-            else if (invocation.Method.ReturnType == typeof(Task<int>))
+
+            if (invocation.Method.ReturnType == typeof(Task<int>))
             {
                 invocation.ResultValue = Task.FromResult(1024);
             }
-            else if (invocation.Method.ReturnType == typeof(ValueTask<int>))
+
+            if (invocation.Method.ReturnType == typeof(ValueTask<int>))
             {
                 invocation.ResultValue = Task.FromResult(1024);
             }
