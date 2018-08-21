@@ -8,8 +8,6 @@ namespace Tinja.Abstractions
 {
     public interface IContainer
     {
-        List<Action<IContainerConfiguration>> Configurators { get; }
-
         ConcurrentDictionary<Type, List<Component>> Components { get; }
     }
 }

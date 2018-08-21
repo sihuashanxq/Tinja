@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using Tinja.Abstractions;
-using Tinja.Abstractions.Configurations;
-using Tinja.Abstractions.DynamicProxy.Configurations;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.Dependencies;
-using Tinja.Core.Configurations;
 using Tinja.Core.Injection;
+using Tinja.Core.Injection.Configurations;
 using Tinja.Core.Injection.Dependencies;
 
 namespace Tinja.Core.Extensions
@@ -22,28 +20,25 @@ namespace Tinja.Core.Extensions
         /// Build IServiceResolver
         /// </summary>
         /// <param name="container"></param>
+        /// <param name="configurator"></param>
         /// <returns></returns>
-        public static IServiceResolver BuildServiceResolver(this IContainer container)
+        public static IServiceResolver BuildServiceResolver(this IContainer container, Action<IInjectionConfiguration> configurator = null)
         {
             if (container == null)
             {
                 throw new NullReferenceException(nameof(container));
             }
 
-            var configuration = container.BuildConfiguration();
-            if (configuration == null)
-            {
-                throw new NullReferenceException(nameof(configuration));
-            }
+            var serviceEntryFactory = new ServiceEntryFactory();
+            var configuration = container.BuildConfiguration(configurator);
 
-            var serviceFactory = new ServiceEntryFactory();
-            var serviceResolver = container.BuildServiceResolver(new CallDependElementBuilderFactory(serviceFactory, configuration.Injection));
+            var serviceResolver = container.BuildServiceResolver(new CallDependElementBuilderFactory(serviceEntryFactory, configuration));
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));
             }
 
-            serviceFactory.Populate(container.Components, serviceResolver);
+            serviceEntryFactory.Populate(container.Components, serviceResolver);
 
             return serviceResolver;
         }
@@ -67,45 +62,17 @@ namespace Tinja.Core.Extensions
         }
 
         /// <summary>
-        /// Configure Service
+        /// Build IInjectionConfiguration
         /// </summary>
         /// <param name="container">Container</param>
-        /// <param name="configurator">Service Configurator</param>
+        /// <param name="configurator"></param>
         /// <returns></returns>
-        public static IContainer Configure(this IContainer container, Action<IContainerConfiguration> configurator)
+        internal static IInjectionConfiguration BuildConfiguration(this IContainer container, Action<IInjectionConfiguration> configurator)
         {
-            if (container == null)
-            {
-                throw new NullReferenceException(nameof(container));
-            }
+            var configuration = new InjectionConfiguration();
 
-            if (configurator == null)
-            {
-                throw new NullReferenceException(nameof(configurator));
-            }
-
-            container.Configurators.Add(configurator);
-
-            return container;
-        }
-
-        /// <summary>
-        /// Build IServiceConfiguration
-        /// </summary>
-        /// <param name="container">Container</param>
-        /// <returns></returns>
-        internal static IContainerConfiguration BuildConfiguration(this IContainer container)
-        {
-            var configuration = new ContainerCongfiguration();
-
-            foreach (var configurator in container.Configurators)
-            {
-                configurator?.Invoke(configuration);
-            }
-
-            container.AddSingleton<IContainerConfiguration>(configuration);
-            container.AddSingleton<IInjectionConfiguration>(configuration.Injection);
-            container.AddSingleton<IDynamicProxyConfiguration>(configuration.DynamicProxy);
+            configurator?.Invoke(configuration);
+            container.AddSingleton<IInjectionConfiguration>(configuration);
 
             return configuration;
         }

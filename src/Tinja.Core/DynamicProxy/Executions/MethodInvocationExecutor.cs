@@ -4,7 +4,7 @@ using Tinja.Abstractions.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
-    public class MethodInvocationExecutor
+    public static class MethodInvocationExecutor
     {
         public static void Execute(IMethodInvocationInvoker invoker, IMethodInvocation invocation)
         {
