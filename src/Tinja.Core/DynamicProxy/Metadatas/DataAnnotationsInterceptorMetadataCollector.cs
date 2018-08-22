@@ -7,11 +7,11 @@ using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
-    public class InterceptorMetadataCollector : IInterceptorMetadataCollector
+    public class DataAnnotationsInterceptorMetadataCollector : IInterceptorMetadataCollector
     {
         protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Cache { get; }
 
-        public InterceptorMetadataCollector()
+        public DataAnnotationsInterceptorMetadataCollector()
         {
             Cache = new ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>>();
         }
@@ -25,19 +25,19 @@ namespace Tinja.Core.DynamicProxy.Metadatas
         {
             foreach (var attr in memberInfo.DeclaringType.GetInterceptorAttributes())
             {
-                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, memberInfo);
+                yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
             }
 
             foreach (var attr in memberInfo.GetInterceptorAttributes())
             {
-                yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, memberInfo);
+                yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
             }
 
             foreach (var implementsInterface in implementsInterfaces)
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, memberInfo);
+                    yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
                 }
             }
 
@@ -45,7 +45,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorMetadata(attr.Order, attr.InterceptorType, memberInfo);
+                    yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
                 }
             }
         }

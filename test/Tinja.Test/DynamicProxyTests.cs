@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Registrations;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core;
 using Tinja.Core.DynamicProxy;

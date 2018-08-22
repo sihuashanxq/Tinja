@@ -29,11 +29,20 @@ namespace Tinja.Core.DynamicProxy
             container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
             container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();
-
             container.AddSingleton<IDynamicProxyConfiguration>(configuration);
             container.AddSingleton<IMemberMetadataProvider>(new MemberMetadataProvider());
             container.AddSingleton<IObjectMethodExecutorProvider>(new ObjectMethodExecutorProvider());
-            container.AddSingleton<IInterceptorMetadataCollector>(new InterceptorMetadataCollector());
+            container.AddSingleton<IInterceptorMetadataCollector>(new DataAnnotationsInterceptorMetadataCollector());
+
+            return container.ConfiureInterceptors(configuration);
+        }
+
+        private static IContainer ConfiureInterceptors(this IContainer container, DynamicProxyConfiguration configuration)
+        {
+            if (configuration.InterceptorRegistrations.Count != 0)
+            {
+                container.AddSingleton<IInterceptorMetadataCollector>(new ConfiguredInterceptorMetadataCollector(configuration.InterceptorRegistrations));
+            }
 
             return container;
         }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Registrations;
 
 namespace Tinja.Abstractions.Extensions
 {

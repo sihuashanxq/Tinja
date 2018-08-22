@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.DynamicProxy.Registrations;
 using Tinja.Abstractions.Injection;
 using Tinja.Core;
 using Tinja.Core.Extensions;

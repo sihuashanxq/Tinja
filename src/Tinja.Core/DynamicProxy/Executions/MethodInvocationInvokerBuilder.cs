@@ -251,6 +251,12 @@ namespace Tinja.Core.DynamicProxy.Executions
 
                 foreach (var metadata in metadatas.Where(item => item != null))
                 {
+                    if (metadata.Handler != null)
+                    {
+                        entries.Add(new InterceptorEntry(new DelegateInterceptor(metadata.Handler), metadata));
+                        continue;
+                    }
+
                     if (!Interceptors.TryGetValue(metadata.InterceptorType, out var entry))
                     {
                         var interceptor = InterceptorFactory.Create(metadata.InterceptorType);
@@ -285,10 +291,10 @@ namespace Tinja.Core.DynamicProxy.Executions
             var selectors = InterceptorSelectorProvider.GetSelectors(memberInfo);
             if (selectors == null)
             {
-                return entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor).ToArray();
+                return entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor).ToArray();
             }
 
-            var interceptors = entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor);
+            var interceptors = entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor);
 
             return selectors.Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current)).ToArray();
         }

@@ -9,7 +9,7 @@ namespace ConsoleApp
         {
             if (metadata.Member.Name == "GetString")
             {
-                yield return new InterceptorMetadata(1024, typeof(UserServiceInterceptor2), metadata.Member);
+                yield return new InterceptorMetadata(typeof(UserServiceInterceptor2), metadata.Member, 1024);
             }
         }
     }
