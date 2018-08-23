@@ -5,6 +5,6 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     public interface IInterceptorMetadataProvider
     {
-        IEnumerable<InterceptorMetadata> GetMetadatas(MemberInfo memberInfo);
+        IEnumerable<InterceptorMetadata> GetInterceptors(MemberInfo memberInfo);
     }
 }

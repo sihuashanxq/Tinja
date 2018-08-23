@@ -247,7 +247,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             lock (Interceptors)
             {
                 var entries = new List<InterceptorEntry>();
-                var metadatas = InterceptorMetadataProvider.GetMetadatas(memberInfo) ?? new InterceptorMetadata[0];
+                var metadatas = InterceptorMetadataProvider.GetInterceptors(memberInfo) ?? new InterceptorMetadata[0];
 
                 foreach (var metadata in metadatas.Where(item => item != null))
                 {

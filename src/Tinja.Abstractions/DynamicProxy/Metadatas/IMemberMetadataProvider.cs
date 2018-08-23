@@ -5,6 +5,6 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     public interface IMemberMetadataProvider
     {
-        IEnumerable<MemberMetadata> GetMemberMetadatas(Type typeInfo);
+        IEnumerable<MemberMetadata> GetMembers(Type typeInfo);
     }
 }

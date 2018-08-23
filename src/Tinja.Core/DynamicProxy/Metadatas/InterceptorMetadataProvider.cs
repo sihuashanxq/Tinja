@@ -18,9 +18,9 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             _collectors = collectors ?? throw new NullReferenceException(nameof(collectors));
         }
 
-        public IEnumerable<InterceptorMetadata> GetMetadatas(MemberInfo memberInfo)
+        public IEnumerable<InterceptorMetadata> GetInterceptors(MemberInfo memberInfo)
         {
-            var typeMemberMetadatas = _provider.GetMemberMetadatas(memberInfo.DeclaringType);
+            var typeMemberMetadatas = _provider.GetMembers(memberInfo.DeclaringType);
             if (typeMemberMetadatas == null)
             {
                 throw new NullReferenceException(nameof(typeMemberMetadatas));

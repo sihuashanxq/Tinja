@@ -18,7 +18,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             _metadatas = new ConcurrentDictionary<Type, IEnumerable<MemberMetadata>>();
         }
 
-        public IEnumerable<MemberMetadata> GetMemberMetadatas(Type typeInfo)
+        public IEnumerable<MemberMetadata> GetMembers(Type typeInfo)
         {
             if (typeInfo == null)
             {

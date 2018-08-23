@@ -6,6 +6,7 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core;
 using Tinja.Core.DynamicProxy;
+using Tinja.Core.DynamicProxy.Extensions;
 using Tinja.Core.Extensions;
 
 namespace ConsoleApp
@@ -15,11 +16,11 @@ namespace ConsoleApp
         static void Main()
         {
             var serviceResolver = new Container()
-                .AddScoped<IUserService,UserService>()
+                .AddScoped<IUserService, UserService>()
                 .AddTransient<UserServiceInterceptor, UserServiceInterceptor>()
                 .AddTransient<UserServiceInterceptor2, UserServiceInterceptor2>()
                 .AddTransient<IInterceptorMetadataCollector, InterceptorMetadataCollector>()
-                .UseDynamicProxy()
+                .AddDynamicProxy()
                 .BuildServiceResolver();
 
             using (var scopeResolver = serviceResolver.CreateScope())

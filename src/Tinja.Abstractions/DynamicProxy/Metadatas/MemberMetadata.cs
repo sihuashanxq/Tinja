@@ -4,7 +4,7 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
 {
     public class MemberMetadata
     {
-        internal static readonly MemberMetadata[] EmptyMembers = new MemberMetadata[0];
+        public static readonly MemberMetadata[] EmptyMembers = new MemberMetadata[0];
 
         public MemberInfo Member { get; set; }
 

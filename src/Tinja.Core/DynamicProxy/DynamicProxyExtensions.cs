@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Tinja.Abstractions;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Configurations;
@@ -7,13 +8,14 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Core.DynamicProxy.Configurations;
 using Tinja.Core.DynamicProxy.Executions;
 using Tinja.Core.DynamicProxy.Metadatas;
+using Tinja.Core.DynamicProxy.Registrations;
 using Tinja.Core.Extensions;
 
 namespace Tinja.Core.DynamicProxy
 {
     public static class DynamicProxyExtensions
     {
-        public static IContainer UseDynamicProxy(this IContainer container, Action<IDynamicProxyConfiguration> configurator = null)
+        public static IContainer AddDynamicProxy(this IContainer container, Action<IDynamicProxyConfiguration> configurator = null)
         {
             if (container == null)
             {
@@ -39,10 +41,30 @@ namespace Tinja.Core.DynamicProxy
 
         private static IContainer ConfiureInterceptors(this IContainer container, DynamicProxyConfiguration configuration)
         {
-            if (configuration.InterceptorRegistrations.Count != 0)
+            if (container == null)
             {
-                container.AddSingleton<IInterceptorMetadataCollector>(new ConfiguredInterceptorMetadataCollector(configuration.InterceptorRegistrations));
+                throw new NullReferenceException(nameof(container));
             }
+
+            if (configuration == null)
+            {
+                throw new NullReferenceException(nameof(configuration));
+            }
+
+            if (configuration.InterceptorRegistrations.Count == 0)
+            {
+                return container;
+            }
+
+            var registrations = configuration.InterceptorRegistrations;
+            var configuredCollector = new ConfiguredInterceptorMetadataCollector(registrations);
+
+            foreach (var item in registrations.OfType<InterceptorTypeRegistration>())
+            {
+                container.AddService(item.InterecptorType, item.InterecptorType, item.LifeStyle);
+            }
+
+            container.AddSingleton<IInterceptorMetadataCollector>(configuredCollector);
 
             return container;
         }

@@ -19,7 +19,7 @@ namespace Tinja.Test
             var service = new Container()
                 .AddTransient(typeof(IDynamicService), typeof(DynamicService))
                 .AddTransient(typeof(ReturnRewriteInterceptor))
-                .UseDynamicProxy()
+                .AddDynamicProxy()
                 .BuildServiceResolver()
                 .ResolveServiceRequired<IDynamicService>();
 
@@ -34,7 +34,7 @@ namespace Tinja.Test
             var service = new Container()
                 .AddTransient(typeof(IDynamicService))
                 .AddTransient(typeof(ReturnRewriteInterceptor))
-                .UseDynamicProxy()
+                .AddDynamicProxy()
                 .BuildServiceResolver()
                 .ResolveServiceRequired<IDynamicService>();
 
@@ -49,7 +49,7 @@ namespace Tinja.Test
             var service = new Container()
                 .AddTransient(typeof(AbstractDynamicService))
                 .AddTransient(typeof(ReturnRewriteInterceptor))
-                .UseDynamicProxy()
+                .AddDynamicProxy()
                 .BuildServiceResolver()
                 .ResolveServiceRequired<AbstractDynamicService>();
 

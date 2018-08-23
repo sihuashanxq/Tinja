@@ -35,7 +35,7 @@ namespace TinjaBenchmark.DynamicProxy
                 .AddTransient<InterceptorA>()
                 .AddTransient<InterceptorB>()
                 .AddTransient<InterceptorC>()
-                .UseDynamicProxy()
+                .AddDynamicProxy()
                 .BuildServiceResolver();
 
             _noneInterceptorService = _serviceResolver.ResolveService<NoneInterceptorService>();

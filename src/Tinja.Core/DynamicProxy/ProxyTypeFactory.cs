@@ -11,21 +11,21 @@ namespace Tinja.Core.DynamicProxy
 {
     public class ProxyTypeFactory : IProxyTypeFactory
     {
-        private readonly IMemberMetadataProvider _metadataProvider;
+        private readonly IMemberMetadataProvider _memberMetadataProvider;
 
-        private readonly IDynamicProxyConfiguration _configuration;
+        private readonly IDynamicProxyConfiguration _dynamicProxyConfiguration;
 
-        private readonly IEnumerable<IProxyTypeGenerationReferee> _referees;
+        private readonly IEnumerable<IProxyTypeGenerationReferee> _proxyTypeGenerationReferees;
 
         public ProxyTypeFactory(
-            IMemberMetadataProvider metadataProvider,
+            IMemberMetadataProvider provider,
             IDynamicProxyConfiguration configuration,
             IEnumerable<IProxyTypeGenerationReferee> referees
         )
         {
-            _referees = referees ?? throw new NullReferenceException(nameof(_referees));
-            _configuration = configuration ?? throw new NullReferenceException(nameof(_configuration));
-            _metadataProvider = metadataProvider ?? throw new NullReferenceException(nameof(metadataProvider));
+            _memberMetadataProvider = provider ?? throw new NullReferenceException(nameof(provider));
+            _dynamicProxyConfiguration = configuration ?? throw new NullReferenceException(nameof(configuration));
+            _proxyTypeGenerationReferees = referees ?? throw new NullReferenceException(nameof(referees));
         }
 
         public virtual Type CreateProxyType(Type typeInfo)
@@ -35,33 +35,33 @@ namespace Tinja.Core.DynamicProxy
                 throw new NullReferenceException(nameof(typeInfo));
             }
 
-            if (typeInfo.IsInterface && !_configuration.EnableInterfaceProxy)
+            if (typeInfo.IsInterface && !_dynamicProxyConfiguration.EnableInterfaceProxy)
             {
                 return null;
             }
 
-            if (typeInfo.IsAbstract && !_configuration.EnableAstractionClassProxy)
+            if (typeInfo.IsAbstract && !_dynamicProxyConfiguration.EnableAstractionClassProxy)
             {
                 return null;
             }
 
-            var metadatas = _metadataProvider.GetMemberMetadatas(typeInfo).Where(item => ShouldProxy(item.Member)).ToArray();
-            if (metadatas.Length == 0)
+            var members = _memberMetadataProvider.GetMembers(typeInfo).Where(item => ShouldProxy(item.Member)).ToArray();
+            if (members.Length == 0)
             {
                 return null;
             }
 
             if (typeInfo.IsInterface)
             {
-                return new InterfaceProxyTypeGenerator(typeInfo, metadatas).BuildProxyType();
+                return new InterfaceProxyTypeGenerator(typeInfo, members).BuildProxyType();
             }
 
-            return new ClassProxyTypeGenerator(typeInfo, metadatas).BuildProxyType();
+            return new ClassProxyTypeGenerator(typeInfo, members).BuildProxyType();
         }
 
         protected virtual bool ShouldProxy(MemberInfo memberInfo)
         {
-            return _referees.Any(referee => referee.ShouldProxy(memberInfo));
+            return _proxyTypeGenerationReferees.Any(referee => referee.ShouldProxy(memberInfo));
         }
     }
 }
