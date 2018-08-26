@@ -9,14 +9,12 @@ using Tinja.Abstractions.Injection.Dependencies.Elements;
 
 namespace Tinja.Core.Injection.Dependencies
 {
-    /// <summary>
-    /// the default implementation for <see cref="ICallDependencyElementBuilder" />
-    /// </summary>
-    public class CallDependElementBuilder : ICallDependencyElementBuilder
+    /// <inheritdoc />
+    public class CallDependElementBuilder : ICallDependElementBuilder
     {
-        protected IInjectionConfiguration Configuration { get; }
-
         protected CallDependElementScope CallScope { get; set; }
+
+        protected IInjectionConfiguration Configuration { get; }
 
         protected IServiceEntryFactory ServiceEntryFactory { get; set; }
 
@@ -54,11 +52,12 @@ namespace Tinja.Core.Injection.Dependencies
                 case ServiceTypeEntry typeEntry:
                     using (CallScope.Begin(typeEntry.ImplementationType))
                     {
-                        return BuildConstrcutorElement(typeEntry);
+                        return BuildTypeElement(typeEntry);
                     }
-            }
 
-            throw new InvalidOperationException();
+                default:
+                    throw new InvalidOperationException();
+            }
         }
 
         protected virtual CallDependElement BuildDelegateElement(ServiceDelegateEntry entry)
@@ -89,25 +88,25 @@ namespace Tinja.Core.Injection.Dependencies
 
             foreach (var item in entry.Items)
             {
-                var ele = BuildElement(item);
-                if (ele == null)
+                var element = BuildElement(item);
+                if (element == null)
                 {
                     continue;
                 }
 
-                items.Add(ele);
+                items.Add(element);
             }
 
             return new EnumerableCallDependElement()
             {
                 Items = items.ToArray(),
-                LifeStyle = entry.LifeStyle,
                 ItemType = entry.ItemType,
-                ServiceType = entry.ServiceType,
+                LifeStyle = entry.LifeStyle,
+                ServiceType = entry.ServiceType
             };
         }
 
-        protected virtual CallDependElement BuildConstrcutorElement(ServiceTypeEntry entry)
+        protected virtual CallDependElement BuildTypeElement(ServiceTypeEntry entry)
         {
             var parameterElements = new Dictionary<ParameterInfo, CallDependElement>();
 
@@ -125,7 +124,7 @@ namespace Tinja.Core.Injection.Dependencies
                     continue;
                 }
 
-                var dependElement = new TypeCallDependElement()
+                return SetPropertyElements(new TypeCallDependElement()
                 {
                     Parameters = parameterElements,
                     ServiceCacheId = entry.ServiceCacheId,
@@ -133,21 +132,17 @@ namespace Tinja.Core.Injection.Dependencies
                     ServiceType = entry.ServiceType,
                     ImplementionType = entry.ImplementationType,
                     ConstructorInfo = item
-                };
-
-                SetPropertyElements(dependElement);
-
-                return dependElement;
+                });
             }
 
             return null;
         }
 
-        protected void SetPropertyElements(TypeCallDependElement dependElement)
+        protected TypeCallDependElement SetPropertyElements(TypeCallDependElement dependElement)
         {
             if (dependElement == null || !Configuration.EnablePropertyInjection)
             {
-                return;
+                return dependElement;
             }
 
             var propertyInfos = dependElement
@@ -164,6 +159,8 @@ namespace Tinja.Core.Injection.Dependencies
             }
 
             dependElement.Properties = propertyElements;
+
+            return dependElement;
         }
 
         protected void SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> propertyElements)

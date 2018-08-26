@@ -6,11 +6,11 @@ namespace Tinja.Abstractions.DynamicProxy
     {
         MethodInfo Method { get; }
 
-        object[] Parameters { get; }
+        MemberInfo Target { get; }
+
+        object[] Arguments { get; }
 
         object ProxyInstance { get; }
-
-        MemberInfo TargetMember { get; }
 
         object ResultValue { get; set; }
     }

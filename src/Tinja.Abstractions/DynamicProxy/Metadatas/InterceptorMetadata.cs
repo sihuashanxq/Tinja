@@ -31,15 +31,15 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
             }
 
             RankOrder = rankOrder;
-            Target = target ?? throw new NullReferenceException(nameof(target));
             InterceptorType = interceptorType;
+            Target = target ?? throw new NullReferenceException(nameof(target));
         }
 
         public InterceptorMetadata(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> handler, MemberInfo target, long? rankOrder = null)
         {
+            RankOrder = rankOrder;
             Target = target ?? throw new NullReferenceException(nameof(target));
             Handler = handler ?? throw new NullReferenceException(nameof(handler));
-            RankOrder = rankOrder;
         }
     }
 }

@@ -69,9 +69,9 @@ namespace Tinja.Core.Injection
 
                 IsDisposed = true;
 
-                foreach (var item in DisposableServices)
+                foreach (var disposable in DisposableServices)
                 {
-                    item.Dispose();
+                    disposable.Dispose();
                 }
 
                 DisposableServices.Clear();

@@ -6,9 +6,9 @@ using Tinja.Abstractions.Injection.Dependencies;
 namespace Tinja.Core.Injection.Dependencies
 {
     /// <summary>
-    /// the default implementation for <see cref="ICallDependencyElementBuilderFactory"/>
+    /// the default implementation for <see cref="ICallDependElementBuilderFactory"/>
     /// </summary>
-    public class CallDependElementBuilderFactory : ICallDependencyElementBuilderFactory
+    public class CallDependElementBuilderFactory : ICallDependElementBuilderFactory
     {
         private readonly IServiceEntryFactory _serviceEntryFactory;
 
@@ -20,7 +20,7 @@ namespace Tinja.Core.Injection.Dependencies
             _injectionConfiguration = injectionConfiguration ?? throw new NullReferenceException(nameof(injectionConfiguration));
         }
 
-        public ICallDependencyElementBuilder CreateBuilder()
+        public ICallDependElementBuilder CreateBuilder()
         {
             return new CallDependElementBuilder(_serviceEntryFactory, _injectionConfiguration);
         }

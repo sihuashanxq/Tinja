@@ -43,7 +43,7 @@ namespace Tinja.Core.Extensions
             return serviceResolver;
         }
 
-        internal static IServiceResolver BuildServiceResolver(this IContainer container, ICallDependencyElementBuilderFactory factory)
+        internal static IServiceResolver BuildServiceResolver(this IContainer container, ICallDependElementBuilderFactory factory)
         {
             if (container == null)
             {

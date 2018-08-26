@@ -44,7 +44,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             LoadMethodArguments(ilGenerator, methodInfo, refLocalBuilders);
 
             ilGenerator.Call(methodInfo);
-            ilGenerator.Emit(methodInfo.ReturnType.IsVoid() ? OpCodes.Ldnull : OpCodes.Nop);
+            ilGenerator.Emit(methodInfo.ReturnType.IsVoidType() ? OpCodes.Ldnull : OpCodes.Nop);
 
             ilGenerator.SetVariableValue(returnValue);
 

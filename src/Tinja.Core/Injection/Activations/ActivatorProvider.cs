@@ -14,7 +14,7 @@ namespace Tinja.Core.Injection.Activations
 
         private static readonly Func<IServiceResolver, IServiceLifeScope, object> Default = (resolver, scope) => null;
 
-        public ActivatorProvider(IServiceLifeScope serviceScope, ICallDependencyElementBuilderFactory factory)
+        public ActivatorProvider(IServiceLifeScope serviceScope, ICallDependElementBuilderFactory factory)
         {
             _factory = new ActivatorFactory(serviceScope, factory);
             _activators = new Dictionary<Type, Func<IServiceResolver, IServiceLifeScope, object>>();

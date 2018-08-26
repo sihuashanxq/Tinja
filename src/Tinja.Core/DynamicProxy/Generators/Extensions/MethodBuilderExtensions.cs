@@ -139,7 +139,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
 
             var ilGen = builder.GetILGenerator();
 
-            if (methodInfo.ReturnType.IsVoid())
+            if (methodInfo.ReturnType.IsVoidType())
             {
                 ilGen.Return();
                 return builder;

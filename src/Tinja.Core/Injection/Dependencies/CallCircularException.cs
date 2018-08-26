@@ -2,9 +2,7 @@
 
 namespace Tinja.Core.Injection.Dependencies
 {
-    /// <summary>
-    /// the exception when circular dependency 
-    /// </summary>
+    /// <inheritdoc />
     public class CallCircularException : Exception
     {
         public Type ServiceType { get; }

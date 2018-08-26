@@ -7,19 +7,19 @@ namespace Tinja.Core.Injection.Activations
 {
     public class ActivatorFactory : IActivatorFactory
     {
-        private readonly IActivatorBuilder _builder;
+        private readonly IActivatorBuilder _activatorBuilder;
 
-        private readonly ICallDependencyElementBuilderFactory _callDependencyElementBuilderFactory;
+        private readonly ICallDependElementBuilderFactory _callDependElementBuilderFactory;
 
-        public ActivatorFactory(IServiceLifeScope serviceScope, ICallDependencyElementBuilderFactory factory)
+        public ActivatorFactory(IServiceLifeScope serviceScope, ICallDependElementBuilderFactory factory)
         {
-            _builder = new ActivatorBuilder(serviceScope);
-            _callDependencyElementBuilderFactory = factory;
+            _activatorBuilder = new ActivatorBuilder(serviceScope);
+            _callDependElementBuilderFactory = factory;
         }
 
         public Func<IServiceResolver, IServiceLifeScope, object> CreateActivator(Type serviceType)
         {
-            var builder = _callDependencyElementBuilderFactory.CreateBuilder();
+            var builder = _callDependElementBuilderFactory.CreateBuilder();
             if (builder == null)
             {
                 throw new NullReferenceException(nameof(builder));
@@ -31,7 +31,7 @@ namespace Tinja.Core.Injection.Activations
                 return null;
             }
 
-            return _builder.Build(element);
+            return _activatorBuilder.Build(element);
         }
     }
 }

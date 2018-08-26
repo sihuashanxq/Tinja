@@ -21,7 +21,7 @@ namespace Tinja.Core.Injection
         /// <summary>
         /// 创建ServiceResolver:root
         /// </summary>
-        internal ServiceResolver(ICallDependencyElementBuilderFactory factory)
+        internal ServiceResolver(ICallDependElementBuilderFactory factory)
         {
             if (factory == null)
             {

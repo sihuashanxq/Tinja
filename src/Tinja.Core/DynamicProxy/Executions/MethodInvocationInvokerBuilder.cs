@@ -125,7 +125,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 throw new InvalidOperationException("build invoker failed!");
             }
 
-            var interceptors = GetInterceptors(invocation.TargetMember);
+            var interceptors = GetInterceptors(invocation.Target);
             if (interceptors == null || interceptors.Length == 0)
             {
                 return new MethodInvocationInvoker(callStack.Pop());
@@ -161,7 +161,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>()
                     .PushContine(inv =>
                 {
-                    executor.Execute<TResult>(inv.ProxyInstance, inv.Parameters);
+                    executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
                     return Task.CompletedTask;
                 });
             }
@@ -169,7 +169,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             return new Stack<Func<IMethodInvocation, Task>>()
                 .PushContine(inv =>
             {
-                inv.ResultValue = executor.Execute<TResult>(inv.ProxyInstance, inv.Parameters);
+                inv.ResultValue = executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
                 return Task.CompletedTask;
             });
         }
@@ -188,7 +188,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => executor.Execute<Task>(inv.ProxyInstance, inv.Parameters));
+                .PushContine(inv => executor.Execute<Task>(inv.ProxyInstance, inv.Arguments));
         }
 
         private Stack<Func<IMethodInvocation, Task>> CreateTaskAsyncMethodCallStack<TResult>(MethodInfo methodInfo)
@@ -205,7 +205,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => (Task)(inv.ResultValue = executor.Execute<Task<TResult>>(inv.ProxyInstance, inv.Parameters)));
+                .PushContine(inv => (Task)(inv.ResultValue = executor.Execute<Task<TResult>>(inv.ProxyInstance, inv.Arguments)));
         }
 
         private Stack<Func<IMethodInvocation, Task>> CreateValueTaskAsyncMethodCallStack(MethodInfo methodInfo)
@@ -222,7 +222,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => executor.Execute<ValueTask>(inv.ProxyInstance, inv.Parameters).AsTask());
+                .PushContine(inv => executor.Execute<ValueTask>(inv.ProxyInstance, inv.Arguments).AsTask());
         }
 
         private Stack<Func<IMethodInvocation, Task>> CreateValueTaskAsyncMethodCallStack<TResult>(MethodInfo methodInfo)
@@ -239,7 +239,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => (Task<TResult>)(inv.ResultValue = executor.Execute<ValueTask<TResult>>(inv.ProxyInstance, inv.Parameters).AsTask()));
+                .PushContine(inv => (Task<TResult>)(inv.ResultValue = executor.Execute<ValueTask<TResult>>(inv.ProxyInstance, inv.Arguments).AsTask()));
         }
 
         private IInterceptor[] GetInterceptors(MemberInfo memberInfo)

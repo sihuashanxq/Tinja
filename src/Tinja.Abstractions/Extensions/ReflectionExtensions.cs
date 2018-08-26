@@ -3,15 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Registrations;
 
 namespace Tinja.Abstractions.Extensions
 {
+    /// <summary>
+    /// extensions for reflection
+    /// </summary>
     public static class ReflectionExtensions
     {
         public static bool IsType(this Type type, Type target)
         {
+            if (type == null)
+            {
+                throw new NullReferenceException(nameof(type));
+            }
+
+            if (target == null)
+            {
+                throw new NullReferenceException(nameof(target));
+            }
+
             return target.IsAssignableFrom(type);
         }
 
@@ -30,29 +42,34 @@ namespace Tinja.Abstractions.Extensions
             return !type.IsType(target);
         }
 
-        public static PropertyInfo AsProperty(this MemberInfo m)
+        public static EventInfo AsEvent(this MemberInfo member)
         {
-            return m as PropertyInfo;
+            return member as EventInfo;
         }
 
-        public static MethodInfo AsMethod(this MemberInfo m)
+        public static MethodInfo AsMethod(this MemberInfo member)
         {
-            return m as MethodInfo;
+            return member as MethodInfo;
         }
 
-        public static EventInfo AsEvent(this MemberInfo m)
+        public static PropertyInfo AsProperty(this MemberInfo member)
         {
-            return m as EventInfo;
+            return member as PropertyInfo;
         }
 
-        public static bool IsVoid(this Type type)
+        public static bool IsVoidType(this Type type)
         {
             return type == typeof(void);
         }
 
         public static bool IsVoidMethod(this MethodInfo method)
         {
-            return method?.ReturnType.IsVoid() ?? false;
+            if (method == null)
+            {
+                throw new NullReferenceException(nameof(method));
+            }
+
+            return method.ReturnType.IsVoidType();
         }
 
         public static bool IsTask(this Type type)
@@ -62,12 +79,7 @@ namespace Tinja.Abstractions.Extensions
 
         public static bool IsValueTask(this Type type)
         {
-            return type == typeof(ValueTask) || IsValueTaskT(type);
-        }
-
-        public static bool IsValueTaskT(this Type type)
-        {
-            return type.IsGenericType && type.GetGenericTypeDefinition().IsType(typeof(ValueTask<>));
+            return type == typeof(ValueTask) || type.IsGenericType && type.GetGenericTypeDefinition().IsType(typeof(ValueTask<>));
         }
 
         public static IEnumerable<TElement> Distinct<TElement, TKey>(this IEnumerable<TElement> elements, Func<TElement, TKey> keyProvider)
@@ -77,44 +89,43 @@ namespace Tinja.Abstractions.Extensions
                 return null;
             }
 
-            var pairs = new Dictionary<TKey, TElement>();
+            var map = new Dictionary<TKey, TElement>();
 
             foreach (var element in elements)
             {
-                var elementKey = keyProvider(element);
-
-                if (pairs.ContainsKey(elementKey))
-                {
-                    continue;
-                }
-
-                pairs[elementKey] = element;
+                map.TryAdd(keyProvider(element), element);
             }
 
-            return pairs.Values;
+            return map.Values;
         }
 
         public static InterceptorAttribute[] GetInterceptorAttributes(this MemberInfo memberInfo)
         {
-            var attrs = memberInfo.GetCustomAttributes<InterceptorAttribute>(false).ToArray();
-
-            if (memberInfo.DeclaringType != null && memberInfo.DeclaringType.IsInterface)
+            if (memberInfo == null)
             {
-                return attrs;
+                throw new NullReferenceException(nameof(memberInfo));
+            }
+
+            var attributes = memberInfo.GetCustomAttributes<InterceptorAttribute>(false).ToArray();
+
+            if (memberInfo.DeclaringType != null &&
+                memberInfo.DeclaringType.IsInterface)
+            {
+                return attributes;
             }
 
             if (memberInfo is Type typeInfo && typeInfo.IsInterface)
             {
-                return attrs;
+                return attributes;
             }
 
-            var inheritedAttrs = memberInfo
+            var inherits = memberInfo
                 .GetCustomAttributes<InterceptorAttribute>(true)
-                .Except(attrs)
+                .Except(attributes)
                 .Where(i => i.Inherited);
 
-            return attrs
-                .Concat(inheritedAttrs)
+            return attributes
+                .Concat(inherits)
                 .Distinct(i => i.InterceptorType)
                 .ToArray();
         }
@@ -169,7 +180,7 @@ namespace Tinja.Abstractions.Extensions
 
             return interfaces
                 .Select(@interface => @interface.GetProperty(property.Name))
-                .Where(mapProperty => mapProperty != null);
+                .Where(item => item != null);
         }
 
         public static IEnumerable<MemberInfo> GetInterfaceMaps(this EventInfo eventInfo, Type[] interfaces)
@@ -186,7 +197,7 @@ namespace Tinja.Abstractions.Extensions
 
             return interfaces
                 .Select(@interface => @interface.GetEvent(eventInfo.Name))
-                .Where(@event => @event != null);
+                .Where(item => item != null);
         }
 
         public static IEnumerable<MemberInfo> GetInterfaceMaps(this MemberInfo memberInfo, Type[] interfaces)
@@ -225,7 +236,8 @@ namespace Tinja.Abstractions.Extensions
             }
 
             if (memberInfo.MemberType != MemberTypes.Method &&
-                memberInfo.MemberType != MemberTypes.Property)
+                memberInfo.MemberType != MemberTypes.Property &&
+                memberInfo.MemberType != MemberTypes.Event)
             {
                 return false;
             }
@@ -250,6 +262,15 @@ namespace Tinja.Abstractions.Extensions
                 return
                     property.GetMethod?.IsOverrideable() ??
                     property.SetMethod?.IsOverrideable() ??
+                    false;
+            }
+
+            if (memberInfo is EventInfo eventInfo)
+            {
+                return
+                    eventInfo.AddMethod?.IsOverrideable() ??
+                    eventInfo.RemoveMethod?.IsOverrideable() ??
+                    eventInfo.RaiseMethod?.IsOverrideable() ??
                     false;
             }
 

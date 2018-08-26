@@ -47,14 +47,7 @@ namespace Tinja.Core.Injection
                     return service;
                 }
 
-                service = Scope.ResolvedServices[serviceCacheId] = factory(Scope.ServiceResolver);
-
-                if (service is IDisposable disposable)
-                {
-                    Scope.DisposableServices.Add(disposable);
-                }
-
-                return service;
+                return Scope.ResolvedServices[serviceCacheId] = CreateCapturedService(factory);
             }
         }
     }

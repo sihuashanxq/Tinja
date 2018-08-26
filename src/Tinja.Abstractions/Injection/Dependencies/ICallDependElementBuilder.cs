@@ -6,7 +6,7 @@ namespace Tinja.Abstractions.Injection.Dependencies
     /// <summary>
     /// an interface for build <see cref="CallDependElement"/>
     /// </summary>
-    public interface ICallDependencyElementBuilder
+    public interface ICallDependElementBuilder
     {
         CallDependElement Build(Type serviceType);
     }

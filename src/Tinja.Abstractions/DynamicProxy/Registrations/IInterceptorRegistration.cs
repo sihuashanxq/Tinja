@@ -7,6 +7,6 @@ namespace Tinja.Abstractions.DynamicProxy.Registrations
     {
         void SetRankOrder(long rankOrder);
 
-        void SetTargetFilter(Func<MemberInfo, bool> targetFilter);
+        void SetTargetFilter(Func<MemberInfo, bool> filter);
     }
 }

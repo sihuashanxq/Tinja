@@ -13,7 +13,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
 
         public virtual IEnumerable<MemberMetadata> Collect(Type typeInfo)
         {
-            var interfaces = typeInfo.GetInterfaces() ?? Type.EmptyTypes;
+            var interfaces = typeInfo.GetInterfaces();
 
             foreach (var item in CollectEvents(typeInfo, interfaces))
             {

@@ -8,26 +8,26 @@ namespace Tinja.Core.DynamicProxy.Executions
     {
         public MethodInfo Method { get; }
 
-        public object[] Parameters { get; }
+        public MemberInfo Target { get; }
+
+        public object[] Arguments { get; }
 
         public object ProxyInstance { get; }
-
-        public MemberInfo TargetMember { get; }
 
         public object ResultValue { get; set; }
 
         public MethodInvocation(object instance, MethodInfo methodInfo, Type[] genericArguments, object[] argumentValues, MemberInfo targetMember)
         {
-            ProxyInstance = instance ?? throw new NullReferenceException(nameof(instance));
             Method = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
-            Parameters = argumentValues ?? throw new NullReferenceException(nameof(argumentValues));
-            TargetMember = targetMember ?? throw new NullReferenceException(nameof(targetMember));
+            Target = targetMember ?? throw new NullReferenceException(nameof(targetMember));
+            Arguments = argumentValues ?? throw new NullReferenceException(nameof(argumentValues));
+            ProxyInstance = instance ?? throw new NullReferenceException(nameof(instance));
 
-            if (Method.IsGenericMethod)
+            if (Method.IsGenericMethodDefinition)
             {
                 if (genericArguments == null)
                 {
-                    throw new InvalidOperationException("MakeGenericMethod failed!");
+                    throw new InvalidOperationException($"{Method.Name} MakeGenericMethod failed!");
                 }
 
                 Method = Method.MakeGenericMethod(genericArguments);
