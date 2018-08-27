@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core.DynamicProxy.Executions;
 

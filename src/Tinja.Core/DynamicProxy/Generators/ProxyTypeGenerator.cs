@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core.DynamicProxy.Executions;
@@ -64,8 +63,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                     GeneratorUtils.GetProxyTypeName(TargetType),
                     TypeAttributes.Class | TypeAttributes.Public,
                     TargetType.IsInterface ? typeof(object) : TargetType,
-                    TargetType.IsInterface ? new[] { TargetType } : TargetType.GetInterfaces()
-                )
+                    TargetType.IsInterface ? new[] { TargetType } : TargetType.GetInterfaces())
                 .DefineGenericParameters(TargetType)
                 .SetCustomAttributes(TargetType);
         }

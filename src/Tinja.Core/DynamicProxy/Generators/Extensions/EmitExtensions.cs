@@ -3,9 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
-using Tinja.Abstractions.DynamicProxy.Executions;
 using Tinja.Abstractions.Extensions;
-using Tinja.Core.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
@@ -221,7 +219,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         /// <summary>
         /// </summary>
         /// <returns></returns>
-        internal static ILGenerator CastValueToObject(this ILGenerator ilGen, Type valueType)
+        internal static ILGenerator CastAsObjectValue(this ILGenerator ilGen, Type valueType)
         {
             if (ilGen == null)
             {
@@ -417,7 +415,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             loadArrayInstance(ilGen);
             ilGen.Emit(OpCodes.Ldc_I4, arrayIndex);
             loadElementValue(ilGen);
-            ilGen.CastValueToObject(elementType);
+            ilGen.CastAsObjectValue(elementType);
             ilGen.Emit(OpCodes.Stelem_Ref);
 
             return ilGen;

@@ -6,7 +6,7 @@ namespace Tinja.Core.DynamicProxy.Extensions
 {
     public static class InterceptorRegistrationExtensions
     {
-        public static IInterceptorRegistration WithOrder(this IInterceptorRegistration registration, long rankOrder)
+        public static IInterceptorRegistration Order(this IInterceptorRegistration registration, long rankOrder)
         {
             registration.SetRankOrder(rankOrder);
 

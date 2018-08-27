@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
 
@@ -30,6 +29,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         {
             var parameterInfos = consturctor.GetParameters();
             var parameterTypes = parameterInfos.Select(i => i.ParameterType).ToArray();
+            var argumentStuffers = new Action<int>[parameterTypes.Length];
             var ilGen = TypeBuilder
                 .DefineConstructor(consturctor.Attributes, consturctor.CallingConvention, ExtraConstrcutorParameterTypes.Concat(parameterTypes).ToArray())
                 .SetCustomAttributes(consturctor)
@@ -38,20 +38,12 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             ilGen.SetThisField(GetField("__builder"), () => ilGen.LoadArgument(1));
 
-            var args = new Action<int>[parameterTypes.Length];
-            if (args.Length == 0)
-            {
-                ilGen.Base(consturctor, args);
-                ilGen.Return();
-                return;
-            }
-
             for (var i = 0; i < parameterTypes.Length; i++)
             {
-                args[i] = argIndex => ilGen.LoadArgument(argIndex + ExtraConstrcutorParameterTypes.Length);
+                argumentStuffers[i] = argIndex => ilGen.LoadArgument(argIndex + ExtraConstrcutorParameterTypes.Length);
             }
 
-            ilGen.Base(consturctor, args);
+            ilGen.Base(consturctor, argumentStuffers);
             ilGen.Return();
         }
     }
