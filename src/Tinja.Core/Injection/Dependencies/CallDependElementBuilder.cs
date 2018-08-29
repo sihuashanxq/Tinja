@@ -108,25 +108,20 @@ namespace Tinja.Core.Injection.Dependencies
 
         protected virtual CallDependElement BuildTypeElement(ServiceTypeEntry entry)
         {
-            var parameterElements = new Dictionary<ParameterInfo, CallDependElement>();
+            var parameters = new Dictionary<ParameterInfo, CallDependElement>();
 
             foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
             {
                 var parameterInfos = item.GetParameters();
-                if (parameterInfos.Any(parameterInfo => !SetParameterElement(parameterInfo, parameterElements)))
+                if (parameterInfos.Any(parameterInfo => !SetParameterElement(parameterInfo, parameters)))
                 {
-                    parameterElements.Clear();
-                }
-
-                if (parameterElements.Count != parameterInfos.Length)
-                {
-                    parameterElements.Clear();
+                    parameters.Clear();
                     continue;
                 }
 
                 return SetPropertyElements(new TypeCallDependElement()
                 {
-                    Parameters = parameterElements,
+                    Parameters = parameters,
                     ServiceCacheId = entry.ServiceCacheId,
                     LifeStyle = entry.LifeStyle,
                     ServiceType = entry.ServiceType,
@@ -138,66 +133,81 @@ namespace Tinja.Core.Injection.Dependencies
             return null;
         }
 
-        protected TypeCallDependElement SetPropertyElements(TypeCallDependElement dependElement)
+        protected TypeCallDependElement SetPropertyElements(TypeCallDependElement element)
         {
-            if (dependElement == null || !Configuration.EnablePropertyInjection)
+            if (element == null || !Configuration.EnablePropertyInjection)
             {
-                return dependElement;
+                return element;
             }
 
-            var propertyInfos = dependElement
-                .ImplementionType
-                .GetTypeInfo()
-                .DeclaredProperties
-                .Where(i => i.CanRead && i.CanWrite && i.IsDefined(typeof(InjectAttribute)));
-
-            var propertyElements = new Dictionary<PropertyInfo, CallDependElement>();
+            var properties = new Dictionary<PropertyInfo, CallDependElement>();
+            var propertyInfos = element.ImplementionType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
             foreach (var propertyInfo in propertyInfos)
             {
-                SetPropertyElement(propertyInfo, propertyElements);
+                if (!propertyInfo.CanWrite || !propertyInfo.CanRead)
+                {
+                    continue;
+                }
+
+                var injectAttribute = propertyInfo.GetCustomAttribute<InjectAttribute>();
+                if (injectAttribute == null)
+                {
+                    continue;
+                }
+
+                if (!SetPropertyElement(propertyInfo, properties) && injectAttribute.Requrired)
+                {
+                    throw new ServicePropertyRequiredException(element.ImplementionType, propertyInfo);
+                }
             }
 
-            dependElement.Properties = propertyElements;
+            element.Properties = properties;
 
-            return dependElement;
+            return element;
         }
 
-        protected void SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> propertyElements)
+        protected bool SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
         {
             if (propertyInfo == null)
             {
                 throw new NullReferenceException(nameof(propertyInfo));
             }
 
-            if (propertyElements == null)
+            if (properties == null)
             {
-                throw new NullReferenceException(nameof(propertyElements));
+                throw new NullReferenceException(nameof(properties));
             }
 
             var entry = ServiceEntryFactory.CreateEntry(propertyInfo.PropertyType);
-            if (entry != null)
+            if (entry == null)
             {
-                ValidateCircularDependency(entry);
-
-                var propertyElement = BuildElement(entry);
-                if (propertyElement != null)
-                {
-                    propertyElements[propertyInfo] = propertyElement;
-                }
+                return false;
             }
+
+            CheckCircularDependency(entry);
+
+            var element = BuildElement(entry);
+            if (element == null)
+            {
+                return false;
+            }
+
+            properties[propertyInfo] = element;
+
+            return true;
         }
 
-        protected bool SetParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameterElements)
+        protected bool SetParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
         {
             if (parameterInfo == null)
             {
                 throw new NullReferenceException(nameof(parameterInfo));
             }
 
-            if (parameterElements == null)
+            if (parameters == null)
             {
-                throw new NullReferenceException(nameof(parameterElements));
+                throw new NullReferenceException(nameof(parameters));
             }
 
             var entry = ServiceEntryFactory.CreateEntry(parameterInfo.ParameterType);
@@ -206,19 +216,20 @@ namespace Tinja.Core.Injection.Dependencies
                 return false;
             }
 
-            ValidateCircularDependency(entry);
+            CheckCircularDependency(entry);
 
-            var parameterElement = BuildElement(entry);
-            if (parameterElement == null)
+            var element = BuildElement(entry);
+            if (element == null)
             {
                 return false;
             }
 
-            parameterElements[parameterInfo] = parameterElement;
+            parameters[parameterInfo] = element;
+
             return true;
         }
 
-        protected void ValidateCircularDependency(ServiceEntry entry)
+        protected void CheckCircularDependency(ServiceEntry entry)
         {
             if (entry is ServiceTypeEntry typeEntry && CallScope.Contains(typeEntry.ImplementationType))
             {

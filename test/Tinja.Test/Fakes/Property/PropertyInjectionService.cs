@@ -11,7 +11,7 @@ namespace Tinja.Test.Fakes.Property
 
     public class PropertyInjectionService : IPropertyInjectionService
     {
-        [Inject]
+        [Inject(Requrired = true)]
         public ITransientServiceB ServiceB { get; set; }
     }
 }

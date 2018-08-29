@@ -54,7 +54,7 @@ namespace Tinja.Core.DynamicProxy.Generators
         {
             if (TargetType.IsValueType)
             {
-                throw new NotSupportedException($"implementation type:{TargetType.FullName} must not be value type");
+                throw new NotSupportedException($"implementation type:{TargetType.FullName} must not be a ValueType");
             }
 
             TypeBuilder = GeneratorUtils
@@ -76,27 +76,27 @@ namespace Tinja.Core.DynamicProxy.Generators
 
             foreach (var item in Members.Where(i => i.IsEvent).Select(i => i.Member.AsEvent()))
             {
-                BuildField(GetMemberIdentifier(item), typeof(EventInfo), FieldAttributes.Private | FieldAttributes.Static);
+                BuildField(GetIdentifier(item), typeof(EventInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
 
             foreach (var item in Members.Where(i => i.IsMethod).Select(i => i.Member.AsMethod()))
             {
-                BuildField(GetMemberIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                BuildField(GetIdentifier(item), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
 
             foreach (var item in Members.Where(i => i.IsProperty).Select(i => i.Member.AsProperty()))
             {
                 if (item.CanWrite)
                 {
-                    BuildField(GetMemberIdentifier(item.SetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                    BuildField(GetIdentifier(item.SetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
                 }
 
                 if (item.CanRead)
                 {
-                    BuildField(GetMemberIdentifier(item.GetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
+                    BuildField(GetIdentifier(item.GetMethod), typeof(MethodInfo), FieldAttributes.Private | FieldAttributes.Static);
                 }
 
-                BuildField(GetMemberIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
+                BuildField(GetIdentifier(item), typeof(PropertyInfo), FieldAttributes.Private | FieldAttributes.Static);
             }
         }
 
@@ -107,7 +107,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         public FieldBuilder GetField(MemberInfo memberInfo)
         {
-            return GetField(GetMemberIdentifier(memberInfo));
+            return GetField(GetIdentifier(memberInfo));
         }
 
         public FieldBuilder BuildField(string field, Type fieldType, FieldAttributes attributes)
@@ -309,9 +309,12 @@ namespace Tinja.Core.DynamicProxy.Generators
         /// </summary>
         /// <param name="memberInfo"></param>
         /// <returns></returns>
-        protected static string GetMemberIdentifier(MemberInfo memberInfo)
+        protected static string GetIdentifier(MemberInfo memberInfo)
         {
-            return "__proxy__member__" + memberInfo.Name + "_" + memberInfo.GetHashCode();
+            return "__proxy__" +
+                   memberInfo.Name + "_" +
+                   memberInfo.Module.ModuleVersionId.ToString().Replace("-", "_") +
+                   memberInfo.MetadataToken;
         }
     }
 }
