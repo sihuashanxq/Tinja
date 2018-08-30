@@ -7,7 +7,7 @@ namespace Tinja.Core.Injection
     public class InjectAttribute : Attribute
     {
         /// <summary>
-        ///if true, throw <see cref="ServicePropertyRequiredException"/> when resolve property depenency failed!
+        ///if true, throw <see cref="ResolveRequiredPropertyFailedException"/> when resolve property depenency failed!
         /// </summary>
         public bool Requrired { get; set; }
     }

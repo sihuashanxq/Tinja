@@ -7,8 +7,11 @@ namespace Tinja.Core.Injection.Dependencies
     {
         public Type ServiceType { get; }
 
-        public CallCircularException(Type serviceType, string message) : base(message)
+        public CallDependElementScope CallScope { get; }
+
+        public CallCircularException(Type serviceType, CallDependElementScope callScope, string message) : base(message)
         {
+            CallScope = callScope;
             ServiceType = serviceType;
         }
     }

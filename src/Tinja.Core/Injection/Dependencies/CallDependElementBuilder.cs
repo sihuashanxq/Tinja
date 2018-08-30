@@ -156,9 +156,14 @@ namespace Tinja.Core.Injection.Dependencies
                     continue;
                 }
 
-                if (!SetPropertyElement(propertyInfo, properties) && injectAttribute.Requrired)
+                if (SetPropertyElement(propertyInfo, properties))
                 {
-                    throw new ServicePropertyRequiredException(element.ImplementionType, propertyInfo);
+                    continue;
+                }
+
+                if (injectAttribute.Requrired)
+                {
+                    throw new ResolveRequiredPropertyFailedException(element.ImplementionType, CallScope.Clone(), propertyInfo);
                 }
             }
 
@@ -233,7 +238,7 @@ namespace Tinja.Core.Injection.Dependencies
         {
             if (entry is ServiceTypeEntry typeEntry && CallScope.Contains(typeEntry.ImplementationType))
             {
-                throw new CallCircularException(typeEntry.ImplementationType, $"type:{typeEntry.ImplementationType.FullName} exists circular dependencies!");
+                throw new CallCircularException(typeEntry.ImplementationType, CallScope.Clone(), $"type:{typeEntry.ImplementationType.FullName} exists circular dependencies!");
             }
         }
     }
