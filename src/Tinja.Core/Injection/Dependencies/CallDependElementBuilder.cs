@@ -47,7 +47,7 @@ namespace Tinja.Core.Injection.Dependencies
                     return BuildDelegateElement(delegateEntry);
 
                 case ServiceEnumerableEntry enumerableEntry:
-                    return BuildManyElement(enumerableEntry);
+                    return BuildEnumerableElement(enumerableEntry);
 
                 case ServiceTypeEntry typeEntry:
                     using (CallScope.Begin(typeEntry.ImplementationType))
@@ -82,19 +82,17 @@ namespace Tinja.Core.Injection.Dependencies
             };
         }
 
-        protected virtual CallDependElement BuildManyElement(ServiceEnumerableEntry entry)
+        protected virtual CallDependElement BuildEnumerableElement(ServiceEnumerableEntry entry)
         {
             var items = new List<CallDependElement>();
 
             foreach (var item in entry.Items)
             {
                 var element = BuildElement(item);
-                if (element == null)
+                if (element != null)
                 {
-                    continue;
+                    items.Add(element);
                 }
-
-                items.Add(element);
             }
 
             return new EnumerableCallDependElement()
@@ -130,7 +128,7 @@ namespace Tinja.Core.Injection.Dependencies
                 });
             }
 
-            return null;
+            throw new InvalidOperationException($"Cannot match a valid constructor for type:{entry.ImplementationType.FullName}!");
         }
 
         protected TypeCallDependElement SetPropertyElements(TypeCallDependElement element)
@@ -141,38 +139,37 @@ namespace Tinja.Core.Injection.Dependencies
             }
 
             var properties = new Dictionary<PropertyInfo, CallDependElement>();
-            var propertyInfos = element.ImplementionType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var propertyInfos = element
+                .ImplementionType
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(item => item.CanWrite && item.CanRead)
+                .Where(item => item.GetCustomAttribute<InjectAttribute>() != null);
 
             foreach (var propertyInfo in propertyInfos)
             {
-                if (!propertyInfo.CanWrite || !propertyInfo.CanRead)
+                try
                 {
-                    continue;
+                    SetPropertyElement(propertyInfo, properties);
                 }
-
-                var injectAttribute = propertyInfo.GetCustomAttribute<InjectAttribute>();
-                if (injectAttribute == null)
+                catch (CallCircularException)
                 {
-                    continue;
+                    throw;
                 }
-
-                if (SetPropertyElement(propertyInfo, properties))
+                catch
                 {
-                    continue;
-                }
-
-                if (injectAttribute.Requrired)
-                {
-                    throw new ResolveRequiredPropertyFailedException(element.ImplementionType, CallScope.Clone(), propertyInfo);
+                    //skip error
                 }
             }
 
-            element.Properties = properties;
+            if (properties.Count != 0)
+            {
+                element.Properties = properties;
+            }
 
             return element;
         }
 
-        protected bool SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
+        protected void SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
         {
             if (propertyInfo == null)
             {
@@ -187,20 +184,20 @@ namespace Tinja.Core.Injection.Dependencies
             var entry = ServiceEntryFactory.CreateEntry(propertyInfo.PropertyType);
             if (entry == null)
             {
-                return false;
+                return;
             }
 
-            CheckCircularDependency(entry);
+            if (entry is ServiceTypeEntry typeEntry)
+            {
+                CheckCircularDependency(typeEntry);
+            }
 
             var element = BuildElement(entry);
-            if (element == null)
+            if (element != null)
             {
-                return false;
+                properties[propertyInfo] = element;
+                return;
             }
-
-            properties[propertyInfo] = element;
-
-            return true;
         }
 
         protected bool SetParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
@@ -221,7 +218,10 @@ namespace Tinja.Core.Injection.Dependencies
                 return false;
             }
 
-            CheckCircularDependency(entry);
+            if (entry is ServiceTypeEntry typeEntry)
+            {
+                CheckCircularDependency(typeEntry);
+            }
 
             var element = BuildElement(entry);
             if (element == null)
@@ -234,9 +234,9 @@ namespace Tinja.Core.Injection.Dependencies
             return true;
         }
 
-        protected void CheckCircularDependency(ServiceEntry entry)
+        protected void CheckCircularDependency(ServiceTypeEntry typeEntry)
         {
-            if (entry is ServiceTypeEntry typeEntry && CallScope.Contains(typeEntry.ImplementationType))
+            if (CallScope.Contains(typeEntry.ImplementationType))
             {
                 throw new CallCircularException(typeEntry.ImplementationType, CallScope.Clone(), $"type:{typeEntry.ImplementationType.FullName} exists circular dependencies!");
             }

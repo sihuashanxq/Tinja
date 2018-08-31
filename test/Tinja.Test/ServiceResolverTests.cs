@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Xunit;
 using System.Linq;
 using System.Threading.Tasks;
@@ -304,13 +305,11 @@ namespace Tinja.Test
 
             var genericService = resolver.ResolveService<IGenericService<ITransientServiceB>>();
             var genericService2 = resolver.ResolveService<IGenericService2<ITransientServiceB>>();
-            var genericService3 = resolver.ResolveService<IGenericService<ITransientServiceA>>();
 
             Assert.NotNull(genericService);
             Assert.NotNull(genericService2);
             Assert.NotNull(genericService.Service);
-
-            Assert.Null(genericService3);
+            Assert.Throws<InvalidOperationException>(()=> resolver.ResolveService<IGenericService<ITransientServiceA>>());
         }
 
         [Fact]

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection
@@ -54,17 +55,24 @@ namespace Tinja.Core.Injection
 
             if (descriptors.Length == 0) return;
 
-            var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.ResolveService(typeof(IProxyTypeFactory));
-            if (proxyTypeFactory != null)
+            try
             {
-                foreach (var item in descriptors)
+                var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.ResolveService(typeof(IProxyTypeFactory));
+                if (proxyTypeFactory != null)
                 {
-                    var proxyImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
-                    if (proxyImplementationType != null)
+                    foreach (var item in descriptors)
                     {
-                        item.ImplementationType = proxyImplementationType;
+                        var proxyImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
+                        if (proxyImplementationType != null)
+                        {
+                            item.ImplementationType = proxyImplementationType;
+                        }
                     }
                 }
+            }
+            catch
+            {
+                //skip error
             }
 
             foreach (var item in descriptors)

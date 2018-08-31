@@ -270,7 +270,7 @@ namespace Tinja.Core.Injection.Activations
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
                 var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
-
+                
                 return (r, s) => service;
             }
 
