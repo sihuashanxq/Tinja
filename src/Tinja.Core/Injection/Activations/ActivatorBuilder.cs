@@ -85,6 +85,11 @@ namespace Tinja.Core.Injection.Activations
             return CaptureServiceLife(memberInit, element);
         }
 
+        protected override Expression VisitConstant(ConstantCallDependElement element)
+        {
+            return Expression.Constant(element.Constant);
+        }
+
         protected override Expression VisitInstance(InstanceCallDependElement element)
         {
             if (element == null)
@@ -270,7 +275,7 @@ namespace Tinja.Core.Injection.Activations
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
                 var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
-                
+
                 return (r, s) => service;
             }
 

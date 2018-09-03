@@ -16,7 +16,10 @@
             return element.Accept(this);
         }
 
+
         protected internal abstract TVisitResult VisitType(TypeCallDependElement element);
+
+        protected internal abstract TVisitResult VisitConstant(ConstantCallDependElement element);
 
         protected internal abstract TVisitResult VisitInstance(InstanceCallDependElement element);
 

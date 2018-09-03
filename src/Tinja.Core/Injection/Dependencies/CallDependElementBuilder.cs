@@ -128,8 +128,57 @@ namespace Tinja.Core.Injection.Dependencies
                 });
             }
 
+            return BuildTypeElementWithDefaultValue(entry);
+        }
+
+        protected virtual CallDependElement BuildTypeElementWithDefaultValue(ServiceTypeEntry entry)
+        {
+            var parameters = new Dictionary<ParameterInfo, CallDependElement>();
+
+            foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+            {
+                foreach (var parameterInfo in item.GetParameters())
+                {
+                    if (SetParameterElement(parameterInfo, parameters))
+                    {
+                        continue;
+                    }
+
+                    if (parameterInfo.HasDefaultValue)
+                    {
+                        parameters[parameterInfo] = new ConstantCallDependElement()
+                        {
+                            ServiceCacheId = 0, //no cache
+                            Constant = parameterInfo.DefaultValue,
+                            ServiceType = parameterInfo.ParameterType,
+                        };
+
+                        continue;
+                    }
+
+                    parameters.Clear();
+                    break;
+                }
+
+                if (parameters.Count == 0)
+                {
+                    continue;
+                }
+
+                return SetPropertyElements(new TypeCallDependElement()
+                {
+                    Parameters = parameters,
+                    ServiceCacheId = entry.ServiceCacheId,
+                    LifeStyle = entry.LifeStyle,
+                    ServiceType = entry.ServiceType,
+                    ImplementionType = entry.ImplementationType,
+                    ConstructorInfo = item
+                });
+            }
+
             throw new InvalidOperationException($"Cannot match a valid constructor for type:{entry.ImplementationType.FullName}!");
         }
+
 
         protected TypeCallDependElement SetPropertyElements(TypeCallDependElement element)
         {
@@ -196,7 +245,6 @@ namespace Tinja.Core.Injection.Dependencies
             if (element != null)
             {
                 properties[propertyInfo] = element;
-                return;
             }
         }
 
