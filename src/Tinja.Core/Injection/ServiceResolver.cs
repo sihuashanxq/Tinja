@@ -1,4 +1,5 @@
 ﻿using System;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Activations;
 using Tinja.Abstractions.Injection.Dependencies;
@@ -43,8 +44,14 @@ namespace Tinja.Core.Injection
                 throw new NullReferenceException(nameof(serviceResolver));
             }
 
+            var scope = serviceResolver.ResolveService<IServiceLifeScope>();
+            if (scope == null)
+            {
+                throw new NullReferenceException(nameof(scope));
+            }
+
             Provider = serviceResolver.Provider;
-            Scope = (IServiceLifeScope)serviceResolver.Scope.Factory.CreateCapturedService(resolver => new ServiceLifeScope(this, serviceResolver.Scope));
+            Scope = (IServiceLifeScope)scope.Factory.CreateCapturedService((r, s) => new ServiceLifeScope(this, scope));
         }
 
         public object ResolveService(Type serviceType)

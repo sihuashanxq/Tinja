@@ -27,6 +27,7 @@ namespace Tinja.Extensions.DependencyInjection
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         private void Dispose(bool dispoing)

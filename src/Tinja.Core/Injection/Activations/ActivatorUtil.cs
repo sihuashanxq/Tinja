@@ -4,9 +4,9 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection.Activations
 {
-    internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, object> factory);
+    internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, IServiceLifeScope, object> factory);
 
-    internal delegate object CreateScopedServiceDelegate(int serviceCacheId, IServiceLifeScope scope, Func<IServiceResolver, object> factory);
+    internal delegate object CreateScopedServiceDelegate(int serviceCacheId, IServiceLifeScope scope, Func<IServiceResolver, IServiceLifeScope, object> factory);
 
     internal static class ActivatorUtil
     {

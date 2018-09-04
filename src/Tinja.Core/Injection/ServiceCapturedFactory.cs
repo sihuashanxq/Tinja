@@ -12,14 +12,14 @@ namespace Tinja.Core.Injection
             Scope = scope ?? throw new NullReferenceException(nameof(scope));
         }
 
-        public object CreateCapturedService(Func<IServiceResolver, object> factory)
+        public object CreateCapturedService(Func<IServiceResolver, IServiceLifeScope, object> factory)
         {
             if (Scope.IsDisposed)
             {
                 throw new InvalidOperationException($"this scope is disposed!");
             }
 
-            var service = factory(Scope.ServiceResolver);
+            var service = factory(Scope.ServiceResolver, Scope);
             if (service is IDisposable disposable)
             {
                 Scope.DisposableServices.Add(disposable);
@@ -28,7 +28,7 @@ namespace Tinja.Core.Injection
             return service;
         }
 
-        public object CreateCapturedService(int serviceCacheId, Func<IServiceResolver, object> factory)
+        public object CreateCapturedService(int serviceCacheId, Func<IServiceResolver, IServiceLifeScope, object> factory)
         {
             if (Scope.IsDisposed)
             {

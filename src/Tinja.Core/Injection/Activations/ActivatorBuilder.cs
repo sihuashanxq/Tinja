@@ -112,7 +112,7 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
-            return CaptureServiceLife(element.Delegate, element);
+            return CaptureServiceLife((r, s) => element.Delegate(r), element);
         }
 
         protected override Expression VisitEnumerable(EnumerableCallDependElement element)
@@ -196,12 +196,11 @@ namespace Tinja.Core.Injection.Activations
             //optimization
             var lambda = Expression.Lambda(serviceExpression, ParameterResolver, ParameterScope);
             var compiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)lambda.Compile();
-            var valueFactory = (Func<IServiceResolver, object>)(resolver => compiledFunc(resolver, resolver.Scope));
 
-            return CaptureServiceLife(valueFactory, element);
+            return CaptureServiceLife(compiledFunc, element);
         }
 
-        protected Expression CaptureServiceLife(Func<IServiceResolver, object> factory, CallDependElement element)
+        protected Expression CaptureServiceLife(Func<IServiceResolver, IServiceLifeScope, object> factory, CallDependElement element)
         {
             if (factory == null)
             {
@@ -274,12 +273,12 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
+                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
 
                 return (r, s) => service;
             }
 
-            return (r, s) => s.Factory.CreateCapturedService(element.ServiceCacheId, element.Delegate);
+            return (r, s) => s.Factory.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
         }
 
         protected Func<IServiceResolver, IServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)
@@ -289,7 +288,7 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(element));
             }
 
-            ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, r => element.Instance);
+            ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Instance);
 
             return (r, s) => element.Instance;
         }

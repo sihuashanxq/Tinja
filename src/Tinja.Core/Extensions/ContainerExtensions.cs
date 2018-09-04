@@ -55,8 +55,8 @@ namespace Tinja.Core.Extensions
                 throw new NullReferenceException(nameof(factory));
             }
 
-            container.AddScoped<IServiceResolver>(resolver => resolver);
-            container.AddScoped<IServiceLifeScope>(resolver => resolver.Scope);
+            container.AddScoped<IServiceResolver>(resolver => null);
+            container.AddScoped<IServiceLifeScope>(resolver => null);
 
             return new ServiceResolver(factory);
         }
