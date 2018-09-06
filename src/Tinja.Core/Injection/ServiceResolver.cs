@@ -1,7 +1,5 @@
 ﻿using System;
-using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Activations;
 using Tinja.Abstractions.Injection.Dependencies;
 using Tinja.Core.Injection.Activations;
 
@@ -10,18 +8,19 @@ namespace Tinja.Core.Injection
     public class ServiceResolver : IServiceResolver
     {
         /// <summary>
-        /// <see cref="IServiceLifeScope"/>
+        /// <see cref="ServiceLifeScope"/>
         /// </summary>
-        public IServiceLifeScope Scope { get; }
+        internal ServiceLifeScope Scope { get; }
 
         /// <summary>
-        /// <see cref="IActivatorProvider"/>
+        /// <see cref="ActivatorProvider"/>
         /// </summary>
-        public IActivatorProvider Provider { get; }
+        internal ActivatorProvider Provider { get; }
 
         /// <summary>
-        /// 创建ServiceResolver:root
+        /// create root service resolver
         /// </summary>
+        /// <param name="factory"></param>
         internal ServiceResolver(ICallDependElementBuilderFactory factory)
         {
             if (factory == null)
@@ -34,24 +33,18 @@ namespace Tinja.Core.Injection
         }
 
         /// <summary>
-        /// 创建ServiceResolver:Scope
+        /// create scoped service resolver
         /// </summary>
         /// <param name="serviceResolver"></param>
-        internal ServiceResolver(IServiceResolver serviceResolver)
+        internal ServiceResolver(ServiceResolver serviceResolver)
         {
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));
             }
 
-            var scope = serviceResolver.ResolveService<IServiceLifeScope>();
-            if (scope == null)
-            {
-                throw new NullReferenceException(nameof(scope));
-            }
-
             Provider = serviceResolver.Provider;
-            Scope = (IServiceLifeScope)scope.Factory.CreateCapturedService((r, s) => new ServiceLifeScope(this, scope));
+            Scope = new ServiceLifeScope(this, serviceResolver.Scope);
         }
 
         public object ResolveService(Type serviceType)

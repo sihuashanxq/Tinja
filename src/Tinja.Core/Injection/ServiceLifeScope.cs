@@ -8,9 +8,7 @@ namespace Tinja.Core.Injection
     {
         internal bool IsDisposed { get; private set; }
 
-        public IServiceLifeScope Root { get; }
-
-        public IServiceCapturedFactory Factory { get; }
+        public ServiceLifeScope Root { get; }
 
         public IServiceResolver ServiceResolver { get; }
 
@@ -18,28 +16,77 @@ namespace Tinja.Core.Injection
 
         protected internal Dictionary<int, object> ResolvedServices { get; }
 
-        public ServiceLifeScope(IServiceResolver serviceResolver, IServiceLifeScope scope)
+        internal ServiceLifeScope(ServiceResolver serviceResolver, ServiceLifeScope root)
         {
-            if (scope == null)
+            if (root == null)
             {
-                throw new NullReferenceException(nameof(scope));
+                throw new NullReferenceException(nameof(root));
             }
 
-            Root = scope.Root ?? scope;
-            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            Root = root.Root ?? root;
+            Root.CaputreDisposable(this);
 
-            Factory = new ServiceCapturedFactory(this);
             ResolvedServices = new Dictionary<int, object>();
             DisposableServices = new List<IDisposable>() { serviceResolver };
+            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
         }
 
-        public ServiceLifeScope(IServiceResolver serviceResolver)
+        internal ServiceLifeScope(ServiceResolver serviceResolver)
         {
             Root = this;
-            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
-            Factory = new ServiceCapturedFactory(this);
+
             ResolvedServices = new Dictionary<int, object>();
             DisposableServices = new List<IDisposable>() { serviceResolver };
+            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+        }
+
+        internal void CaputreDisposable(IDisposable disposable)
+        {
+            if (IsDisposed)
+            {
+                throw new InvalidOperationException($"this scope is disposed!");
+            }
+
+            DisposableServices.Add(disposable);
+        }
+
+        public object CreateCapturedService(Func<IServiceResolver, ServiceLifeScope, object> factory)
+        {
+            if (IsDisposed)
+            {
+                throw new InvalidOperationException($"this scope is disposed!");
+            }
+
+            var service = factory(ServiceResolver, this);
+            if (service is IDisposable disposable)
+            {
+                DisposableServices.Add(disposable);
+            }
+
+            return service;
+        }
+
+        public object CreateCapturedService(int serviceCacheId, Func<IServiceResolver, ServiceLifeScope, object> factory)
+        {
+            if (IsDisposed)
+            {
+                throw new InvalidOperationException($"this scope is disposed!");
+            }
+
+            if (ResolvedServices.TryGetValue(serviceCacheId, out var service))
+            {
+                return service;
+            }
+
+            lock (ResolvedServices)
+            {
+                if (ResolvedServices.TryGetValue(serviceCacheId, out service))
+                {
+                    return service;
+                }
+
+                return ResolvedServices[serviceCacheId] = CreateCapturedService(factory);
+            }
         }
 
         ~ServiceLifeScope()

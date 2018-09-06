@@ -3,25 +3,24 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Activations;
 using Tinja.Abstractions.Injection.Dependencies.Elements;
 
 namespace Tinja.Core.Injection.Activations
 {
-    public class ActivatorBuilder : CallDependElementVisitor<Expression>, IActivatorBuilder
+    public class ActivatorBuilder : CallDependElementVisitor<Expression>
     {
-        internal IServiceLifeScope ServiceRootScope { get; }
+        internal ServiceLifeScope ServiceRootScope { get; }
 
-        internal static ParameterExpression ParameterScope = Expression.Parameter(typeof(IServiceLifeScope));
+        internal static ParameterExpression ParameterScope = Expression.Parameter(typeof(ServiceLifeScope));
 
         internal static ParameterExpression ParameterResolver = Expression.Parameter(typeof(IServiceResolver));
 
-        public ActivatorBuilder(IServiceLifeScope serviceScope)
+        internal ActivatorBuilder(ServiceLifeScope serviceScope)
         {
             ServiceRootScope = serviceScope ?? throw new NullReferenceException(nameof(serviceScope));
         }
 
-        public virtual Func<IServiceResolver, IServiceLifeScope, object> Build(CallDependElement element)
+        internal virtual Func<IServiceResolver, ServiceLifeScope, object> Build(CallDependElement element)
         {
             if (element == null)
             {
@@ -195,12 +194,12 @@ namespace Tinja.Core.Injection.Activations
 
             //optimization
             var lambda = Expression.Lambda(serviceExpression, ParameterResolver, ParameterScope);
-            var compiledFunc = (Func<IServiceResolver, IServiceLifeScope, object>)lambda.Compile();
+            var compiledFunc = (Func<IServiceResolver, ServiceLifeScope, object>)lambda.Compile();
 
             return CaptureServiceLife(compiledFunc, element);
         }
 
-        protected Expression CaptureServiceLife(Func<IServiceResolver, IServiceLifeScope, object> factory, CallDependElement element)
+        internal Expression CaptureServiceLife(Func<IServiceResolver, ServiceLifeScope, object> factory, CallDependElement element)
         {
             if (factory == null)
             {
@@ -224,9 +223,7 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, factory);
-
-                return Expression.Constant(service);
+                return Expression.Constant(ServiceRootScope.CreateCapturedService(element.ServiceCacheId, factory));
             }
 
             if (element.LifeStyle == ServiceLifeStyle.Transient)
@@ -237,7 +234,7 @@ namespace Tinja.Core.Injection.Activations
             return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceCacheId), ParameterScope, Expression.Constant(factory));
         }
 
-        protected Func<IServiceResolver, IServiceLifeScope, object> BuildExpressionFactory(CallDependElement element)
+        internal Func<IServiceResolver, ServiceLifeScope, object> BuildExpressionFactory(CallDependElement element)
         {
             if (element == null)
             {
@@ -250,11 +247,11 @@ namespace Tinja.Core.Injection.Activations
                 throw new NullReferenceException(nameof(lambdaBody));
             }
 
-            return (Func<IServiceResolver, IServiceLifeScope, object>)
+            return (Func<IServiceResolver, ServiceLifeScope, object>)
                 Expression.Lambda(lambdaBody, ParameterResolver, ParameterScope).Compile();
         }
 
-        protected Func<IServiceResolver, IServiceLifeScope, object> BuildDelegateFactory(DelegateCallDependElement element)
+        internal Func<IServiceResolver, ServiceLifeScope, object> BuildDelegateFactory(DelegateCallDependElement element)
         {
             if (element == null)
             {
@@ -273,22 +270,22 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                var service = ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
+                var service = ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
 
                 return (r, s) => service;
             }
 
-            return (r, s) => s.Factory.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
+            return (r, s) => s.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
         }
 
-        protected Func<IServiceResolver, IServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)
+        internal Func<IServiceResolver, ServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)
         {
             if (element == null)
             {
                 throw new NullReferenceException(nameof(element));
             }
 
-            ServiceRootScope.Factory.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Instance);
+            ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Instance);
 
             return (r, s) => element.Instance;
         }

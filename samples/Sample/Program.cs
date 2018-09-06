@@ -25,7 +25,7 @@ namespace ConsoleApp
 
             using (var scopeResolver = serviceResolver.CreateScope())
             {
-                var userService = scopeResolver.ResolveService<IUserService>();
+                var userService = scopeResolver.ServiceResolver.ResolveService<IUserService>();
                 if (userService == null)
                 {
                     throw new NullReferenceException(nameof(userService));

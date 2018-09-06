@@ -1,13 +1,13 @@
-﻿using Tinja.Abstractions.Injection;
-using Tinja.Core.Injection;
+﻿using Tinja.Abstractions.Extensions;
+using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Extensions
 {
     public static class ServiceScopeResolverExtensions
     {
-        public static IServiceResolver CreateScope(this IServiceResolver resolver)
+        public static IServiceLifeScope CreateScope(this IServiceResolver resolver)
         {
-            return new ServiceResolver(resolver);
+            return resolver.ResolveServiceRequired<IServiceLifeScopeFactory>().CreateScope();
         }
     }
 }

@@ -2,7 +2,6 @@
 using System;
 using Tinja.Abstractions;
 using Tinja.Abstractions.Extensions;
-using Tinja.Core;
 using Tinja.Core.Extensions;
 
 namespace Tinja.Extensions.DependencyInjection
@@ -12,7 +11,7 @@ namespace Tinja.Extensions.DependencyInjection
         public IServiceProvider CreateServiceProvider(IContainer container)
         {
             return container
-                  .AddScoped(typeof(IServiceProvider), resolver => new ServiceProviderAdapter(resolver))
+                  .AddScoped<IServiceProvider>(r => new ServiceProviderAdapter(r))
                   .BuildServiceResolver()
                   .ResolveService<IServiceProvider>();
         }

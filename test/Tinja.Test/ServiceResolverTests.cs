@@ -97,8 +97,8 @@ namespace Tinja.Test
             var scoped1Resolver = resolver.CreateScope();
             var scoped2Resolver = resolver.CreateScope();
 
-            var serviceA1 = scoped1Resolver.ResolveService<IScopeServiceA>();
-            var serviceA2 = scoped2Resolver.ResolveService<IScopeServiceA>();
+            var serviceA1 = scoped1Resolver.ServiceResolver.ResolveService<IScopeServiceA>();
+            var serviceA2 = scoped2Resolver.ServiceResolver.ResolveService<IScopeServiceA>();
 
             Assert.NotNull(serviceA1);
             Assert.NotNull(serviceA2);
@@ -172,8 +172,8 @@ namespace Tinja.Test
             var scoped1Resolver = resolver.CreateScope();
             var scoped2Resolver = resolver.CreateScope();
 
-            var serviceA1 = scoped1Resolver.ResolveService<ISingletonServiceA>();
-            var serviceA2 = scoped2Resolver.ResolveService<ISingletonServiceA>();
+            var serviceA1 = scoped1Resolver.ServiceResolver.ResolveService<ISingletonServiceA>();
+            var serviceA2 = scoped2Resolver.ServiceResolver.ResolveService<ISingletonServiceA>();
 
             Assert.NotNull(serviceA1);
             Assert.NotNull(serviceA2);
@@ -217,11 +217,11 @@ namespace Tinja.Test
             var scope1 = resolver.CreateScope();
             var scope2 = resolver.CreateScope();
 
-            var service1 = scope1.ResolveService<IFactoryService>();
-            var service2 = scope2.ResolveService<IFactoryService>();
+            var service1 = scope1.ServiceResolver.ResolveService<IFactoryService>();
+            var service2 = scope2.ServiceResolver.ResolveService<IFactoryService>();
 
-            var service3 = scope1.ResolveService<IFactoryService>();
-            var service4 = scope2.ResolveService<IFactoryService>();
+            var service3 = scope1.ServiceResolver.ResolveService<IFactoryService>();
+            var service4 = scope2.ServiceResolver.ResolveService<IFactoryService>();
 
             Assert.NotNull(service1);
             Assert.NotNull(service2);

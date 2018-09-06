@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Extensions;
@@ -71,7 +70,7 @@ namespace TinjaBenchmark.Injection
         [Benchmark]
         public object ResolveThreePropertyDependencySerivice()
         {
-            return _serviceResolver.ResolveService<TransientServiceF>();
+            return _serviceResolver.ResolveService<TransientServiceG>();
         }
 
         [Benchmark]
@@ -115,7 +114,7 @@ namespace TinjaBenchmark.Injection
         public class TransientServiceE
         {
             [Inject]
-            public TransientServiceD PropertyD { get; set; }
+            public TransientServiceA Property { get; set; }
         }
 
         public class TransientServiceF
@@ -124,7 +123,7 @@ namespace TinjaBenchmark.Injection
             public TransientServiceA PropertyA { get; set; }
 
             [Inject]
-            public TransientServiceD PropertyD { get; set; }
+            public TransientServiceA PropertyA1 { get; set; }
         }
 
         public class TransientServiceG
@@ -136,7 +135,7 @@ namespace TinjaBenchmark.Injection
             public TransientServiceA PropertyA1 { get; set; }
 
             [Inject]
-            public TransientServiceD PropertyD { get; set; }
+            public TransientServiceA PropertyA2 { get; set; }
         }
     }
 }

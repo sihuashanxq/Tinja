@@ -31,7 +31,6 @@ namespace Tinja.Core.Extensions
 
             var serviceEntryFactory = new ServiceEntryFactory();
             var configuration = container.BuildConfiguration(configurator);
-
             var serviceResolver = container.BuildServiceResolver(new CallDependElementBuilderFactory(serviceEntryFactory, configuration));
             if (serviceResolver == null)
             {
@@ -43,7 +42,7 @@ namespace Tinja.Core.Extensions
             return serviceResolver;
         }
 
-        internal static IServiceResolver BuildServiceResolver(this IContainer container, ICallDependElementBuilderFactory factory)
+        internal static ServiceResolver BuildServiceResolver(this IContainer container, ICallDependElementBuilderFactory factory)
         {
             if (container == null)
             {
@@ -55,10 +54,13 @@ namespace Tinja.Core.Extensions
                 throw new NullReferenceException(nameof(factory));
             }
 
+            var serviceResolver = new ServiceResolver(factory);
+
             container.AddScoped<IServiceResolver>(resolver => null);
             container.AddScoped<IServiceLifeScope>(resolver => null);
+            container.AddSingleton<IServiceLifeScopeFactory>(new ServiceLifeScopeFactory(serviceResolver));
 
-            return new ServiceResolver(factory);
+            return serviceResolver;
         }
 
         /// <summary>

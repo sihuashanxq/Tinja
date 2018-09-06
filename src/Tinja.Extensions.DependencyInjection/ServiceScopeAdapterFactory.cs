@@ -2,7 +2,6 @@
 using System;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Core;
 using Tinja.Core.Extensions;
 
 namespace Tinja.Extensions.DependencyInjection
@@ -18,7 +17,7 @@ namespace Tinja.Extensions.DependencyInjection
 
         public IServiceScope CreateScope()
         {
-            return new ServiceScopeAdapter(_serviceResolver.CreateScope().ResolveService<IServiceProvider>());
+            return new ServiceScopeAdapter(_serviceResolver.CreateScope().ServiceResolver.ResolveService<IServiceProvider>());
         }
     }
 }

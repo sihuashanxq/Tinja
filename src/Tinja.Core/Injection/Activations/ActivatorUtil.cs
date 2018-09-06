@@ -4,9 +4,9 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection.Activations
 {
-    internal delegate object CreateTransientServiceDelegate(IServiceLifeScope scope, Func<IServiceResolver, IServiceLifeScope, object> factory);
+    internal delegate object CreateTransientServiceDelegate(ServiceLifeScope scope, Func<IServiceResolver, ServiceLifeScope, object> factory);
 
-    internal delegate object CreateScopedServiceDelegate(int serviceCacheId, IServiceLifeScope scope, Func<IServiceResolver, IServiceLifeScope, object> factory);
+    internal delegate object CreateScopedServiceDelegate(int serviceCacheId, ServiceLifeScope scope, Func<IServiceResolver, ServiceLifeScope, object> factory);
 
     internal static class ActivatorUtil
     {
@@ -20,8 +20,8 @@ namespace Tinja.Core.Injection.Activations
 
         static ActivatorUtil()
         {
-            CreateCapturedScopedServiceFunc = (serviceId, scope, factory) => scope.Factory.CreateCapturedService(serviceId, factory);
-            CreateCapturedTransientServiceFunc = (scope, factory) => scope.Factory.CreateCapturedService(factory);
+            CreateCapturedScopedServiceFunc = (serviceId, scope, factory) => scope.CreateCapturedService(serviceId, factory);
+            CreateCapturedTransientServiceFunc = (scope, factory) => scope.CreateCapturedService(factory);
 
             CreateCapturedScopedService = Expression.Constant(CreateCapturedScopedServiceFunc, typeof(CreateScopedServiceDelegate));
             CreateCapturedTransientServie = Expression.Constant(CreateCapturedTransientServiceFunc, typeof(CreateTransientServiceDelegate));
