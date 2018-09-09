@@ -20,7 +20,7 @@ namespace Tinja.Core.Injection.Activations
             ServiceRootScope = serviceScope ?? throw new NullReferenceException(nameof(serviceScope));
         }
 
-        internal virtual Func<IServiceResolver, ServiceLifeScope, object> Build(CallDependElement element)
+        internal Func<IServiceResolver, ServiceLifeScope, object> Build(CallDependElement element)
         {
             if (element == null)
             {
@@ -135,6 +135,11 @@ namespace Tinja.Core.Injection.Activations
             }
 
             return Expression.NewArrayInit(element.ItemType, items);
+        }
+
+        protected override Expression VisitValueProvider(ValueProviderCallDependElement element)
+        {
+            return Expression.Invoke(Expression.Constant(element.GetValue), ParameterResolver);
         }
 
         protected Expression SetProperties(NewExpression newExpression, TypeCallDependElement element)

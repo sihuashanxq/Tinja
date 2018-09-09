@@ -26,5 +26,7 @@
         protected internal abstract TVisitResult VisitDelegate(DelegateCallDependElement element);
 
         protected internal abstract TVisitResult VisitEnumerable(EnumerableCallDependElement element);
+
+        protected internal abstract TVisitResult VisitValueProvider(ValueProviderCallDependElement element);
     }
 }

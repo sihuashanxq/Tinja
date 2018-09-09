@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
-using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection

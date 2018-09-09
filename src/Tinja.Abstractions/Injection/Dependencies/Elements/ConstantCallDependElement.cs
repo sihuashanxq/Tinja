@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Tinja.Abstractions.Injection.Dependencies.Elements
+﻿namespace Tinja.Abstractions.Injection.Dependencies.Elements
 {
     /// <inheritdoc />
     /// <summary>
