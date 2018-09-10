@@ -4,7 +4,7 @@ using Tinja.Abstractions.DynamicProxy;
 
 namespace Tinja.Core.DynamicProxy
 {
-    public class DelegateInterceptor : IInterceptor
+    internal class DelegateInterceptor : IInterceptor
     {
         public Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> Handler { get; }
 

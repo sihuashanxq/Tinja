@@ -27,7 +27,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         internal Dictionary<Type, InterceptorEntry> Interceptors { get; set; }
 
-        internal Dictionary<MethodInfo, IMethodInvocationInvoker> MethodInvokers { get; set; }
+        internal Dictionary<MethodInfo, IMethodInvocationInvoker> InvokerCaches { get; set; }
 
         public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
@@ -43,18 +43,16 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             lock (this)
             {
-                if (_initialized)
+                if (!_initialized)
                 {
-                    return;
+                    _initialized = true;
+                    Interceptors = new Dictionary<Type, InterceptorEntry>();
+                    InvokerCaches = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
+                    InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
+                    MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
+                    InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
+                    InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
                 }
-
-                _initialized = true;
-                Interceptors = new Dictionary<Type, InterceptorEntry>();
-                MethodInvokers = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
-                InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
-                MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
-                InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
-                InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
             }
         }
 
@@ -62,60 +60,60 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             Prepare();
 
-            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateMethodCallStack<TResult>(invocation.Method));
+            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateMethodCallStack<TResult>(invocation.Method));
         }
 
         public IMethodInvocationInvoker BuildTaskAsyncInvoker(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack(invocation.Method));
+            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack(invocation.Method));
         }
 
         public IMethodInvocationInvoker BuildTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack<TResult>(invocation.Method));
         }
 
         public IMethodInvocationInvoker BuildValueTaskAsyncInvoker(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack(invocation.Method));
+            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack(invocation.Method));
         }
 
         public IMethodInvocationInvoker BuildValueTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (MethodInvokers.TryGetValue(invocation.Method, out var invoker))
+            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return MethodInvokers[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack<TResult>(invocation.Method));
         }
 
         private IMethodInvocationInvoker BuildInvoker(IMethodInvocation invocation, Stack<Func<IMethodInvocation, Task>> callStack)

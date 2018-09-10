@@ -11,7 +11,7 @@ using Tinja.Abstractions.Injection.Dependencies.Elements;
 namespace Tinja.Core.Injection.Dependencies
 {
     /// <inheritdoc />
-    public class CallDependElementBuilder : ICallDependElementBuilder
+    internal class CallDependElementBuilder : ICallDependElementBuilder
     {
         protected CallDependElementScope CallScope { get; set; }
 
@@ -34,26 +34,26 @@ namespace Tinja.Core.Injection.Dependencies
                 return null;
             }
 
-            return BuildElement(entry);
+            return Build(entry);
         }
 
-        protected virtual CallDependElement BuildElement(ServiceEntry entry)
+        protected virtual CallDependElement Build(ServiceEntry entry)
         {
             switch (entry)
             {
                 case ServiceInstanceEntry instanceEntry:
-                    return BuildInstanceElement(instanceEntry);
+                    return BuildInstance(instanceEntry);
 
                 case ServiceDelegateEntry delegateEntry:
-                    return BuildDelegateElement(delegateEntry);
+                    return BuildDelegate(delegateEntry);
 
                 case ServiceEnumerableEntry enumerableEntry:
-                    return BuildEnumerableElement(enumerableEntry);
+                    return BuildEnumerable(enumerableEntry);
 
                 case ServiceTypeEntry typeEntry:
                     using (CallScope.Begin(typeEntry.ImplementationType))
                     {
-                        return BuildTypeElement(typeEntry);
+                        return BuildType(typeEntry);
                     }
 
                 default:
@@ -61,7 +61,7 @@ namespace Tinja.Core.Injection.Dependencies
             }
         }
 
-        protected virtual CallDependElement BuildDelegateElement(ServiceDelegateEntry entry)
+        protected virtual CallDependElement BuildDelegate(ServiceDelegateEntry entry)
         {
             return new DelegateCallDependElement()
             {
@@ -72,7 +72,7 @@ namespace Tinja.Core.Injection.Dependencies
             };
         }
 
-        protected virtual CallDependElement BuildInstanceElement(ServiceInstanceEntry entry)
+        protected virtual CallDependElement BuildInstance(ServiceInstanceEntry entry)
         {
             return new InstanceCallDependElement()
             {
@@ -83,13 +83,13 @@ namespace Tinja.Core.Injection.Dependencies
             };
         }
 
-        protected virtual CallDependElement BuildEnumerableElement(ServiceEnumerableEntry entry)
+        protected virtual CallDependElement BuildEnumerable(ServiceEnumerableEntry entry)
         {
             var items = new List<CallDependElement>();
 
             foreach (var item in entry.Items)
             {
-                var element = BuildElement(item);
+                var element = Build(item);
                 if (element != null)
                 {
                     items.Add(element);
@@ -101,38 +101,39 @@ namespace Tinja.Core.Injection.Dependencies
                 Items = items.ToArray(),
                 ItemType = entry.ItemType,
                 LifeStyle = entry.LifeStyle,
-                ServiceType = entry.ServiceType
+                ServiceType = entry.ServiceType,
+                ServiceCacheId = entry.ServiceCacheId
             };
         }
 
-        protected virtual CallDependElement BuildTypeElement(ServiceTypeEntry entry)
+        protected virtual CallDependElement BuildType(ServiceTypeEntry entry)
         {
             var parameters = new Dictionary<ParameterInfo, CallDependElement>();
 
             foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
             {
                 var parameterInfos = item.GetParameters();
-                if (parameterInfos.Any(parameterInfo => !SetParameterElement(parameterInfo, parameters)))
+                if (parameterInfos.Any(parameterInfo => !SetParameter(parameterInfo, parameters)))
                 {
                     parameters.Clear();
                     continue;
                 }
 
-                return SetPropertyElements(new TypeCallDependElement()
+                return SetProperties(new TypeCallDependElement()
                 {
                     Parameters = parameters,
-                    ServiceCacheId = entry.ServiceCacheId,
                     LifeStyle = entry.LifeStyle,
                     ServiceType = entry.ServiceType,
+                    ServiceCacheId = entry.ServiceCacheId,
                     ImplementionType = entry.ImplementationType,
                     ConstructorInfo = item
                 });
             }
 
-            return BuildTypeElementWithValueProvider(entry);
+            return BuildTypeWithValueProvider(entry);
         }
 
-        protected virtual CallDependElement BuildTypeElementWithValueProvider(ServiceTypeEntry entry)
+        protected virtual CallDependElement BuildTypeWithValueProvider(ServiceTypeEntry entry)
         {
             var parameters = new Dictionary<ParameterInfo, CallDependElement>();
 
@@ -140,7 +141,7 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 foreach (var parameterInfo in item.GetParameters())
                 {
-                    if (SetParameterElement(parameterInfo, parameters))
+                    if (SetParameter(parameterInfo, parameters))
                     {
                         continue;
                     }
@@ -154,8 +155,7 @@ namespace Tinja.Core.Injection.Dependencies
 
                     parameters[parameterInfo] = new ValueProviderCallDependElement()
                     {
-                        //no cache
-                        ServiceCacheId = 0,
+                        LifeStyle = ServiceLifeStyle.Transient,
                         GetValue = r => valueProvider.GetValue(r, item, parameterInfo),
                         ServiceType = parameterInfo.ParameterType,
                     };
@@ -166,7 +166,7 @@ namespace Tinja.Core.Injection.Dependencies
                     continue;
                 }
 
-                return SetPropertyElements(new TypeCallDependElement()
+                return SetProperties(new TypeCallDependElement()
                 {
                     Parameters = parameters,
                     ServiceCacheId = entry.ServiceCacheId,
@@ -177,10 +177,10 @@ namespace Tinja.Core.Injection.Dependencies
                 });
             }
 
-            return BuildTypeElementWithDefaultValue(entry);
+            return BuildTypeWithDefaultValue(entry);
         }
 
-        protected virtual CallDependElement BuildTypeElementWithDefaultValue(ServiceTypeEntry entry)
+        protected virtual CallDependElement BuildTypeWithDefaultValue(ServiceTypeEntry entry)
         {
             var parameters = new Dictionary<ParameterInfo, CallDependElement>();
 
@@ -188,7 +188,7 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 foreach (var parameterInfo in item.GetParameters())
                 {
-                    if (SetParameterElement(parameterInfo, parameters))
+                    if (SetParameter(parameterInfo, parameters))
                     {
                         continue;
                     }
@@ -201,9 +201,8 @@ namespace Tinja.Core.Injection.Dependencies
 
                     parameters[parameterInfo] = new ConstantCallDependElement()
                     {
-                        //no cache
-                        ServiceCacheId = 0,
                         Constant = parameterInfo.DefaultValue,
+                        LifeStyle = ServiceLifeStyle.Transient,
                         ServiceType = parameterInfo.ParameterType,
                     };
                 }
@@ -213,7 +212,7 @@ namespace Tinja.Core.Injection.Dependencies
                     continue;
                 }
 
-                return SetPropertyElements(new TypeCallDependElement()
+                return SetProperties(new TypeCallDependElement()
                 {
                     Parameters = parameters,
                     ServiceCacheId = entry.ServiceCacheId,
@@ -227,7 +226,7 @@ namespace Tinja.Core.Injection.Dependencies
             throw new InvalidOperationException($"Cannot match a valid constructor for type:{entry.ImplementationType.FullName}!");
         }
 
-        protected TypeCallDependElement SetPropertyElements(TypeCallDependElement element)
+        protected CallDependElement SetProperties(TypeCallDependElement element)
         {
             if (element == null || !Configuration.EnablePropertyInjection)
             {
@@ -245,7 +244,7 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 try
                 {
-                    SetPropertyElement(propertyInfo, properties);
+                    SetProperty(propertyInfo, properties);
                 }
                 catch (CallCircularException)
                 {
@@ -265,7 +264,7 @@ namespace Tinja.Core.Injection.Dependencies
             return element;
         }
 
-        protected void SetPropertyElement(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
+        protected void SetProperty(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
         {
             if (propertyInfo == null)
             {
@@ -288,14 +287,14 @@ namespace Tinja.Core.Injection.Dependencies
                 CheckCircularDependency(typeEntry);
             }
 
-            var element = BuildElement(entry);
+            var element = Build(entry);
             if (element != null)
             {
                 properties[propertyInfo] = element;
             }
         }
 
-        protected bool SetParameterElement(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
+        protected bool SetParameter(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
         {
             if (parameterInfo == null)
             {
@@ -318,7 +317,7 @@ namespace Tinja.Core.Injection.Dependencies
                 CheckCircularDependency(typeEntry);
             }
 
-            var element = BuildElement(entry);
+            var element = Build(entry);
             if (element == null)
             {
                 return false;

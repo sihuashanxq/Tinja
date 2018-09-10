@@ -24,10 +24,10 @@ namespace Tinja.Core.DynamicProxy.Generators
         internal static readonly ConstructorInfo NewMethodInvocation = typeof(MethodInvocation).GetConstructor(new[]
         {
             typeof(object),
+            typeof(MemberInfo),
             typeof(MethodInfo),
             typeof(Type[]),
-            typeof(object[]),
-            typeof(MemberInfo)
+            typeof(object[])
         });
 
         internal static readonly MethodInfo MethodInvocationExecute = typeof(MethodInvocationExecutor)

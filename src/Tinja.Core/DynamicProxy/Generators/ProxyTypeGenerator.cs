@@ -134,7 +134,7 @@ namespace Tinja.Core.DynamicProxy.Generators
 
         #region Method
 
-        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, MemberInfo targetMember)
+        protected virtual MethodBuilder BuildMethodBody(MethodInfo methodInfo, MemberInfo target)
         {
             var methodBuilder = TypeBuilder.DefineMethod(methodInfo);
             var ilGen = methodBuilder.GetILGenerator();
@@ -154,7 +154,7 @@ namespace Tinja.Core.DynamicProxy.Generators
             //new Parameters[]
             ilGen.LoadVariable(arguments);
 
-            ilGen.LoadStaticField(GetField(targetMember));
+            ilGen.LoadStaticField(GetField(target));
             ilGen.New(GeneratorUtils.NewMethodInvocation);
             ilGen.SetVariableValue(methodInvocation);
 
