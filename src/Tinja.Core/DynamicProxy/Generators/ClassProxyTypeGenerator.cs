@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Core.DynamicProxy.Generators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Generators
 {
+    [DisableProxy]
     public class ClassProxyTypeGenerator : ProxyTypeGenerator
     {
         public ClassProxyTypeGenerator(Type classType, IEnumerable<MemberMetadata> members)

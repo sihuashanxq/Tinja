@@ -5,6 +5,7 @@ using Tinja.Abstractions.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
+    [DisableProxy]
     public class MethodInvocationInvoker : IMethodInvocationInvoker
     {
         private readonly Func<IMethodInvocation, Task> _invoker;

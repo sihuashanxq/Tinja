@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.DynamicProxy.Registrations;
 using Tinja.Core.DynamicProxy.Registrations;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
+    [DisableProxy]
     public class ConfiguredInterceptorMetadataCollector : IInterceptorMetadataCollector
     {
         internal List<InterceptorTypeRegistration> Types { get; }

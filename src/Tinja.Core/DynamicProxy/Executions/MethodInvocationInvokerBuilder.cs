@@ -11,6 +11,7 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
+    [DisableProxy]
     public class MethodInvocationInvokerBuilder
     {
         private bool _initialized;

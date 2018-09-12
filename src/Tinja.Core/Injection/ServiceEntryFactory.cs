@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Tinja.Abstractions.DynamicProxy;
+using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection
@@ -18,7 +19,7 @@ namespace Tinja.Core.Injection
             _descriptors = new Dictionary<Type, List<ServiceDescriptor>>();
         }
 
-        internal virtual void Populate(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        internal void Populate(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
         {
             if (components == null)
             {
@@ -34,56 +35,50 @@ namespace Tinja.Core.Injection
             PopulateEnd(serviceResolver);
         }
 
-        protected virtual void PopulateBegin(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        protected void PopulateBegin(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
         {
             foreach (var item in components)
             {
-                _descriptors[item.Key] = item
-                    .Value
-                    .Select(component => new ServiceDescriptor(component))
-                    .ToList();
+                _descriptors[item.Key] = item.Value.Select(component => new ServiceDescriptor(component)).ToList();
             }
         }
 
-        protected virtual void PopulateEnd(IServiceResolver serviceResolver)
+        protected void PopulateEnd(IServiceResolver serviceResolver)
         {
-            var descriptors = _descriptors
-                .SelectMany(item => item.Value)
-                .Where(item => item.ImplementationType != null)
-                .ToArray();
-
-            if (descriptors.Length == 0) return;
-
-            try
+            var descriptors = _descriptors.SelectMany(item => item.Value).Where(item => item.ImplementationType != null).ToArray();
+            if (descriptors.Length != 0)
             {
-                var proxyTypeFactory = (IProxyTypeFactory)serviceResolver.ResolveService(typeof(IProxyTypeFactory));
-                if (proxyTypeFactory != null)
-                {
-                    foreach (var item in descriptors)
-                    {
-                        var proxyImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
-                        if (proxyImplementationType != null)
-                        {
-                            item.ImplementationType = proxyImplementationType;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                //skip error
+                ReplaceProxyImplementationType(serviceResolver, descriptors);
             }
 
             foreach (var item in descriptors)
             {
                 if (item.ImplementationType.IsAbstract)
                 {
-                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Abstract when have not Interceptors!");
+                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Abstract when have any Interceptors!");
                 }
 
                 if (item.ImplementationType.IsInterface)
                 {
-                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Interface when have not Interceptors!");
+                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Interface when have any Interceptors!");
+                }
+            }
+        }
+
+        private static void ReplaceProxyImplementationType(IServiceResolver serviceResolver, ServiceDescriptor[] descriptors)
+        {
+            var proxyTypeFactory = serviceResolver.ResolveService<IProxyTypeFactory>();
+            if (proxyTypeFactory == null)
+            {
+                return;
+            }
+
+            foreach (var item in descriptors)
+            {
+                var proxyImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
+                if (proxyImplementationType != null)
+                {
+                    item.ImplementationType = proxyImplementationType;
                 }
             }
         }
@@ -265,7 +260,7 @@ namespace Tinja.Core.Injection
         {
             if (lifeStyle == ServiceLifeStyle.Transient)
             {
-                return -1;
+                return 0;
             }
 
             if (serviceKey == null)

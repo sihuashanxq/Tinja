@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
+    [DisableProxy]
     public class DataAnnotationsInterceptorMetadataCollector : IInterceptorMetadataCollector
     {
         protected ConcurrentDictionary<MemberInfo, IEnumerable<InterceptorMetadata>> Cache { get; }

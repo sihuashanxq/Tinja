@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
+    [DisableProxy]
     public class MemberMetadataProvider : IMemberMetadataProvider
     {
         private static readonly IMemberMetadataCollector ClassTypeMemberCollector = new ClassMemberMetadataCollector();

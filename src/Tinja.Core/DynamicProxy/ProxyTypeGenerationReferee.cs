@@ -6,6 +6,7 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 
 namespace Tinja.Core.DynamicProxy
 {
+    [DisableProxy]
     public class ProxyTypeGenerationReferee : IProxyTypeGenerationReferee
     {
         private readonly IInterceptorMetadataProvider _provider;

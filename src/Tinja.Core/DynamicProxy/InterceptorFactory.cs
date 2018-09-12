@@ -5,6 +5,7 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy
 {
+    [DisableProxy]
     public class InterceptorFactory : IInterceptorFactory
     {
         private readonly IServiceResolver _serviceResolver;

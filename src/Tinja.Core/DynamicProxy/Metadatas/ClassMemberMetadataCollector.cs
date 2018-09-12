@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
+    [DisableProxy]
     public class ClassMemberMetadataCollector : MemberMetadataCollector
     {
         /// <inheritdoc />

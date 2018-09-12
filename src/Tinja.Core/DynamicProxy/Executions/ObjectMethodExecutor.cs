@@ -8,21 +8,37 @@ using Tinja.Core.DynamicProxy.Generators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
+    /// <summary>
+    /// the default implementation of <see cref="IObjectMethodExecutor"/>
+    /// </summary>
     internal class ObjectMethodExecutor : IObjectMethodExecutor
     {
-        protected Delegate MethodExecutor { get; }
+        /// <summary>
+        /// the target method to be wrapped
+        /// </summary>
+        internal MethodInfo MethodInfo { get; }
 
-        public MethodInfo MethodInfo { get; }
+        /// <summary>
+        /// a <see cref="Delegate"/> used to invoke the wrapped method.
+        /// </summary>
+        internal Delegate MethodExecutor { get; }
 
-        public ObjectMethodExecutor(MethodInfo methodInfo)
+        internal ObjectMethodExecutor(MethodInfo methodInfo)
         {
             MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
             MethodExecutor = CreateMethodExecutor(MethodInfo);
         }
 
-        public TResult Execute<TResult>(object instance, object[] parameterValues)
+        /// <summary>
+        /// invoke method by the given instance and arguments
+        /// </summary>
+        /// <typeparam name="TResult">the type of return value</typeparam>
+        /// <param name="instance"> an instance of type defined the method</param>
+        /// <param name="arguments">call arguments</param>
+        /// <returns></returns>
+        public TResult Execute<TResult>(object instance, object[] arguments)
         {
-            return ((Func<object, object[], TResult>)MethodExecutor)(instance, parameterValues);
+            return ((Func<object, object[], TResult>)MethodExecutor)(instance, arguments);
         }
 
         internal static Delegate CreateMethodExecutor(MethodInfo methodInfo)

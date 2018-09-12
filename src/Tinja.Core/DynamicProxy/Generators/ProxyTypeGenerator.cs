@@ -11,6 +11,7 @@ using Tinja.Core.DynamicProxy.Generators.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Generators
 {
+    [DisableProxy]
     public abstract class ProxyTypeGenerator
     {
         protected Type TargetType { get; }

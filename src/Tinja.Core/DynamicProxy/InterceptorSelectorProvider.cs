@@ -5,6 +5,7 @@ using Tinja.Abstractions.DynamicProxy;
 
 namespace Tinja.Core.DynamicProxy
 {
+    [DisableProxy]
     public class InterceptorSelectorProvider : IInterceptorSelectorProvider
     {
         private readonly IEnumerable<IInterceptorSelector> _selectors;

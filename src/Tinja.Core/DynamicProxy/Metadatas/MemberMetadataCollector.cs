@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Metadatas;
 using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
+    [DisableProxy]
     public abstract class MemberMetadataCollector : IMemberMetadataCollector
     {
         protected const BindingFlags BindingFlag = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;

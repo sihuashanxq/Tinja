@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Executions;
 
 namespace Tinja.Core.DynamicProxy.Executions
 {
+    [DisableProxy]
     public class ObjectMethodExecutorProvider : IObjectMethodExecutorProvider
     {
         private readonly Dictionary<MethodInfo, IObjectMethodExecutor> _executors;
