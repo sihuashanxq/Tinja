@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class ConstructorBuilderExtensions
+    internal static class ConstructorBuilderExtensions
     {
-        public static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameterInfos, int paramterCount)
+        internal static ConstructorBuilder DefineParameters(this ConstructorBuilder builder, ParameterInfo[] parameterInfos, int paramterCount)
         {
             if (builder == null)
             {
@@ -46,7 +46,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return builder;
         }
 
-        public static ConstructorBuilder SetCustomAttributes(this ConstructorBuilder builder, ConstructorInfo constructorInfo)
+        internal static ConstructorBuilder SetCustomAttributes(this ConstructorBuilder builder, ConstructorInfo constructorInfo)
         {
             if (builder == null)
             {

@@ -13,6 +13,7 @@ namespace Tinja.Core.DynamicProxy
     /// <summary>
     /// the default implementation of <see cref="IProxyTypeFactory"/>
     /// </summary>
+    [DisableProxy]
     public class ProxyTypeFactory : IProxyTypeFactory
     {
         private readonly IMemberMetadataProvider _memberMetadataProvider;

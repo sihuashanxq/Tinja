@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class MethodBuilderExtensions
+    internal static class MethodBuilderExtensions
     {
-        public static MethodBuilder DefineGenericParameters(this MethodBuilder builder, MethodInfo methodInfo)
+        internal static MethodBuilder DefineGenericParameters(this MethodBuilder builder, MethodInfo methodInfo)
         {
             if (builder == null)
             {
@@ -47,7 +47,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return builder;
         }
 
-        public static MethodBuilder DefineParameters(this MethodBuilder builder, MethodInfo methodInfo)
+        internal static MethodBuilder DefineParameters(this MethodBuilder builder, MethodInfo methodInfo)
         {
             if (builder == null)
             {
@@ -124,7 +124,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return builder;
         }
 
-        public static MethodBuilder MakeDefaultMethodBody(this MethodBuilder builder, MethodInfo methodInfo)
+        internal static MethodBuilder MakeDefaultMethodBody(this MethodBuilder builder, MethodInfo methodInfo)
         {
             if (builder == null)
             {

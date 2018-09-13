@@ -7,9 +7,9 @@ namespace Tinja.Core.Injection.Activations
 {
     internal class ActivatorProvider
     {
-        private readonly ActivatorBuilder _activatorBuilder;
+        private readonly ActivatorBuilder _builder;
 
-        private readonly ICallDependElementBuilder _callDependElementBuilder;
+        private readonly ICallDependElementBuilderFactory _factory;
 
         private readonly Dictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>> _caches;
 
@@ -17,9 +17,8 @@ namespace Tinja.Core.Injection.Activations
 
         internal ActivatorProvider(ServiceLifeScope scope, ICallDependElementBuilderFactory factory)
         {
-            _activatorBuilder = new ActivatorBuilder(scope.Root);
-            _callDependElementBuilder = factory.CreateBuilder();
-
+            _factory = factory;
+            _builder = new ActivatorBuilder(scope.Root);
             _caches = new Dictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>>();
         }
 
@@ -30,13 +29,13 @@ namespace Tinja.Core.Injection.Activations
                 return item;
             }
 
-            var element = _callDependElementBuilder.Build(serviceType);
+            var element = _factory.CreateBuilder()?.Build(serviceType);
             if (element == null)
             {
                 return _caches[serviceType] = Default;
             }
 
-            return _caches[serviceType] = _activatorBuilder.Build(element) ?? Default;
+            return _caches[serviceType] = _builder.Build(element) ?? Default;
         }
     }
 }

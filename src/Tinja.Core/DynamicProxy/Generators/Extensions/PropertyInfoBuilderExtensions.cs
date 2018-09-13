@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class PropertyInfoBuilderExtensions
+    internal static class PropertyInfoBuilderExtensions
     {
-        public static PropertyBuilder SetCustomAttributes(this PropertyBuilder builder, PropertyInfo propertyInfo)
+        internal static PropertyBuilder SetCustomAttributes(this PropertyBuilder builder, PropertyInfo propertyInfo)
         {
             if (builder == null)
             {

@@ -8,13 +8,13 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
     [DisableProxy]
-    public class InterceptorMetadataProvider : IInterceptorMetadataProvider
+    internal class InterceptorMetadataProvider : IInterceptorMetadataProvider
     {
         private readonly IMemberMetadataProvider _provider;
 
         private readonly IEnumerable<IInterceptorMetadataCollector> _collectors;
 
-        public InterceptorMetadataProvider(IMemberMetadataProvider provider, IEnumerable<IInterceptorMetadataCollector> collectors)
+        internal InterceptorMetadataProvider(IMemberMetadataProvider provider, IEnumerable<IInterceptorMetadataCollector> collectors)
         {
             _provider = provider ?? throw new NullReferenceException(nameof(provider));
             _collectors = collectors ?? throw new NullReferenceException(nameof(collectors));
@@ -22,19 +22,19 @@ namespace Tinja.Core.DynamicProxy.Metadatas
 
         public IEnumerable<InterceptorMetadata> GetInterceptors(MemberInfo memberInfo)
         {
-            var typeMemberMetadatas = _provider.GetMembers(memberInfo.DeclaringType);
-            if (typeMemberMetadatas == null)
+            var members = _provider.GetMembers(memberInfo.DeclaringType);
+            if (members == null)
             {
-                throw new NullReferenceException(nameof(typeMemberMetadatas));
+                throw new NullReferenceException(nameof(members));
             }
             
-            var memberMetadata = typeMemberMetadatas.FirstOrDefault(item => item.Member == memberInfo);
-            if (memberMetadata == null)
+            var metadata = members.FirstOrDefault(item => item.Member == memberInfo);
+            if (metadata == null)
             {
                 return new InterceptorMetadata[0];
             }
 
-            return _collectors.SelectMany(item => item.Collect(memberMetadata));
+            return _collectors.SelectMany(item => item.Collect(metadata));
         }
     }
 }

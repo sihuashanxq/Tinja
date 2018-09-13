@@ -9,7 +9,7 @@ using Tinja.Abstractions.Extensions;
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
     [DisableProxy]
-    public abstract class MemberMetadataCollector : IMemberMetadataCollector
+    internal abstract class MemberMetadataCollector : IMemberMetadataCollector
     {
         protected const BindingFlags BindingFlag = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 

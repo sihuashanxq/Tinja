@@ -7,13 +7,13 @@ using Tinja.Core.DynamicProxy.Registrations;
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
     [DisableProxy]
-    public class ConfiguredInterceptorMetadataCollector : IInterceptorMetadataCollector
+    internal class ConfiguredInterceptorMetadataCollector : IInterceptorMetadataCollector
     {
         internal List<InterceptorTypeRegistration> Types { get; }
 
         internal List<InterceptorDelegateRegistration> Delegates { get; }
 
-        public ConfiguredInterceptorMetadataCollector(IEnumerable<IInterceptorRegistration> registrations)
+        internal ConfiguredInterceptorMetadataCollector(IEnumerable<IInterceptorRegistration> registrations)
         {
             Types = new List<InterceptorTypeRegistration>();
             Delegates = new List<InterceptorDelegateRegistration>();

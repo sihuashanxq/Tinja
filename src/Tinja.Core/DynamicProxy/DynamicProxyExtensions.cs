@@ -64,9 +64,7 @@ namespace Tinja.Core.DynamicProxy
                 container.AddService(item.InterecptorType, item.InterecptorType, item.LifeStyle);
             }
 
-            container.AddSingleton<IInterceptorMetadataCollector>(configuredCollector);
-
-            return container;
+            return container.AddSingleton<IInterceptorMetadataCollector>(configuredCollector);
         }
     }
 }

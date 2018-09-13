@@ -8,7 +8,7 @@ namespace Tinja.Abstractions.Injection.Dependencies.Elements
     /// AddSingleton(typeof(Service),typeof(Service));
     public class TypeCallDependElement : CallDependElement
     {
-        public Type ImplementionType { get; set; }
+        public Type ImplementationType { get; set; }
 
         public ConstructorInfo ConstructorInfo { get; set; }
 

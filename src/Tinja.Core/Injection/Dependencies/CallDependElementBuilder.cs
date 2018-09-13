@@ -51,14 +51,10 @@ namespace Tinja.Core.Injection.Dependencies
                     return BuildEnumerable(enumerableEntry);
 
                 case ServiceTypeEntry typeEntry:
-                    using (CallScope.Begin(typeEntry.ImplementationType))
-                    {
-                        return BuildType(typeEntry);
-                    }
-
-                default:
-                    throw new InvalidOperationException();
+                    return BuildType(typeEntry);
             }
+
+            throw new InvalidOperationException();
         }
 
         protected virtual CallDependElement BuildDelegate(ServiceDelegateEntry entry)
@@ -108,117 +104,121 @@ namespace Tinja.Core.Injection.Dependencies
 
         protected virtual CallDependElement BuildType(ServiceTypeEntry entry)
         {
-            var parameters = new Dictionary<ParameterInfo, CallDependElement>();
-            var callDependElement = BuildTypeWithContainerProvider(entry, parameters) ??
-                                    BuildTypeWithContainerAndAnnotaionProvider(entry, parameters) ??
-                                    BuildTypeWithAnyProvider(entry, parameters);
+            var callParamters = new Dictionary<ParameterInfo, CallDependElement>();
+            var callDependElement = BuildTypeWithContainerProvider(entry, callParamters) ??
+                                    BuildTypeWithContainerAndAnnotaionProvider(entry, callParamters) ??
+                                    BuildTypeWithAnyProvider(entry, callParamters);
 
             if (callDependElement == null)
             {
                 throw new InvalidOperationException($"Cannot match a valid constructor for type:{entry.ImplementationType.FullName}!");
             }
 
+            using (CallScope.Begin(entry.ImplementationType))
+            {
+                SetProperties(callDependElement);
+            }
+
             return callDependElement;
         }
 
-        protected virtual CallDependElement BuildTypeWithAnyProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
+        protected virtual TypeCallDependElement BuildTypeWithAnyProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
         {
-            foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+            using (CallScope.Begin(entry.ImplementationType))
             {
-                var paramterInfos = item.GetParameters();
-                if (paramterInfos.Any(parameterInfo
-                    => !SetParameterWithContainer(parameterInfo, parameters) &&
-                       !SetParameterWithValueProvider(item, parameterInfo, parameters) &&
-                       !SetParameterWithDefaultValue(parameterInfo, parameters)))
+                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
                 {
-                    parameters.Clear();
+                    var paramterInfos = item.GetParameters();
+                    if (paramterInfos.Any(parameterInfo
+                        => !SetParameterWithContainer(parameterInfo, parameters) &&
+                           !SetParameterWithValueProvider(item, parameterInfo, parameters) &&
+                           !SetParameterWithDefaultValue(parameterInfo, parameters)))
+                    {
+                        parameters.Clear();
+                        continue;
+                    }
+
+                    return new TypeCallDependElement()
+                    {
+                        Parameters = parameters,
+                        ConstructorInfo = item,
+                        LifeStyle = entry.LifeStyle,
+                        ServiceType = entry.ServiceType,
+                        ServiceCacheId = entry.ServiceCacheId,
+                        ImplementationType = entry.ImplementationType
+                    };
                 }
 
-                if (parameters.Count != paramterInfos.Length)
-                {
-                    continue;
-                }
-
-                return SetProperties(new TypeCallDependElement()
-                {
-                    Parameters = parameters,
-                    ServiceCacheId = entry.ServiceCacheId,
-                    LifeStyle = entry.LifeStyle,
-                    ServiceType = entry.ServiceType,
-                    ImplementionType = entry.ImplementationType,
-                    ConstructorInfo = item
-                });
+                return null;
             }
-
-            return null;
         }
 
-        protected virtual CallDependElement BuildTypeWithContainerProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
+        protected virtual TypeCallDependElement BuildTypeWithContainerProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
         {
-            foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+            using (CallScope.Begin(entry.ImplementationType))
             {
-                var parameterInfos = item.GetParameters();
-                if (parameterInfos.Any(parameterInfo => !SetParameterWithContainer(parameterInfo, parameters)))
+                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
                 {
-                    parameters.Clear();
-                    continue;
+                    var parameterInfos = item.GetParameters();
+                    if (parameterInfos.Any(parameterInfo => !SetParameterWithContainer(parameterInfo, parameters)))
+                    {
+                        parameters.Clear();
+                        continue;
+                    }
+
+                    return new TypeCallDependElement()
+                    {
+                        Parameters = parameters,
+                        ConstructorInfo = item,
+                        LifeStyle = entry.LifeStyle,
+                        ServiceType = entry.ServiceType,
+                        ServiceCacheId = entry.ServiceCacheId,
+                        ImplementationType = entry.ImplementationType
+                    };
                 }
 
-                return SetProperties(new TypeCallDependElement()
-                {
-                    Parameters = parameters,
-                    LifeStyle = entry.LifeStyle,
-                    ServiceType = entry.ServiceType,
-                    ServiceCacheId = entry.ServiceCacheId,
-                    ImplementionType = entry.ImplementationType,
-                    ConstructorInfo = item
-                });
+                return null;
             }
-
-            return null;
         }
 
-        protected virtual CallDependElement BuildTypeWithContainerAndAnnotaionProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
+        protected virtual TypeCallDependElement BuildTypeWithContainerAndAnnotaionProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
         {
-            foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+            using (CallScope.Begin(entry.ImplementationType))
             {
-                var paramterInfos = item.GetParameters();
-                if (paramterInfos.Any(parameterInfo
-                    => !SetParameterWithContainer(parameterInfo, parameters) &&
-                       !SetParameterWithValueProvider(item, parameterInfo, parameters)))
+                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
                 {
-                    parameters.Clear();
+                    var paramterInfos = item.GetParameters();
+                    if (paramterInfos.Any(parameterInfo
+                        => !SetParameterWithContainer(parameterInfo, parameters) &&
+                           !SetParameterWithValueProvider(item, parameterInfo, parameters)))
+                    {
+                        parameters.Clear();
+                        continue;
+                    }
+
+                    return new TypeCallDependElement()
+                    {
+                        Parameters = parameters,
+                        ConstructorInfo = item,
+                        LifeStyle = entry.LifeStyle,
+                        ServiceType = entry.ServiceType,
+                        ServiceCacheId = entry.ServiceCacheId,
+                        ImplementationType = entry.ImplementationType
+                    };
                 }
 
-                if (parameters.Count != paramterInfos.Length)
-                {
-                    continue;
-                }
-
-                return SetProperties(new TypeCallDependElement()
-                {
-                    Parameters = parameters,
-                    ServiceCacheId = entry.ServiceCacheId,
-                    LifeStyle = entry.LifeStyle,
-                    ServiceType = entry.ServiceType,
-                    ImplementionType = entry.ImplementationType,
-                    ConstructorInfo = item
-                });
+                return null;
             }
-
-            return null;
         }
 
-        protected CallDependElement SetProperties(TypeCallDependElement element)
+        protected void SetProperties(TypeCallDependElement callDependElement)
         {
-            if (element == null || !Configuration.EnablePropertyInjection)
+            if (callDependElement == null || !Configuration.EnablePropertyInjection)
             {
-                return element;
+                return;
             }
 
-            var properties = new Dictionary<PropertyInfo, CallDependElement>();
-            var propertyInfos = element
-                .ImplementionType
+            var propertyInfos = callDependElement.ImplementationType
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(item => item.CanWrite && item.CanRead)
                 .Where(item => item.GetCustomAttribute<InjectAttribute>() != null);
@@ -227,24 +227,18 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 try
                 {
-                    SetProperty(propertyInfo, properties);
+                    SetProperty(propertyInfo, callDependElement.Properties);
                 }
                 catch (CallCircularException)
                 {
                     throw;
                 }
-                catch
+                catch(Exception e)
                 {
+                    throw e;
                     //skip error
                 }
             }
-
-            if (properties.Count != 0)
-            {
-                element.Properties = properties;
-            }
-
-            return element;
         }
 
         protected void SetProperty(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
@@ -270,10 +264,10 @@ namespace Tinja.Core.Injection.Dependencies
                 CheckCircularDependency(typeEntry);
             }
 
-            var element = Build(entry);
-            if (element != null)
+            var callDependElement = Build(entry);
+            if (callDependElement != null)
             {
-                properties[propertyInfo] = element;
+                properties[propertyInfo] = callDependElement;
             }
         }
 

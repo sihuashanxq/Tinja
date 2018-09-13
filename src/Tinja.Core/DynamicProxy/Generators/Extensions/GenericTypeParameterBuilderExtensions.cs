@@ -3,9 +3,9 @@ using System.Reflection.Emit;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class GenericTypeParameterBuilderExtensions
+    internal static class GenericTypeParameterBuilderExtensions
     {
-        public static GenericTypeParameterBuilder SetGenericParameterConstraint(this GenericTypeParameterBuilder builder, Type genericArgument)
+        internal static GenericTypeParameterBuilder SetGenericParameterConstraint(this GenericTypeParameterBuilder builder, Type genericArgument)
         {
             if (builder == null)
             {

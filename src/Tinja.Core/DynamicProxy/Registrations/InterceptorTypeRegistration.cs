@@ -5,13 +5,13 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.DynamicProxy.Registrations
 {
-    public class InterceptorTypeRegistration : InterceptorRegistration
+    internal class InterceptorTypeRegistration : InterceptorRegistration
     {
         internal Type InterecptorType { get; }
 
         internal ServiceLifeStyle LifeStyle { get; }
 
-        public InterceptorTypeRegistration(Type interceptorType)
+        internal InterceptorTypeRegistration(Type interceptorType)
             : this(interceptorType, ServiceLifeStyle.Transient)
         {
 

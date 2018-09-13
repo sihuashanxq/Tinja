@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class TypeBuilderExtensions
+    internal static class TypeBuilderExtensions
     {
-        public static TypeBuilder DefineGenericParameters(this TypeBuilder builder, Type typeInfo)
+        internal static TypeBuilder DefineGenericParameters(this TypeBuilder builder, Type typeInfo)
         {
             if (typeInfo == null)
             {
@@ -47,7 +47,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return builder;
         }
 
-        public static TypeBuilder SetCustomAttributes(this TypeBuilder builder, Type typeInfo)
+        internal static TypeBuilder SetCustomAttributes(this TypeBuilder builder, Type typeInfo)
         {
             if (typeInfo == null)
             {

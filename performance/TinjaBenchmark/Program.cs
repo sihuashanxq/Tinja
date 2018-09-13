@@ -9,9 +9,6 @@ namespace TinjaBenchmark
         static void Main()
         {
             BenchmarkRunner.Run<TransientBenchmark>();
-            BenchmarkRunner.Run<ScopedBenchmark>();
-            BenchmarkRunner.Run<SingletonBenchmark>();
-            BenchmarkRunner.Run<DynamicProxyBenchmark>();
         }
     }
 }

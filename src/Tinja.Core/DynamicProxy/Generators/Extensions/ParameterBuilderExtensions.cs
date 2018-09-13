@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class ParameterBuilderExtensions
+    internal static class ParameterBuilderExtensions
     {
-        public static ParameterBuilder SetCustomAttributes(this ParameterBuilder builder, ParameterInfo parameterInfo)
+        internal static ParameterBuilder SetCustomAttributes(this ParameterBuilder builder, ParameterInfo parameterInfo)
         {
             if (builder == null)
             {

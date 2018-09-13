@@ -7,17 +7,17 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
     [DisableProxy]
-    public class MemberMetadataProvider : IMemberMetadataProvider
+    internal class MemberMetadataProvider : IMemberMetadataProvider
     {
         private static readonly IMemberMetadataCollector ClassTypeMemberCollector = new ClassMemberMetadataCollector();
 
         private static readonly IMemberMetadataCollector InterfaceTypeMemberCollector = new InterfaceMemberMetadataCollector();
 
-        private readonly ConcurrentDictionary<Type, IEnumerable<MemberMetadata>> _metadatas;
+        private readonly ConcurrentDictionary<Type, IEnumerable<MemberMetadata>> _members;
 
-        public MemberMetadataProvider()
+        internal MemberMetadataProvider()
         {
-            _metadatas = new ConcurrentDictionary<Type, IEnumerable<MemberMetadata>>();
+            _members = new ConcurrentDictionary<Type, IEnumerable<MemberMetadata>>();
         }
 
         public IEnumerable<MemberMetadata> GetMembers(Type typeInfo)
@@ -27,7 +27,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
                 throw new NullReferenceException(nameof(typeInfo));
             }
 
-            return _metadatas.GetOrAdd(typeInfo, type => type.IsClass ? ClassTypeMemberCollector.Collect(type) : InterfaceTypeMemberCollector.Collect(type));
+            return _members.GetOrAdd(typeInfo, type => type.IsClass ? ClassTypeMemberCollector.Collect(type) : InterfaceTypeMemberCollector.Collect(type));
         }
     }
 }

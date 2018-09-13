@@ -26,9 +26,9 @@ namespace Tinja.Core.DynamicProxy
                     return ShoudMethodProxy(methodInfo);
                 case PropertyInfo propertyInfo:
                     return ShouldPropertyProxy(propertyInfo);
-                default:
-                    return false;
             }
+
+            return false;
         }
 
         protected virtual bool ShowEventProxy(EventInfo eventInfo)

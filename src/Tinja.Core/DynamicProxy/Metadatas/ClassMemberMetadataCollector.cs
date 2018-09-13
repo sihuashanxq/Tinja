@@ -8,7 +8,7 @@ using Tinja.Abstractions.Extensions;
 namespace Tinja.Core.DynamicProxy.Metadatas
 {
     [DisableProxy]
-    public class ClassMemberMetadataCollector : MemberMetadataCollector
+    internal class ClassMemberMetadataCollector : MemberMetadataCollector
     {
         /// <inheritdoc />
         protected override IEnumerable<MemberMetadata> CollectMethods(Type typeInfo, Type[] interfaces)

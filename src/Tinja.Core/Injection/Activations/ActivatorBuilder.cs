@@ -76,7 +76,7 @@ namespace Tinja.Core.Injection.Activations
             var newExpression = Expression.New(element.ConstructorInfo, parameterValues);
             var memberInit = SetProperties(newExpression, element);
 
-            if (element.LifeStyle == ServiceLifeStyle.Transient && element.ImplementionType.IsNotType<IDisposable>())
+            if (element.LifeStyle == ServiceLifeStyle.Transient && element.ImplementationType.IsNotType<IDisposable>())
             {
                 return memberInit;
             }

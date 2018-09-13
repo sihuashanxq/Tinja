@@ -8,9 +8,9 @@ using Tinja.Core.DynamicProxy.Generators.Extensions;
 namespace Tinja.Core.DynamicProxy.Generators
 {
     [DisableProxy]
-    public class InterfaceProxyTypeGenerator : ProxyTypeGenerator
+    internal class InterfaceProxyTypeGenerator : ProxyTypeGenerator
     {
-        public InterfaceProxyTypeGenerator(Type interfaceType, IEnumerable<MemberMetadata> members)
+        internal InterfaceProxyTypeGenerator(Type interfaceType, IEnumerable<MemberMetadata> members)
             : base(interfaceType, members)
         {
 

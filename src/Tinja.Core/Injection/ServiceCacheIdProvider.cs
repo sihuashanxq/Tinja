@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Tinja.Core.Injection
 {
@@ -15,14 +16,9 @@ namespace Tinja.Core.Injection
 
         internal int GetServiceCacheId(object serviceKey)
         {
-            if (_idCaches.TryGetValue(serviceKey, out var serviceId))
-            {
-                return serviceId;
-            }
-
             lock (_idCaches)
             {
-                if (_idCaches.TryGetValue(serviceKey, out serviceId))
+                if (_idCaches.TryGetValue(serviceKey, out var serviceId))
                 {
                     return serviceId;
                 }

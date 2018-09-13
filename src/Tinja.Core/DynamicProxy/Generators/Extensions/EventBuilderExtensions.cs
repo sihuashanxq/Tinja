@@ -8,9 +8,9 @@ using Tinja.Core.Injection;
 
 namespace Tinja.Core.DynamicProxy.Generators.Extensions
 {
-    public static class EventBuilderExtensions
+    internal static class EventBuilderExtensions
     {
-        public static EventBuilder SetCustomAttributes(this EventBuilder builder, EventInfo eventInfo)
+        internal static EventBuilder SetCustomAttributes(this EventBuilder builder, EventInfo eventInfo)
         {
             if (builder == null)
             {
