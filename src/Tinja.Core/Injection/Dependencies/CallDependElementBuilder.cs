@@ -233,9 +233,8 @@ namespace Tinja.Core.Injection.Dependencies
                 {
                     throw;
                 }
-                catch(Exception e)
+                catch
                 {
-                    throw e;
                     //skip error
                 }
             }

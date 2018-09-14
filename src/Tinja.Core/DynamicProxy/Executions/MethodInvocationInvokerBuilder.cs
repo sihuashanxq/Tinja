@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -28,7 +29,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         internal Dictionary<Type, InterceptorEntry> Interceptors { get; set; }
 
-        internal Dictionary<MethodInfo, IMethodInvocationInvoker> InvokerCaches { get; set; }
+        internal ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker> InvokerCaches { get; set; }
 
         public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
@@ -46,13 +47,13 @@ namespace Tinja.Core.DynamicProxy.Executions
             {
                 if (!_initialized)
                 {
-                    _initialized = true;
                     Interceptors = new Dictionary<Type, InterceptorEntry>();
-                    InvokerCaches = new Dictionary<MethodInfo, IMethodInvocationInvoker>();
+                    InvokerCaches = new ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker>();
                     InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
                     MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
                     InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
                     InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+                    _initialized = true;
                 }
             }
         }

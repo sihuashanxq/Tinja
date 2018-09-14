@@ -55,6 +55,30 @@ namespace TinjaBenchmark.Injection
             return _serviceResolver.ResolveService<TransientServiceD>();
         }
 
+        [Benchmark]
+        public object ResolveOnePropertyDependencySerivice()
+        {
+            return _serviceResolver.ResolveService<TransientServiceE>();
+        }
+
+        [Benchmark]
+        public object ResolveTwoPropertyDependencySerivice()
+        {
+            return _serviceResolver.ResolveService<TransientServiceF>();
+        }
+
+        [Benchmark]
+        public object ResolveThreePropertyDependencySerivice()
+        {
+            return _serviceResolver.ResolveService<TransientServiceG>();
+        }
+
+        [Benchmark]
+        public object ResolveFourElementsEnumerableSerivice()
+        {
+            return _serviceResolver.ResolveService<IEnumerable<ITransientService>>();
+        }
+
 
         public interface ITransientService
         {

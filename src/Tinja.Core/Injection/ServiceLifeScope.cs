@@ -73,14 +73,9 @@ namespace Tinja.Core.Injection
                 throw new InvalidOperationException($"this scope is disposed!");
             }
 
-            if (ResolvedServices.TryGetValue(serviceCacheId, out var service))
-            {
-                return service;
-            }
-
             lock (ResolvedServices)
             {
-                if (ResolvedServices.TryGetValue(serviceCacheId, out service))
+                if (ResolvedServices.TryGetValue(serviceCacheId, out var service))
                 {
                     return service;
                 }

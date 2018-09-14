@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Reflection;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Executions;
@@ -9,11 +9,11 @@ namespace Tinja.Core.DynamicProxy.Executions
     [DisableProxy]
     public class ObjectMethodExecutorProvider : IObjectMethodExecutorProvider
     {
-        private readonly Dictionary<MethodInfo, IObjectMethodExecutor> _executors;
+        private readonly ConcurrentDictionary<MethodInfo, IObjectMethodExecutor> _executors;
 
         public ObjectMethodExecutorProvider()
         {
-            _executors = new Dictionary<MethodInfo, IObjectMethodExecutor>();
+            _executors = new ConcurrentDictionary<MethodInfo, IObjectMethodExecutor>();
         }
 
         public IObjectMethodExecutor GetExecutor(MethodInfo methodInfo)

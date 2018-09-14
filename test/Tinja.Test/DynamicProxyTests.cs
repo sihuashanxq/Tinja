@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Registrations;
@@ -16,16 +17,31 @@ namespace Tinja.Test
         [Fact]
         public void ReturnValueRewriteTest()
         {
-            var service = new Container()
-                .AddTransient(typeof(IDynamicService), typeof(DynamicService))
-                .AddTransient(typeof(ReturnRewriteInterceptor))
-                .AddDynamicProxy()
-                .BuildServiceResolver()
-                .ResolveServiceRequired<IDynamicService>();
+            for (var i = 0; i < 1000; i++)
+            {
+                var service = new Container()
+                    .AddTransient(typeof(IDynamicService), typeof(DynamicService))
+                    .AddTransient(typeof(ReturnRewriteInterceptor))
+                    .AddDynamicProxy()
+                    .BuildServiceResolver()
+                    .ResolveServiceRequired<IDynamicService>();
 
-            Assert.Equal(1024, service.GetInt32());
-            Assert.Equal(1024, service.GetInt32Async().Result);
-            Assert.Equal(1024, service.GetInt32ValueTaskAsync().Result);
+                Action action = () =>
+                {
+                    Assert.Equal(1024, service.GetInt32());
+                    Assert.Equal(1024, service.GetInt32Async().Result);
+                    Assert.Equal(1024, service.GetInt32ValueTaskAsync().Result);
+                };
+
+                var tasks = new List<Task>();
+
+                for (var n = 0; n < 100; n++)
+                {
+                    tasks.Add(Task.Run(action));
+                }
+
+                Task.WaitAll(tasks.ToArray());
+            }
         }
 
         [Fact]

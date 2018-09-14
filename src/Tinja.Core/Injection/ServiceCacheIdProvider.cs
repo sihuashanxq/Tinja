@@ -7,23 +7,23 @@ namespace Tinja.Core.Injection
     {
         private int _seed = 1;
 
-        private readonly Dictionary<object, int> _idCaches;
+        private readonly Dictionary<object, int> _idMaps;
 
         public ServiceCacheIdProvider()
         {
-            _idCaches = new Dictionary<object, int>();
+            _idMaps = new Dictionary<object, int>();
         }
 
         internal int GetServiceCacheId(object serviceKey)
         {
-            lock (_idCaches)
+            lock (_idMaps)
             {
-                if (_idCaches.TryGetValue(serviceKey, out var serviceId))
+                if (_idMaps.TryGetValue(serviceKey, out var serviceId))
                 {
                     return serviceId;
                 }
 
-                return _idCaches[serviceKey] = _seed++;
+                return _idMaps[serviceKey] = _seed++;
             }
         }
     }

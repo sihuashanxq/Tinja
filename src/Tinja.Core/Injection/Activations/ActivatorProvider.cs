@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Dependencies;
+using Tinja.Abstractions.Injection.Dependencies.Elements;
 
 namespace Tinja.Core.Injection.Activations
 {
@@ -11,7 +13,7 @@ namespace Tinja.Core.Injection.Activations
 
         private readonly ICallDependElementBuilderFactory _factory;
 
-        private readonly Dictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>> _caches;
+        private readonly ConcurrentDictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>> _activators;
 
         private static readonly Func<IServiceResolver, IServiceLifeScope, object> Default = (resolver, scope) => null;
 
@@ -19,23 +21,27 @@ namespace Tinja.Core.Injection.Activations
         {
             _factory = factory;
             _builder = new ActivatorBuilder(scope.Root);
-            _caches = new Dictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>>();
+            _activators = new ConcurrentDictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>>();
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> Get(Type serviceType)
         {
-            if (_caches.TryGetValue(serviceType, out var item))
+            if (_activators.TryGetValue(serviceType, out var item))
             {
                 return item;
             }
 
-            var element = _factory.CreateBuilder()?.Build(serviceType);
+            return _activators[serviceType] = Get(_factory.CreateBuilder()?.Build(serviceType));
+        }
+
+        internal Func<IServiceResolver, ServiceLifeScope, object> Get(CallDependElement element)
+        {
             if (element == null)
             {
-                return _caches[serviceType] = Default;
+                return Default;
             }
 
-            return _caches[serviceType] = _builder.Build(element) ?? Default;
+            return _builder.Build(element) ?? Default;
         }
     }
 }

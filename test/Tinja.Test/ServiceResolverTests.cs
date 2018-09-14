@@ -234,14 +234,14 @@ namespace Tinja.Test
         [Fact]
         public void ResolvePropertyService()
         {
-            var resolver = new Container()
-                .AddScoped<ITransientServiceB, TransientServiceB>()
-                .AddTransient<IPropertyInjectionService, PropertyInjectionService>()
-                .BuildServiceResolver();
-
-            for (var i = 0; i < 10000; i++)
+            for (var i = 0; i < 1000; i++)
             {
-                var t1 = Task.Run(() =>
+                var resolver = new Container()
+                    .AddScoped<ITransientServiceB, TransientServiceB>()
+                    .AddTransient<IPropertyInjectionService, PropertyInjectionService>()
+                    .BuildServiceResolver();
+
+                Action action = () =>
                 {
                     var service = resolver.ResolveService<IPropertyInjectionService>();
                     var serviceB = resolver.ResolveService<ITransientServiceB>();
@@ -249,23 +249,17 @@ namespace Tinja.Test
                     Assert.NotNull(service);
                     Assert.NotNull(service.ServiceB);
                     Assert.NotNull(serviceB);
-
                     Assert.Equal(serviceB, service.ServiceB);
-                });
+                };
 
-                var t2 = Task.Run(() =>
+                var tasks = new List<Task>();
+
+                for (var n = 0; n < 100; n++)
                 {
-                    var service = resolver.ResolveService<IPropertyInjectionService>();
-                    var serviceB = resolver.ResolveService<ITransientServiceB>();
+                    tasks.Add(Task.Run(action));
+                }
 
-                    Assert.NotNull(service);
-                    Assert.NotNull(service.ServiceB);
-                    Assert.NotNull(serviceB);
-
-                    Assert.Equal(serviceB, service.ServiceB);
-                });
-
-                Task.WaitAll(t1, t2);
+                Task.WaitAll(tasks.ToArray());
             }
         }
 
@@ -309,7 +303,7 @@ namespace Tinja.Test
             Assert.NotNull(genericService);
             Assert.NotNull(genericService2);
             Assert.NotNull(genericService.Service);
-            Assert.Throws<InvalidOperationException>(()=> resolver.ResolveService<IGenericService<ITransientServiceA>>());
+            Assert.Throws<InvalidOperationException>(() => resolver.ResolveService<IGenericService<ITransientServiceA>>());
         }
 
         [Fact]
