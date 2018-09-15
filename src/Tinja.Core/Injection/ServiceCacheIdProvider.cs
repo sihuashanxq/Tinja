@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Tinja.Core.Injection
 {
@@ -7,23 +6,23 @@ namespace Tinja.Core.Injection
     {
         private int _seed = 1;
 
-        private readonly Dictionary<object, int> _idMaps;
+        private readonly Dictionary<object, int> _ids;
 
-        public ServiceCacheIdProvider()
+        internal ServiceCacheIdProvider()
         {
-            _idMaps = new Dictionary<object, int>();
+            _ids = new Dictionary<object, int>();
         }
 
-        internal int GetServiceCacheId(object serviceKey)
+        internal int GetCacheId(object serviceKey)
         {
-            lock (_idMaps)
+            lock (_ids)
             {
-                if (_idMaps.TryGetValue(serviceKey, out var serviceId))
+                if (_ids.TryGetValue(serviceKey, out var id))
                 {
-                    return serviceId;
+                    return id;
                 }
 
-                return _idMaps[serviceKey] = _seed++;
+                return _ids[serviceKey] = _seed++;
             }
         }
     }

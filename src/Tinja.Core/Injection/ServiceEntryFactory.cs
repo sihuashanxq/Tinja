@@ -268,7 +268,7 @@ namespace Tinja.Core.Injection
                 throw new NullReferenceException(nameof(serviceKey));
             }
 
-            return _serviceCacheIdProvider.GetServiceCacheId(serviceKey);
+            return _serviceCacheIdProvider.GetCacheId(serviceKey);
         }
     }
 }

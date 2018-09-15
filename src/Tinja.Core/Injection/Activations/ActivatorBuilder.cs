@@ -273,14 +273,20 @@ namespace Tinja.Core.Injection.Activations
                 return (r, s) => r;
             }
 
-            if (element.LifeStyle == ServiceLifeStyle.Singleton)
+            if (element.LifeStyle == ServiceLifeStyle.Transient)
             {
-                var service = ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
-
-                return (r, s) => service;
+                return (r, s) => s.CreateCapturedService((r1, s1) => element.Delegate(r1));
             }
 
-            return (r, s) => s.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
+            if (element.LifeStyle == ServiceLifeStyle.Scoped)
+            {
+
+                return (r, s) => s.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
+            }
+
+            var instance = ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
+
+            return (r, s) => instance;
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> BuildInstanceFactory(InstanceCallDependElement element)

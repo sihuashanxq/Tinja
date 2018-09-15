@@ -17,23 +17,23 @@ namespace Tinja.Core.DynamicProxy.Executions
     {
         private bool _initialized;
 
-        internal IServiceResolver ServieResolver { get; set; }
+        private IInterceptorFactory _interceptorFactory;
 
-        internal IInterceptorFactory InterceptorFactory { get; set; }
+        private readonly IServiceResolver _servieResolver;
 
-        internal IObjectMethodExecutorProvider MethodExecutorProvider { get; set; }
+        private Dictionary<Type, InterceptorEntry> _interceptors;
 
-        internal IInterceptorSelectorProvider InterceptorSelectorProvider { get; set; }
+        private IObjectMethodExecutorProvider _methodExecutorProvider;
 
-        internal IInterceptorMetadataProvider InterceptorMetadataProvider { get; set; }
+        private IInterceptorSelectorProvider _interceptorSelectorProvider;
 
-        internal Dictionary<Type, InterceptorEntry> Interceptors { get; set; }
+        private IInterceptorMetadataProvider _interceptorMetadataProvider;
 
-        internal ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker> InvokerCaches { get; set; }
+        private ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker> _invokerCaches;
 
         public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
-            ServieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            _servieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
         }
 
         private void Prepare()
@@ -47,75 +47,148 @@ namespace Tinja.Core.DynamicProxy.Executions
             {
                 if (!_initialized)
                 {
-                    Interceptors = new Dictionary<Type, InterceptorEntry>();
-                    InvokerCaches = new ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker>();
-                    InterceptorFactory = ServieResolver.ResolveServiceRequired<IInterceptorFactory>();
-                    MethodExecutorProvider = ServieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
-                    InterceptorSelectorProvider = ServieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
-                    InterceptorMetadataProvider = ServieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
+                    _interceptors = new Dictionary<Type, InterceptorEntry>();
+                    _invokerCaches = new ConcurrentDictionary<MethodInfo, IMethodInvocationInvoker>();
+                    _interceptorFactory = _servieResolver.ResolveServiceRequired<IInterceptorFactory>();
+                    _methodExecutorProvider = _servieResolver.ResolveServiceRequired<IObjectMethodExecutorProvider>();
+                    _interceptorSelectorProvider = _servieResolver.ResolveServiceRequired<IInterceptorSelectorProvider>();
+                    _interceptorMetadataProvider = _servieResolver.ResolveServiceRequired<IInterceptorMetadataProvider>();
                     _initialized = true;
                 }
             }
         }
 
+        /// <summary>
+        /// T/void Method();
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="invocation"></param>
+        /// <returns></returns>
         public IMethodInvocationInvoker BuildInvoker<TResult>(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (_invokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateMethodCallStack<TResult>(invocation.Method));
+            lock (_invokerCaches)
+            {
+                if (_invokerCaches.TryGetValue(invocation.Method, out invoker))
+                {
+                    return invoker;
+                }
+
+                return _invokerCaches[invocation.Method] = BuildInvoker(invocation, CreateMethodCallStack<TResult>(invocation.Method));
+            }
         }
 
+        /// <summary>
+        /// Task Method();
+        /// </summary>
+        /// <param name="invocation"></param>
+        /// <returns></returns>
         public IMethodInvocationInvoker BuildTaskAsyncInvoker(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (_invokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack(invocation.Method));
+            lock (_invokerCaches)
+            {
+                if (_invokerCaches.TryGetValue(invocation.Method, out invoker))
+                {
+                    return invoker;
+                }
+
+                return _invokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack(invocation.Method));
+            }
         }
 
+        /// <summary>
+        /// Task` Method();
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="invocation"></param>
+        /// <returns></returns>
         public IMethodInvocationInvoker BuildTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (_invokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            lock (_invokerCaches)
+            {
+                if (_invokerCaches.TryGetValue(invocation.Method, out invoker))
+                {
+                    return invoker;
+                }
+
+                return _invokerCaches[invocation.Method] = BuildInvoker(invocation, CreateTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            }
         }
 
+        /// <summary>
+        /// ValueTask Method();
+        /// </summary>
+        /// <param name="invocation"></param>
+        /// <returns></returns>
         public IMethodInvocationInvoker BuildValueTaskAsyncInvoker(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (_invokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack(invocation.Method));
+            lock (_invokerCaches)
+            {
+                if (_invokerCaches.TryGetValue(invocation.Method, out invoker))
+                {
+                    return invoker;
+                }
+
+                return _invokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack(invocation.Method));
+            }
         }
 
+        /// <summary>
+        /// ValueTask` Method();
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="invocation"></param>
+        /// <returns></returns>
         public IMethodInvocationInvoker BuildValueTaskAsyncInvoker<TResult>(IMethodInvocation invocation)
         {
             Prepare();
 
-            if (InvokerCaches.TryGetValue(invocation.Method, out var invoker))
+            // ReSharper disable once InconsistentlySynchronizedField
+            if (_invokerCaches.TryGetValue(invocation.Method, out var invoker))
             {
                 return invoker;
             }
 
-            return InvokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            lock (_invokerCaches)
+            {
+                if (_invokerCaches.TryGetValue(invocation.Method, out invoker))
+                {
+                    return invoker;
+                }
+
+                return _invokerCaches[invocation.Method] = BuildInvoker(invocation, CreateValueTaskAsyncMethodCallStack<TResult>(invocation.Method));
+            }
         }
 
         private IMethodInvocationInvoker BuildInvoker(IMethodInvocation invocation, Stack<Func<IMethodInvocation, Task>> callStack)
@@ -149,7 +222,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
 
-            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
@@ -157,21 +230,20 @@ namespace Tinja.Core.DynamicProxy.Executions
 
             if (methodInfo.IsVoidMethod())
             {
-
                 return new Stack<Func<IMethodInvocation, Task>>()
                     .PushContine(inv =>
-                {
-                    executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
-                    return Task.CompletedTask;
-                });
+                    {
+                        executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
+                        return Task.CompletedTask;
+                    });
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
                 .PushContine(inv =>
-            {
-                inv.ResultValue = executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
-                return Task.CompletedTask;
-            });
+                {
+                    inv.ResultValue = executor.Execute<TResult>(inv.ProxyInstance, inv.Arguments);
+                    return Task.CompletedTask;
+                });
         }
 
         private Stack<Func<IMethodInvocation, Task>> CreateTaskAsyncMethodCallStack(MethodInfo methodInfo)
@@ -181,7 +253,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
 
-            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
@@ -198,14 +270,15 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
 
-            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => (Task)(inv.ResultValue = executor.Execute<Task<TResult>>(inv.ProxyInstance, inv.Arguments)));
+                .PushContine(inv =>
+                    (Task)(inv.ResultValue = executor.Execute<Task<TResult>>(inv.ProxyInstance, inv.Arguments)));
         }
 
         private Stack<Func<IMethodInvocation, Task>> CreateValueTaskAsyncMethodCallStack(MethodInfo methodInfo)
@@ -215,7 +288,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
 
-            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
@@ -232,47 +305,52 @@ namespace Tinja.Core.DynamicProxy.Executions
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
 
-            var executor = MethodExecutorProvider.GetExecutor(methodInfo);
+            var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
                 throw new NullReferenceException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
-                .PushContine(inv => (Task<TResult>)(inv.ResultValue = executor.Execute<ValueTask<TResult>>(inv.ProxyInstance, inv.Arguments).AsTask()));
+                .PushContine(inv =>
+                    (Task<TResult>)(inv.ResultValue =
+                        executor.Execute<ValueTask<TResult>>(inv.ProxyInstance, inv.Arguments).AsTask()));
         }
 
         private IInterceptor[] GetInterceptors(MemberInfo memberInfo)
         {
-            lock (Interceptors)
+            var entries = new List<InterceptorEntry>();
+            var metadatas = _interceptorMetadataProvider.GetInterceptors(memberInfo) ?? new InterceptorMetadata[0];
+
+            foreach (var metadata in metadatas.Where(item => item != null))
             {
-                var entries = new List<InterceptorEntry>();
-                var metadatas = InterceptorMetadataProvider.GetInterceptors(memberInfo) ?? new InterceptorMetadata[0];
-
-                foreach (var metadata in metadatas.Where(item => item != null))
+                //may multi instance
+                if (metadata.Handler != null)
                 {
-                    if (metadata.Handler != null)
-                    {
-                        entries.Add(new InterceptorEntry(new DelegateInterceptor(metadata.Handler), metadata));
-                        continue;
-                    }
-
-                    if (!Interceptors.TryGetValue(metadata.InterceptorType, out var entry))
-                    {
-                        var interceptor = InterceptorFactory.Create(metadata.InterceptorType);
-                        if (interceptor == null)
-                        {
-                            throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
-                        }
-
-                        entry = new InterceptorEntry(interceptor, metadata);
-                    }
-
-                    entries.Add(entry);
+                    entries.Add(new InterceptorEntry(new DelegateInterceptor(metadata.Handler), metadata));
+                    continue;
                 }
 
-                return GetInterceptors(memberInfo, entries);
+                //mark sure only one instance
+                if (_interceptors.TryGetValue(metadata.InterceptorType, out var entry))
+                {
+                    entries.Add(entry);
+                    continue;
+                }
+
+                var interceptor = _interceptorFactory.Create(metadata.InterceptorType);
+                if (interceptor == null)
+                {
+                    throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
+                }
+
+                entry = new InterceptorEntry(interceptor, metadata);
+                entries.Add(entry);
+
+                _interceptors[metadata.InterceptorType] = entry;
             }
+
+            return GetInterceptors(memberInfo, entries);
         }
 
         private IInterceptor[] GetInterceptors(MemberInfo memberInfo, IEnumerable<InterceptorEntry> entries)
@@ -288,15 +366,20 @@ namespace Tinja.Core.DynamicProxy.Executions
             }
 
             //sort
-            var selectors = InterceptorSelectorProvider.GetSelectors(memberInfo);
+            var selectors = _interceptorSelectorProvider.GetSelectors(memberInfo);
             if (selectors == null)
             {
-                return entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor).ToArray();
+                return entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor)
+                    .ToArray();
             }
 
-            var interceptors = entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor);
+            var interceptors = entries
+                .OrderByDescending(item => item.Metadata.RankOrder)
+                .Select(item => item.Interceptor);
 
-            return selectors.Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current)).ToArray();
+            return selectors
+                .Aggregate(interceptors, (current, selector) => selector.Select(memberInfo, current))
+                .ToArray();
         }
     }
 
