@@ -5,6 +5,7 @@ using Tinja.Abstractions.DynamicProxy.Registrations;
 namespace ConsoleApp
 {
     [Interceptor(typeof(UserServiceInterceptor))]
+    [Query]
     public interface IUserService
     {
         string GetString(int id);

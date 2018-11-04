@@ -51,12 +51,12 @@ namespace Tinja.Core.DynamicProxy
                 throw new NullReferenceException(nameof(configuration));
             }
 
-            if (configuration.InterceptorRegistrations.Count == 0)
+            if (configuration.Registrations.Count == 0)
             {
                 return container;
             }
 
-            var registrations = configuration.InterceptorRegistrations;
+            var registrations = configuration.Registrations;
             var configuredCollector = new ConfiguredInterceptorMetadataCollector(registrations);
 
             foreach (var item in registrations.OfType<InterceptorTypeRegistration>())

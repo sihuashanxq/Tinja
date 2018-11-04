@@ -369,12 +369,12 @@ namespace Tinja.Core.DynamicProxy.Executions
             var selectors = _interceptorSelectorProvider.GetSelectors(memberInfo);
             if (selectors == null)
             {
-                return entries.OrderByDescending(item => item.Metadata.RankOrder).Select(item => item.Interceptor)
+                return entries.OrderByDescending(item => item.Metadata.Order).Select(item => item.Interceptor)
                     .ToArray();
             }
 
             var interceptors = entries
-                .OrderByDescending(item => item.Metadata.RankOrder)
+                .OrderByDescending(item => item.Metadata.Order)
                 .Select(item => item.Interceptor);
 
             return selectors

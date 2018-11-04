@@ -24,38 +24,38 @@ namespace Tinja.Core.DynamicProxy.Configurations
             set => Set(Constant.EnableAstractionClassProxyKey, value);
         }
 
-        internal List<IInterceptorRegistration> InterceptorRegistrations { get; }
+        internal List<IInterceptorRegistration> Registrations { get; }
 
         public DynamicProxyConfiguration()
         {
             EnableInterfaceProxy = true;
             EnableAstractionClassProxy = true;
-            InterceptorRegistrations = new List<IInterceptorRegistration>();
+            Registrations = new List<IInterceptorRegistration>();
         }
 
-        public IInterceptorRegistration ConfigureInterceptor(Type interceptorType)
+        public IInterceptorRegistration Configure(Type interceptorType)
         {
             var registration = new InterceptorTypeRegistration(interceptorType);
 
-            InterceptorRegistrations.Add(registration);
+            Registrations.Add(registration);
 
             return registration;
         }
 
-        public IInterceptorRegistration ConfigureInterceptor(Type interceptorType, ServiceLifeStyle lifeStyle)
+        public IInterceptorRegistration Configure(Type interceptorType, ServiceLifeStyle lifeStyle)
         {
             var registration = new InterceptorTypeRegistration(interceptorType, lifeStyle);
 
-            InterceptorRegistrations.Add(registration);
+            Registrations.Add(registration);
 
             return registration;
         }
 
-        public IInterceptorRegistration ConfigureInterceptor(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> hander)
+        public IInterceptorRegistration Configure(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> hander)
         {
             var registration = new InterceptorDelegateRegistration(hander);
 
-            InterceptorRegistrations.Add(registration);
+            Registrations.Add(registration);
 
             return registration;
         }

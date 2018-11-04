@@ -6,17 +6,15 @@ namespace Tinja.Core.DynamicProxy.Extensions
 {
     public static class InterceptorRegistrationExtensions
     {
-        public static IInterceptorRegistration Order(this IInterceptorRegistration registration, long rankOrder)
+        public static IInterceptorRegistration Order(this IInterceptorRegistration registration, long order)
         {
-            registration.SetRankOrder(rankOrder);
-
+            registration.SetOrder(order);
             return registration;
         }
 
-        public static IInterceptorRegistration When(this IInterceptorRegistration registration,Func<MemberInfo,bool> targetFilter)
+        public static IInterceptorRegistration When(this IInterceptorRegistration registration,Func<MemberInfo,bool> filter)
         {
-            registration.SetTargetFilter(targetFilter);
-
+            registration.SetFilter(filter);
             return registration;
         }
     }

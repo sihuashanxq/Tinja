@@ -27,19 +27,19 @@ namespace Tinja.Core.DynamicProxy.Metadatas
         {
             foreach (var attr in memberInfo.DeclaringType.GetInterceptorAttributes())
             {
-                yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
+                yield return new InterceptorMetadata(attr, memberInfo);
             }
 
             foreach (var attr in memberInfo.GetInterceptorAttributes())
             {
-                yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
+                yield return new InterceptorMetadata(attr, memberInfo);
             }
 
             foreach (var implementsInterface in implementsInterfaces)
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
+                    yield return new InterceptorMetadata(attr, memberInfo);
                 }
             }
 
@@ -47,7 +47,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             {
                 foreach (var attr in implementsInterface.GetInterceptorAttributes())
                 {
-                    yield return new InterceptorMetadata(attr.InterceptorType, memberInfo, attr.RankOrder);
+                    yield return new InterceptorMetadata(attr, memberInfo);
                 }
             }
         }

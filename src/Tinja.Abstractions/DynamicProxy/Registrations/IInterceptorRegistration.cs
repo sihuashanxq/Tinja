@@ -5,8 +5,8 @@ namespace Tinja.Abstractions.DynamicProxy.Registrations
 {
     public interface IInterceptorRegistration
     {
-        void SetRankOrder(long rankOrder);
+        void SetOrder(long order);
 
-        void SetTargetFilter(Func<MemberInfo, bool> filter);
+        void SetFilter(Func<MemberInfo, bool> filter);
     }
 }

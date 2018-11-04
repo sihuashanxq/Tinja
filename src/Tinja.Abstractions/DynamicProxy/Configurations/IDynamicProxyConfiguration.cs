@@ -14,10 +14,10 @@ namespace Tinja.Abstractions.DynamicProxy.Configurations
 
         bool EnableAstractionClassProxy { get; set; }
 
-        IInterceptorRegistration ConfigureInterceptor(Type interceptorType);
+        IInterceptorRegistration Configure(Type interceptorType);
 
-        IInterceptorRegistration ConfigureInterceptor(Type interceptorType, ServiceLifeStyle lifeStyle);
+        IInterceptorRegistration Configure(Type interceptorType, ServiceLifeStyle lifeStyle);
 
-        IInterceptorRegistration ConfigureInterceptor(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> hander);
+        IInterceptorRegistration Configure(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> hander);
     }
 }

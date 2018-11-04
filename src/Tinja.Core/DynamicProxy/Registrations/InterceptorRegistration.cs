@@ -6,16 +6,16 @@ namespace Tinja.Core.DynamicProxy.Registrations
 {
     public class InterceptorRegistration : IInterceptorRegistration
     {
-        internal long? RankOrder { get; set; }
+        internal long? Order { get; set; }
 
         internal Func<MemberInfo, bool> TargetFilter { get; set; }
 
-        public void SetRankOrder(long rankOrder)
+        public void SetOrder(long rankOrder)
         {
-            RankOrder = rankOrder;
+            Order = rankOrder;
         }
 
-        public void SetTargetFilter(Func<MemberInfo, bool> targetFilter)
+        public void SetFilter(Func<MemberInfo, bool> targetFilter)
         {
             TargetFilter = targetFilter ?? throw new NullReferenceException(nameof(targetFilter));
         }

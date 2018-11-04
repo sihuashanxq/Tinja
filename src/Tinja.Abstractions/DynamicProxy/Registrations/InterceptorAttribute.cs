@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Abstractions.DynamicProxy.Registrations
@@ -7,7 +6,7 @@ namespace Tinja.Abstractions.DynamicProxy.Registrations
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true)]
     public class InterceptorAttribute : Attribute
     {
-        public long? RankOrder { get; set; }
+        public long? Order { get; set; }
 
         public bool Inherited { get; set; }
 
@@ -15,12 +14,14 @@ namespace Tinja.Abstractions.DynamicProxy.Registrations
 
         public InterceptorAttribute(Type interceptorType)
         {
-            if (interceptorType.IsNotType<IInterceptor>())
+            if (interceptorType.IsType<IInterceptor>())
+            {
+                InterceptorType = interceptorType;
+            }
+            else
             {
                 throw new NotSupportedException($"Type:{interceptorType.FullName} can not cast to the interface:{typeof(IInterceptor).FullName}");
             }
-
-            InterceptorType = interceptorType;
         }
     }
 }

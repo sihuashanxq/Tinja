@@ -27,7 +27,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             {
                 if (registration.TargetFilter == null || registration.TargetFilter(metadata.Member))
                 {
-                    yield return new InterceptorMetadata(registration.InterecptorType, metadata.Member, registration.RankOrder);
+                    yield return new InterceptorMetadata(registration.InterecptorType, metadata.Member, registration.Order);
                 }
             }
 
@@ -35,7 +35,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             {
                 if (registration.TargetFilter == null || registration.TargetFilter(metadata.Member))
                 {
-                    yield return new InterceptorMetadata(registration.Handler, metadata.Member, registration.RankOrder);
+                    yield return new InterceptorMetadata(registration.Handler, metadata.Member, registration.Order);
                 }
             }
         }
@@ -48,8 +48,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
                 {
                     Types.Add(typeRegistration);
                 }
-
-                if (registration is InterceptorDelegateRegistration delegateRegistration)
+                else if (registration is InterceptorDelegateRegistration delegateRegistration)
                 {
                     Delegates.Add(delegateRegistration);
                 }
