@@ -343,7 +343,7 @@ namespace Tinja.Core.Injection.Dependencies
                 throw new NullReferenceException(nameof(parameters));
             }
 
-            var valueProvider = parameterInfo.GetCustomAttribute<ValuerProviderAttribute>();
+            var valueProvider = parameterInfo.GetCustomAttribute<ValueProviderAttribute>();
             if (valueProvider == null)
             {
                 return false;
