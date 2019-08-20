@@ -18,10 +18,10 @@ namespace Tinja.Abstractions.Injection
         {
             var hashCode = ServiceType.GetHashCode();
 
-            hashCode += (hashCode * 31) ^ (ImplementationType?.GetHashCode() ?? 0);
-            hashCode += (hashCode * 31) ^ (ImplementationInstance?.GetHashCode() ?? 0);
-            hashCode += (hashCode * 31) ^ (ImplementationFactory?.GetHashCode() ?? 0);
-            hashCode += (hashCode * 31) ^ LifeStyle.GetHashCode();
+            hashCode = hashCode * 31 ^ (ImplementationType?.GetHashCode() ?? 0);
+            hashCode = hashCode * 31 ^ (ImplementationInstance?.GetHashCode() ?? 0);
+            hashCode = hashCode * 31 ^ (ImplementationFactory?.GetHashCode() ?? 0);
+            hashCode = hashCode * 31 ^ LifeStyle.GetHashCode();
 
             return hashCode;
         }
