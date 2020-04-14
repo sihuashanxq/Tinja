@@ -216,7 +216,7 @@ namespace Tinja.Core.Injection.Dependencies
                 return callDependElement;
             }
 
-            var providerAttribute = parameterInfo.GetCustomAttribute<ValuerProviderAttribute>();
+            var providerAttribute = parameterInfo.GetCustomAttribute<ValueProviderAttribute>();
             if (providerAttribute != null)
             {
                 return new ValueProviderCallDependElement()
@@ -285,7 +285,7 @@ namespace Tinja.Core.Injection.Dependencies
                 return propertyBinding;
             }
 
-            var providerAttribute = propertyInfo.GetCustomAttribute<ValuerProviderAttribute>();
+            var providerAttribute = propertyInfo.GetCustomAttribute<ValueProviderAttribute>();
             if (providerAttribute != null)
             {
                 return new ValueProviderCallDependElement()
