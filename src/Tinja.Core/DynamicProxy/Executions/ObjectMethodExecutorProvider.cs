@@ -20,7 +20,7 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (_executors.TryGetValue(methodInfo, out var executor))

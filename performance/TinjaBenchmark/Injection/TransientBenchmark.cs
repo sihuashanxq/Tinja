@@ -3,7 +3,6 @@ using BenchmarkDotNet.Attributes;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core;
-using Tinja.Core.Extensions;
 using Tinja.Core.Injection;
 
 namespace TinjaBenchmark.Injection

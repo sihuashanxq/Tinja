@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tinja.Abstractions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.DataAnnotations;
@@ -22,22 +23,32 @@ namespace Tinja.Core.Injection.Dependencies
         public CallDependElementBuilder(IServiceEntryFactory serviceEntryFactory, IInjectionConfiguration configuration)
         {
             CallScope = new CallDependElementScope();
-            Configuration = configuration ?? throw new NullReferenceException(nameof(configuration));
-            ServiceEntryFactory = serviceEntryFactory ?? throw new NullReferenceException(nameof(serviceEntryFactory));
+            Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            ServiceEntryFactory = serviceEntryFactory ?? throw new ArgumentNullException(nameof(serviceEntryFactory));
         }
 
         public virtual CallDependElement Build(Type serviceType)
         {
-            var entry = ServiceEntryFactory.CreateEntry(serviceType);
+            return Build(serviceType, null);
+        }
+
+        public virtual CallDependElement Build(Type serviceType, string tag)
+        {
+            var entry = ServiceEntryFactory.CreateEntry(serviceType, tag);
             if (entry == null)
             {
                 return null;
             }
 
+            if (entry is ServiceTypeEntry typeEntry)
+            {
+                CheckCircularDependency(typeEntry);
+            }
+
             return Build(entry);
         }
 
-        protected virtual CallDependElement Build(ServiceEntry entry)
+        private CallDependElement Build(ServiceEntry entry)
         {
             switch (entry)
             {
@@ -57,13 +68,32 @@ namespace Tinja.Core.Injection.Dependencies
             throw new InvalidOperationException();
         }
 
+        private CallDependElement BuildTags(Type serviceType, BindTagAttribute bindTagAttribute)
+        {
+            if (bindTagAttribute != null && bindTagAttribute.Tags != null)
+            {
+                foreach (var tag in bindTagAttribute.Tags.Where(item => item != null))
+                {
+                    var callDependElement = Build(serviceType, tag);
+                    if (callDependElement != null)
+                    {
+                        return callDependElement;
+                    }
+                }
+
+                return null;
+            }
+
+            return Build(serviceType, null);
+        }
+
         protected virtual CallDependElement BuildDelegate(ServiceDelegateEntry entry)
         {
             return new DelegateCallDependElement()
             {
                 Delegate = entry.Delegate,
                 LifeStyle = entry.LifeStyle,
-                ServiceCacheId = entry.ServiceCacheId,
+                ServiceId = entry.ServiceCacheId,
                 ServiceType = entry.ServiceType
             };
         }
@@ -75,7 +105,7 @@ namespace Tinja.Core.Injection.Dependencies
                 Instance = entry.Instance,
                 LifeStyle = entry.LifeStyle,
                 ServiceType = entry.ServiceType,
-                ServiceCacheId = entry.ServiceCacheId
+                ServiceId = entry.ServiceCacheId
             };
         }
 
@@ -98,126 +128,126 @@ namespace Tinja.Core.Injection.Dependencies
                 ItemType = entry.ItemType,
                 LifeStyle = entry.LifeStyle,
                 ServiceType = entry.ServiceType,
-                ServiceCacheId = entry.ServiceCacheId
+                ServiceId = entry.ServiceCacheId
             };
         }
 
         protected virtual CallDependElement BuildType(ServiceTypeEntry entry)
         {
-            var callParamters = new Dictionary<ParameterInfo, CallDependElement>();
-            var callDependElement = BuildTypeWithContainerProvider(entry, callParamters) ??
-                                    BuildTypeWithContainerAndAnnotaionProvider(entry, callParamters) ??
-                                    BuildTypeWithAnyProvider(entry, callParamters);
-
+            var callDependElement = BuildType(entry, false) ?? BuildType(entry, true);
             if (callDependElement == null)
             {
-                throw new InvalidOperationException($"Cannot match a valid constructor for type:{entry.ImplementationType.FullName}!");
-            }
-
-            using (CallScope.Begin(entry.ImplementationType))
-            {
-                SetProperties(callDependElement);
+                throw new InvalidOperationException($"Cannot match a constructor for type:{entry.ImplementationType.FullName}!");
             }
 
             return callDependElement;
         }
 
-        protected virtual TypeCallDependElement BuildTypeWithAnyProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
+        protected virtual TypeCallDependElement BuildType(ServiceTypeEntry entry, bool useDefauftParameterValue)
         {
+            var callDependElement = default(TypeCallDependElement);
+
             using (CallScope.Begin(entry.ImplementationType))
             {
-                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+                foreach (var constructorInfo in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
                 {
-                    var paramterInfos = item.GetParameters();
-                    if (paramterInfos.Any(parameterInfo
-                        => !SetParameterWithContainer(parameterInfo, parameters) &&
-                           !SetParameterWithValueProvider(item, parameterInfo, parameters) &&
-                           !SetParameterWithDefaultValue(parameterInfo, parameters)))
+                    var parameterBindings = BindConstructorParameters(constructorInfo, useDefauftParameterValue);
+                    if (parameterBindings == null)
                     {
-                        parameters.Clear();
                         continue;
                     }
 
-                    return new TypeCallDependElement()
+                    callDependElement = new TypeCallDependElement()
                     {
-                        Parameters = parameters,
-                        ConstructorInfo = item,
+                        ParameterBindings = parameterBindings,
+                        ConstructorInfo = constructorInfo,
                         LifeStyle = entry.LifeStyle,
                         ServiceType = entry.ServiceType,
-                        ServiceCacheId = entry.ServiceCacheId,
+                        ServiceId = entry.ServiceCacheId,
                         ImplementationType = entry.ImplementationType
                     };
+
+                    break;
                 }
-
-                return null;
             }
-        }
 
-        protected virtual TypeCallDependElement BuildTypeWithContainerProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
-        {
-            using (CallScope.Begin(entry.ImplementationType))
+            if (callDependElement != null)
             {
-                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+                using (CallScope.Begin(entry.ImplementationType))
                 {
-                    var parameterInfos = item.GetParameters();
-                    if (parameterInfos.Any(parameterInfo => !SetParameterWithContainer(parameterInfo, parameters)))
-                    {
-                        parameters.Clear();
-                        continue;
-                    }
-
-                    return new TypeCallDependElement()
-                    {
-                        Parameters = parameters,
-                        ConstructorInfo = item,
-                        LifeStyle = entry.LifeStyle,
-                        ServiceType = entry.ServiceType,
-                        ServiceCacheId = entry.ServiceCacheId,
-                        ImplementationType = entry.ImplementationType
-                    };
+                    callDependElement.PropertyBindings = BindProperties(callDependElement);
                 }
-
-                return null;
             }
+
+            return callDependElement;
         }
 
-        protected virtual TypeCallDependElement BuildTypeWithContainerAndAnnotaionProvider(ServiceTypeEntry entry, Dictionary<ParameterInfo, CallDependElement> parameters)
+        private Dictionary<ParameterInfo, CallDependElement> BindConstructorParameters(ConstructorInfo constructorInfo, bool useDefaultValue)
         {
-            using (CallScope.Begin(entry.ImplementationType))
-            {
-                foreach (var item in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
-                {
-                    var paramterInfos = item.GetParameters();
-                    if (paramterInfos.Any(parameterInfo
-                        => !SetParameterWithContainer(parameterInfo, parameters) &&
-                           !SetParameterWithValueProvider(item, parameterInfo, parameters)))
-                    {
-                        parameters.Clear();
-                        continue;
-                    }
+            var parameterBindings = new Dictionary<ParameterInfo, CallDependElement>();
+            var parameterInfos = constructorInfo.GetParameters();
 
-                    return new TypeCallDependElement()
-                    {
-                        Parameters = parameters,
-                        ConstructorInfo = item,
-                        LifeStyle = entry.LifeStyle,
-                        ServiceType = entry.ServiceType,
-                        ServiceCacheId = entry.ServiceCacheId,
-                        ImplementationType = entry.ImplementationType
-                    };
+            foreach (var item in parameterInfos)
+            {
+                var parameterBinding = BindConstructorParameter(constructorInfo, item, useDefaultValue);
+                if (parameterBinding == null)
+                {
+                    parameterBindings.Clear();
+                    break;
                 }
 
-                return null;
+                parameterBindings[item] = parameterBinding;
             }
+
+            return parameterBindings.Count == parameterInfos.Length ? parameterBindings : null;
         }
 
-        protected void SetProperties(TypeCallDependElement callDependElement)
+        private CallDependElement BindConstructorParameter(ConstructorInfo constructorInfo, ParameterInfo parameterInfo, bool useDefaultValue = false)
+        {
+            if (parameterInfo == null)
+            {
+                throw new ArgumentException(nameof(parameterInfo));
+            }
+
+            var bindTagAttribute = parameterInfo.GetCustomAttribute<BindTagAttribute>();
+            var callDependElement = BuildTags(parameterInfo.ParameterType, bindTagAttribute);
+            if (callDependElement != null)
+            {
+                return callDependElement;
+            }
+
+            var providerAttribute = parameterInfo.GetCustomAttribute<ValuerProviderAttribute>();
+            if (providerAttribute != null)
+            {
+                return new ValueProviderCallDependElement()
+                {
+                    LifeStyle = ServiceLifeStyle.Transient,
+                    Provider = r => providerAttribute.GetValue(r, parameterInfo),
+                    ServiceType = parameterInfo.ParameterType,
+                };
+            }
+
+            if (useDefaultValue && parameterInfo.HasDefaultValue)
+            {
+                return new ConstantCallDependElement()
+                {
+                    Constant = parameterInfo.DefaultValue,
+                    LifeStyle = ServiceLifeStyle.Transient,
+                    ServiceType = parameterInfo.ParameterType
+                };
+            }
+
+            return null;
+        }
+
+        private Dictionary<PropertyInfo, CallDependElement> BindProperties(TypeCallDependElement callDependElement)
         {
             if (callDependElement == null || !Configuration.EnablePropertyInjection)
             {
-                return;
+                return null;
             }
 
+            var propertyBindings = new Dictionary<PropertyInfo, CallDependElement>();
             var propertyInfos = callDependElement.ImplementationType
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(item => item.CanWrite && item.CanRead)
@@ -227,7 +257,11 @@ namespace Tinja.Core.Injection.Dependencies
             {
                 try
                 {
-                    SetProperty(propertyInfo, callDependElement.Properties);
+                    var propertyBinding = BindProperty(propertyInfo);
+                    if (propertyBinding != null)
+                    {
+                        propertyBindings[propertyInfo] = propertyBinding;
+                    }
                 }
                 catch (CallCircularException)
                 {
@@ -238,128 +272,34 @@ namespace Tinja.Core.Injection.Dependencies
                     //skip error
                 }
             }
+
+            return propertyBindings;
         }
 
-        protected void SetProperty(PropertyInfo propertyInfo, Dictionary<PropertyInfo, CallDependElement> properties)
+        private CallDependElement BindProperty(PropertyInfo propertyInfo)
         {
-            if (propertyInfo == null)
+            var bindTagAttribute = propertyInfo.GetCustomAttribute<BindTagAttribute>();
+            var propertyBinding = BuildTags(propertyInfo.PropertyType, bindTagAttribute);
+            if (propertyBinding != null)
             {
-                throw new NullReferenceException(nameof(propertyInfo));
+                return propertyBinding;
             }
 
-            if (properties == null)
+            var providerAttribute = propertyInfo.GetCustomAttribute<ValuerProviderAttribute>();
+            if (providerAttribute != null)
             {
-                throw new NullReferenceException(nameof(properties));
+                return new ValueProviderCallDependElement()
+                {
+                    LifeStyle = ServiceLifeStyle.Transient,
+                    Provider = r => providerAttribute.GetValue(r, propertyInfo),
+                    ServiceType = propertyInfo.PropertyType
+                };
             }
 
-            var entry = ServiceEntryFactory.CreateEntry(propertyInfo.PropertyType);
-            if (entry == null)
-            {
-                return;
-            }
-
-            if (entry is ServiceTypeEntry typeEntry)
-            {
-                CheckCircularDependency(typeEntry);
-            }
-
-            var callDependElement = Build(entry);
-            if (callDependElement != null)
-            {
-                properties[propertyInfo] = callDependElement;
-            }
+            return null;
         }
 
-        protected bool SetParameterWithContainer(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
-        {
-            if (parameterInfo == null)
-            {
-                throw new NullReferenceException(nameof(parameterInfo));
-            }
-
-            if (parameters == null)
-            {
-                throw new NullReferenceException(nameof(parameters));
-            }
-
-            var entry = ServiceEntryFactory.CreateEntry(parameterInfo.ParameterType);
-            if (entry == null)
-            {
-                return false;
-            }
-
-            if (entry is ServiceTypeEntry typeEntry)
-            {
-                CheckCircularDependency(typeEntry);
-            }
-
-            var element = Build(entry);
-            if (element == null)
-            {
-                return false;
-            }
-
-            parameters[parameterInfo] = element;
-
-            return true;
-        }
-
-        protected bool SetParameterWithDefaultValue(ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
-        {
-            if (parameterInfo == null)
-            {
-                throw new NullReferenceException(nameof(parameterInfo));
-            }
-
-            if (parameters == null)
-            {
-                throw new NullReferenceException(nameof(parameters));
-            }
-
-            if (!parameterInfo.HasDefaultValue)
-            {
-                return false;
-            }
-
-            parameters[parameterInfo] = new ConstantCallDependElement()
-            {
-                Constant = parameterInfo.DefaultValue,
-                LifeStyle = ServiceLifeStyle.Transient,
-                ServiceType = parameterInfo.ParameterType
-            };
-
-            return true;
-        }
-
-        protected bool SetParameterWithValueProvider(ConstructorInfo constructorInfo, ParameterInfo parameterInfo, Dictionary<ParameterInfo, CallDependElement> parameters)
-        {
-            if (parameterInfo == null)
-            {
-                throw new NullReferenceException(nameof(parameterInfo));
-            }
-
-            if (parameters == null)
-            {
-                throw new NullReferenceException(nameof(parameters));
-            }
-
-            var valueProvider = parameterInfo.GetCustomAttribute<ValuerProviderAttribute>();
-            if (valueProvider == null)
-            {
-                return false;
-            }
-
-            parameters[parameterInfo] = new ValueProviderCallDependElement()
-            {
-                LifeStyle = ServiceLifeStyle.Transient,
-                GetValue = r => valueProvider.GetValue(r, constructorInfo, parameterInfo),
-                ServiceType = parameterInfo.ParameterType,
-            };
-
-            return true;
-        }
-
-        protected void CheckCircularDependency(ServiceTypeEntry typeEntry)
+        private void CheckCircularDependency(ServiceTypeEntry typeEntry)
         {
             if (CallScope.Contains(typeEntry.ImplementationType))
             {

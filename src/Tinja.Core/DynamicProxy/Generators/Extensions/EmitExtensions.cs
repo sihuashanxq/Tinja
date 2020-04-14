@@ -21,12 +21,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (boxType == null)
             {
-                throw new NullReferenceException(nameof(boxType));
+                throw new ArgumentNullException(nameof(boxType));
             }
 
             if (boxType.IsValueType)
@@ -41,12 +41,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (valueType == null)
             {
-                throw new NullReferenceException(nameof(valueType));
+                throw new ArgumentNullException(nameof(valueType));
             }
 
             if (valueType.IsByRef)
@@ -63,12 +63,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (eventInfo == null)
             {
-                throw new NullReferenceException(nameof(eventInfo));
+                throw new ArgumentNullException(nameof(eventInfo));
             }
 
             ilGen.Emit(OpCodes.Ldtoken, eventInfo.DeclaringType);
@@ -80,12 +80,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             ilGen.Emit(OpCodes.Ldtoken, methodInfo);
@@ -97,12 +97,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (propertyInfo == null)
             {
-                throw new NullReferenceException(nameof(propertyInfo));
+                throw new ArgumentNullException(nameof(propertyInfo));
             }
 
             ilGen.Emit(OpCodes.Ldtoken, propertyInfo.DeclaringType);
@@ -115,12 +115,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (!methodInfo.IsGenericMethod)
@@ -154,12 +154,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (valueType == null)
             {
-                throw new NullReferenceException(nameof(valueType));
+                throw new ArgumentNullException(nameof(valueType));
             }
 
             if (valueType == typeof(void))
@@ -223,12 +223,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (valueType == null)
             {
-                throw new NullReferenceException(nameof(valueType));
+                throw new ArgumentNullException(nameof(valueType));
             }
 
             if (!valueType.IsByRef)
@@ -289,12 +289,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (arrayElementType == null)
             {
-                throw new NullReferenceException(nameof(arrayElementType));
+                throw new ArgumentNullException(nameof(arrayElementType));
             }
 
             ilGen.Emit(OpCodes.Ldc_I4, length);
@@ -307,12 +307,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (parameters == null)
             {
-                throw new NullReferenceException(nameof(parameters));
+                throw new ArgumentNullException(nameof(parameters));
             }
 
             ilGen.NewArray(typeof(object), parameters.Length);
@@ -336,12 +336,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (parameters == null)
             {
-                throw new NullReferenceException(nameof(parameters));
+                throw new ArgumentNullException(nameof(parameters));
             }
 
             for (var argIndex = 0; argIndex < parameters.Length; argIndex++)
@@ -364,22 +364,22 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (loadArrayInstance == null)
             {
-                throw new NullReferenceException(nameof(loadArrayInstance));
+                throw new ArgumentNullException(nameof(loadArrayInstance));
             }
 
             if (elementType == null)
             {
-                throw new NullReferenceException(nameof(elementType));
+                throw new ArgumentNullException(nameof(elementType));
             }
 
             if (arrayIndex < 0)
             {
-                throw new IndexOutOfRangeException(nameof(arrayIndex));
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
             }
 
             loadArrayInstance(ilGen);
@@ -394,22 +394,22 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (loadArrayInstance == null)
             {
-                throw new NullReferenceException(nameof(loadArrayInstance));
+                throw new ArgumentNullException(nameof(loadArrayInstance));
             }
 
             if (elementType == null)
             {
-                throw new NullReferenceException(nameof(elementType));
+                throw new ArgumentNullException(nameof(elementType));
             }
 
             if (arrayIndex < 0)
             {
-                throw new IndexOutOfRangeException(nameof(arrayIndex));
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
             }
 
             loadArrayInstance(ilGen);
@@ -425,17 +425,17 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (fieldBuilder == null)
             {
-                throw new NullReferenceException(nameof(fieldBuilder));
+                throw new ArgumentNullException(nameof(fieldBuilder));
             }
 
             if (loadFieldValue == null)
             {
-                throw new NullReferenceException(nameof(loadFieldValue));
+                throw new ArgumentNullException(nameof(loadFieldValue));
             }
 
             ilGen.This();
@@ -449,12 +449,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (fieldBuilder == null)
             {
-                throw new NullReferenceException(nameof(fieldBuilder));
+                throw new ArgumentNullException(nameof(fieldBuilder));
             }
 
             ilGen.This();
@@ -467,12 +467,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (fieldBuilder == null)
             {
-                throw new NullReferenceException(nameof(fieldBuilder));
+                throw new ArgumentNullException(nameof(fieldBuilder));
             }
 
             loadFieldValue(ilGen);
@@ -485,12 +485,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (fieldBuilder == null)
             {
-                throw new NullReferenceException(nameof(fieldBuilder));
+                throw new ArgumentNullException(nameof(fieldBuilder));
             }
 
             ilGen.Emit(OpCodes.Ldsfld, fieldBuilder);
@@ -502,12 +502,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (argumentStuffers != null)
@@ -527,12 +527,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (constructorInfo == null)
             {
-                throw new NullReferenceException(nameof(constructorInfo));
+                throw new ArgumentNullException(nameof(constructorInfo));
             }
 
             ilGen.This();
@@ -554,12 +554,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (argumentStuffers != null)
@@ -579,12 +579,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (constructor == null)
             {
-                throw new NullReferenceException(nameof(constructor));
+                throw new ArgumentNullException(nameof(constructor));
             }
 
             if (argumentStuffers != null)
@@ -604,12 +604,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (argumentIndex < 0 || argumentIndex > ushort.MaxValue)
             {
-                throw new IndexOutOfRangeException(nameof(argumentIndex));
+                throw new ArgumentOutOfRangeException(nameof(argumentIndex));
             }
 
             switch (argumentIndex)
@@ -638,7 +638,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             ilGen.Emit(OpCodes.Ldarg_0);
@@ -650,7 +650,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             ilGen.Emit(OpCodes.Ret);
@@ -662,12 +662,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (localBuilder == null)
             {
-                throw new NullReferenceException(nameof(localBuilder));
+                throw new ArgumentNullException(nameof(localBuilder));
             }
 
             ilGen.Emit(OpCodes.Stloc, localBuilder);
@@ -679,12 +679,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (localBuilder == null)
             {
-                throw new NullReferenceException(nameof(localBuilder));
+                throw new ArgumentNullException(nameof(localBuilder));
             }
 
             ilGen.Emit(OpCodes.Ldloca, localBuilder);
@@ -696,12 +696,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (localBuilder == null)
             {
-                throw new NullReferenceException(nameof(localBuilder));
+                throw new ArgumentNullException(nameof(localBuilder));
             }
 
             ilGen.Emit(OpCodes.Ldloc, localBuilder);
@@ -713,12 +713,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (slot < 0)
             {
-                throw new IndexOutOfRangeException(nameof(slot));
+                throw new ArgumentOutOfRangeException(nameof(slot));
             }
 
             switch (slot)
@@ -747,12 +747,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (type == null)
             {
-                throw new NullReferenceException(nameof(type));
+                throw new ArgumentNullException(nameof(type));
             }
 
             ilGen.Emit(OpCodes.Ldtoken, type);
@@ -764,12 +764,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (methodInfo.IsVoidMethod())
@@ -804,12 +804,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (ilGen == null)
             {
-                throw new NullReferenceException(nameof(ilGen));
+                throw new ArgumentNullException(nameof(ilGen));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (methodInfo.ReturnType == typeof(Task))

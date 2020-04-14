@@ -9,7 +9,6 @@ using Tinja.Core.DynamicProxy.Configurations;
 using Tinja.Core.DynamicProxy.Executions;
 using Tinja.Core.DynamicProxy.Metadatas;
 using Tinja.Core.DynamicProxy.Registrations;
-using Tinja.Core.Extensions;
 
 namespace Tinja.Core.DynamicProxy
 {
@@ -19,7 +18,7 @@ namespace Tinja.Core.DynamicProxy
         {
             if (container == null)
             {
-                throw new NullReferenceException(nameof(container));
+                throw new ArgumentNullException(nameof(container));
             }
 
             var configuration = new DynamicProxyConfiguration();
@@ -43,12 +42,12 @@ namespace Tinja.Core.DynamicProxy
         {
             if (container == null)
             {
-                throw new NullReferenceException(nameof(container));
+                throw new ArgumentNullException(nameof(container));
             }
 
             if (configuration == null)
             {
-                throw new NullReferenceException(nameof(configuration));
+                throw new ArgumentNullException(nameof(configuration));
             }
 
             if (configuration.Registrations.Count == 0)

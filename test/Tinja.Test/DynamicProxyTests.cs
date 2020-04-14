@@ -6,8 +6,6 @@ using Tinja.Abstractions.DynamicProxy.Registrations;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core;
 using Tinja.Core.DynamicProxy;
-using Tinja.Core.Extensions;
-
 using Xunit;
 
 namespace Tinja.Test

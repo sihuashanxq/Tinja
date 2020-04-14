@@ -14,12 +14,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (propertyInfo == null)
             {
-                throw new NullReferenceException(nameof(propertyInfo));
+                throw new ArgumentNullException(nameof(propertyInfo));
             }
 
             foreach (var customAttriute in propertyInfo

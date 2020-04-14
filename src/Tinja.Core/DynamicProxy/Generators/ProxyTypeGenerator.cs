@@ -208,7 +208,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                 var setter = BuildMethodBody(propertyInfo.SetMethod, propertyInfo);
                 if (setter == null)
                 {
-                    throw new NullReferenceException(nameof(setter));
+                    throw new ArgumentNullException(nameof(setter));
                 }
 
                 propertyBuilder.SetSetMethod(setter);
@@ -219,7 +219,7 @@ namespace Tinja.Core.DynamicProxy.Generators
                 var getter = BuildMethodBody(propertyInfo.GetMethod, propertyInfo);
                 if (getter == null)
                 {
-                    throw new NullReferenceException(nameof(getter));
+                    throw new ArgumentNullException(nameof(getter));
                 }
 
                 propertyBuilder.SetGetMethod(getter);

@@ -9,98 +9,87 @@ namespace Tinja.Core.Injection
 {
     public class ServiceEntryFactory : IServiceEntryFactory
     {
-        private readonly ServiceCacheIdProvider _serviceCacheIdProvider;
+        private readonly ServiceIdProvider _serviceIdProvider;
 
         private readonly Dictionary<Type, List<ServiceDescriptor>> _descriptors;
 
         internal ServiceEntryFactory()
         {
-            _serviceCacheIdProvider = new ServiceCacheIdProvider();
+            _serviceIdProvider = new ServiceIdProvider();
             _descriptors = new Dictionary<Type, List<ServiceDescriptor>>();
         }
 
-        internal void Populate(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        internal void Initialize(IDictionary<Type, List<ServiceDescriptor>> serviceDescriptors, IServiceResolver serviceResolver)
         {
-            if (components == null)
+            if (serviceDescriptors == null)
             {
-                throw new NullReferenceException(nameof(components));
+                throw new ArgumentNullException(nameof(serviceDescriptors));
             }
 
             if (serviceResolver == null)
             {
-                throw new NullReferenceException(nameof(serviceResolver));
+                throw new ArgumentNullException(nameof(serviceResolver));
             }
 
-            PopulateBegin(components, serviceResolver);
-            PopulateEnd(serviceResolver);
+            InitializeDescriptors(serviceDescriptors, serviceResolver);
         }
 
-        protected void PopulateBegin(IDictionary<Type, List<Component>> components, IServiceResolver serviceResolver)
+        private void InitializeDescriptors(IDictionary<Type, List<ServiceDescriptor>> components, IServiceResolver serviceResolver)
         {
             foreach (var item in components)
             {
-                _descriptors[item.Key] = item.Value.Select(component => new ServiceDescriptor(component)).ToList();
+                _descriptors[item.Key] = item.Value.Select(descriptor => descriptor.Clone()).ToList();
             }
+
+            InitializeProxyImplementations(serviceResolver);
+            ValidateImplementations();
         }
 
-        protected void PopulateEnd(IServiceResolver serviceResolver)
+        private void ValidateImplementations()
         {
-            var descriptors = _descriptors.SelectMany(item => item.Value).Where(item => item.ImplementationType != null).ToArray();
-            if (descriptors.Length != 0)
+            foreach (var descriptor in _descriptors.Values.SelectMany(item => item).Where(item => item.ImplementationType != null))
             {
-                ReplaceProxyImplementationType(serviceResolver, descriptors);
-            }
-
-            foreach (var item in descriptors)
-            {
-                if (item.ImplementationType.IsAbstract)
+                if (descriptor.ImplementationType.IsAbstract)
                 {
-                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Abstract when have any Interceptors!");
-                }
-
-                if (item.ImplementationType.IsInterface)
-                {
-                    throw new InvalidOperationException($"ImplementationType:{item.ImplementationType.FullName} not can be Interface when have any Interceptors!");
+                    throw new InvalidOperationException($"ImplementationType:{descriptor.ImplementationType.FullName} not can be Abstract when have any Interceptors!");
                 }
             }
         }
 
-        private static void ReplaceProxyImplementationType(IServiceResolver serviceResolver, ServiceDescriptor[] descriptors)
+        private void InitializeProxyImplementations(IServiceResolver serviceResolver)
         {
             var proxyTypeFactory = serviceResolver.ResolveService<IProxyTypeFactory>();
-            if (proxyTypeFactory == null)
+            if (proxyTypeFactory != null)
             {
-                return;
-            }
-
-            foreach (var item in descriptors)
-            {
-                var proxyImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
-                if (proxyImplementationType != null)
+                foreach (var item in _descriptors.SelectMany(item => item.Value).Where(item => item.ImplementationType != null))
                 {
-                    item.ImplementationType = proxyImplementationType;
+                    var newImplementationType = proxyTypeFactory.CreateProxyType(item.ImplementationType);
+                    if (newImplementationType != null)
+                    {
+                        item.ImplementationType = newImplementationType;
+                    }
                 }
             }
         }
 
-        public virtual ServiceEntry CreateEntry(Type serviceType)
+        public virtual ServiceEntry CreateEntry(Type serviceType, string tag)
         {
             return
-                CreateEntryDirectly(serviceType) ??
-                CreateEntryGenerically(serviceType) ??
-                CreateEnumerableEntry(serviceType);
+                CreateEntryDirectly(serviceType, tag) ??
+                CreateEntryGenerically(serviceType, tag) ??
+                CreateEnumerableEntry(serviceType, tag);
         }
 
-        protected ServiceEntry CreateEntry(Type serviceType, ServiceDescriptor descriptor)
+        private ServiceEntry CreateEntry(Type serviceType, ServiceDescriptor descriptor)
         {
             if (serviceType == null)
             {
-                throw new NullReferenceException(nameof(serviceType));
+                throw new ArgumentNullException(nameof(serviceType));
             }
 
             if (descriptor == null)
             {
-                throw new NullReferenceException(nameof(descriptor));
+                throw new ArgumentNullException(nameof(descriptor));
             }
 
             if (descriptor.ImplementationFactory != null)
@@ -110,7 +99,7 @@ namespace Tinja.Core.Injection
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
                     Delegate = descriptor.ImplementationFactory,
-                    ServiceCacheId = GetServiceCacheId(descriptor.ImplementationFactory, descriptor.LifeStyle)
+                    ServiceCacheId = GetServiceId(descriptor.ImplementationFactory, descriptor.LifeStyle)
                 };
             }
 
@@ -121,7 +110,7 @@ namespace Tinja.Core.Injection
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
                     Instance = descriptor.ImplementationInstance,
-                    ServiceCacheId = GetServiceCacheId(descriptor.ImplementationInstance, descriptor.LifeStyle)
+                    ServiceCacheId = GetServiceId(descriptor.ImplementationInstance, descriptor.LifeStyle)
                 };
             }
 
@@ -136,15 +125,15 @@ namespace Tinja.Core.Injection
                 ServiceType = serviceType,
                 LifeStyle = descriptor.LifeStyle,
                 ImplementationType = implementationType,
-                ServiceCacheId = GetServiceCacheId(implementationType, descriptor.LifeStyle)
+                ServiceCacheId = GetServiceId(implementationType, descriptor.LifeStyle)
             };
         }
 
-        protected virtual ServiceEntry CreateEntryDirectly(Type serviceType)
+        private ServiceEntry CreateEntryDirectly(Type serviceType, string tag)
         {
             if (_descriptors.TryGetValue(serviceType, out var services))
             {
-                var entry = services?.LastOrDefault();
+                var entry = services?.LastOrDefault(item => tag == null || item.Tags.Contains(tag));
                 if (entry == null)
                 {
                     return null;
@@ -156,7 +145,7 @@ namespace Tinja.Core.Injection
             return null;
         }
 
-        protected virtual ServiceEntry CreateEntryGenerically(Type serviceType)
+        private ServiceEntry CreateEntryGenerically(Type serviceType, string tag)
         {
             if (!serviceType.IsConstructedGenericType)
             {
@@ -165,7 +154,7 @@ namespace Tinja.Core.Injection
 
             if (_descriptors.TryGetValue(serviceType.GetGenericTypeDefinition(), out var descriptors))
             {
-                var descriptor = descriptors?.LastOrDefault();
+                var descriptor = descriptors?.LastOrDefault(item => tag == null || item.Tags.Contains(tag));
                 if (descriptor == null)
                 {
                     return null;
@@ -177,7 +166,7 @@ namespace Tinja.Core.Injection
             return null;
         }
 
-        protected virtual ServiceEntry CreateEnumerableEntry(Type serviceType)
+        private ServiceEntry CreateEnumerableEntry(Type serviceType, string serviceKey)
         {
             if (!serviceType.IsConstructedGenericType || serviceType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
             {
@@ -185,7 +174,7 @@ namespace Tinja.Core.Injection
             }
 
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
-            var elements = CreateEnumerableItemsEntry(elementType).Reverse().ToList();
+            var elements = CreateEnumerableElementEntry(elementType, serviceKey).Reverse().ToList();
 
             return new ServiceEnumerableEntry()
             {
@@ -196,32 +185,34 @@ namespace Tinja.Core.Injection
             };
         }
 
-        protected virtual IEnumerable<ServiceEntry> CreateEnumerableItemsEntry(Type serviceType)
+        private IEnumerable<ServiceEntry> CreateEnumerableElementEntry(Type serviceType, string serviceKey)
         {
             var enumerableItems = new List<ServiceEntry>();
-            var enumerableEntry = CreateEnumerableEntry(serviceType);
+            var enumerableEntry = CreateEnumerableEntry(serviceType, serviceKey);
             if (enumerableEntry != null)
             {
                 enumerableItems.Add(enumerableEntry);
             }
 
-            enumerableItems.AddRange(CreateEnumerableItemsEntryDirectly(serviceType));
-            enumerableItems.AddRange(CreateEnumerableItemsEntryGenerically(serviceType));
+            enumerableItems.AddRange(CreateEnumerableItemsEntryDirectly(serviceType, serviceKey));
+            enumerableItems.AddRange(CreateEnumerableItemsEntryGenerically(serviceType, serviceKey));
 
             return enumerableItems;
         }
 
-        protected virtual IEnumerable<ServiceEntry> CreateEnumerableItemsEntryDirectly(Type serviceType)
+        private IEnumerable<ServiceEntry> CreateEnumerableItemsEntryDirectly(Type serviceType, string tag)
         {
             if (_descriptors.TryGetValue(serviceType, out var descriptors))
             {
-                return descriptors.Select(i => CreateEntry(serviceType, i));
+                return descriptors
+                    .Where(item => tag == null || item.Tags.Contains(tag))
+                    .Select(i => CreateEntry(serviceType, i));
             }
 
             return ServiceEntry.EmptyEntries;
         }
 
-        protected virtual IEnumerable<ServiceEntry> CreateEnumerableItemsEntryGenerically(Type serviceType)
+        private IEnumerable<ServiceEntry> CreateEnumerableItemsEntryGenerically(Type serviceType, string tag)
         {
             if (!serviceType.IsConstructedGenericType)
             {
@@ -230,7 +221,9 @@ namespace Tinja.Core.Injection
 
             if (_descriptors.TryGetValue(serviceType.GetGenericTypeDefinition(), out var descriptors))
             {
-                return descriptors.Select(i => CreateEntry(serviceType, i));
+                return descriptors
+                    .Where(item => tag == null || item.Tags.Contains(tag))
+                    .Select(i => CreateEntry(serviceType, i));
             }
 
             return ServiceEntry.EmptyEntries;
@@ -240,12 +233,12 @@ namespace Tinja.Core.Injection
         {
             if (serviceType == null)
             {
-                throw new NullReferenceException(nameof(serviceType));
+                throw new ArgumentNullException(nameof(serviceType));
             }
 
             if (implementationType == null)
             {
-                throw new NullReferenceException(nameof(implementationType));
+                throw new ArgumentNullException(nameof(implementationType));
             }
 
             if (serviceType.IsConstructedGenericType && implementationType.IsGenericTypeDefinition)
@@ -256,19 +249,19 @@ namespace Tinja.Core.Injection
             return implementationType;
         }
 
-        private int GetServiceCacheId(object serviceKey, ServiceLifeStyle lifeStyle)
+        private int GetServiceId(object serviceImplementation, ServiceLifeStyle lifeStyle)
         {
             if (lifeStyle == ServiceLifeStyle.Transient)
             {
                 return 0;
             }
 
-            if (serviceKey == null)
+            if (serviceImplementation == null)
             {
-                throw new NullReferenceException(nameof(serviceKey));
+                throw new ArgumentNullException(nameof(serviceImplementation));
             }
 
-            return _serviceCacheIdProvider.GetCacheId(serviceKey);
+            return _serviceIdProvider.GetServiceId(serviceImplementation);
         }
     }
 }

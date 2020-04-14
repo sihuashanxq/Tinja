@@ -25,7 +25,7 @@ namespace Tinja.Core.Injection
         {
             if (factory == null)
             {
-                throw new NullReferenceException(nameof(factory));
+                throw new ArgumentNullException(nameof(factory));
             }
 
             Scope = new ServiceLifeScope(this);
@@ -40,16 +40,29 @@ namespace Tinja.Core.Injection
         {
             if (serviceResolver == null)
             {
-                throw new NullReferenceException(nameof(serviceResolver));
+                throw new ArgumentNullException(nameof(serviceResolver));
             }
 
             Provider = serviceResolver.Provider;
             Scope = new ServiceLifeScope(this, serviceResolver.Scope);
         }
 
+        /// <summary>
+        /// </summary>
+        /// <param name="serviceType"></param>
+        /// <returns></returns>
         public object ResolveService(Type serviceType)
         {
             return Provider.Get(serviceType)?.Invoke(this, Scope);
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <param name="serviceType"></param>
+        /// <returns></returns>
+        public object ResolveService(Type serviceType, string tag)
+        {
+            return Provider.Get(serviceType, tag)?.Invoke(this, Scope);
         }
 
         public void Dispose()

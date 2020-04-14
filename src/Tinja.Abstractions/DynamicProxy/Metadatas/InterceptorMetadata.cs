@@ -23,11 +23,11 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
         {
             if (attribute is IInterceptor interceptor)
             {
-                Initialize((m, next) => interceptor.InvokeAsync(m, next), target, attribute.Order);
+                Initialize((m, next) => interceptor.InvokeAsync(m, next), target, attribute.Priority);
             }
             else
             {
-                Initialize(attribute.InterceptorType, target, attribute.Order);
+                Initialize(attribute.InterceptorType, target, attribute.Priority);
             }
         }
 
@@ -45,24 +45,24 @@ namespace Tinja.Abstractions.DynamicProxy.Metadatas
         {
             if (interceptorType == null)
             {
-                throw new NullReferenceException(nameof(interceptorType));
+                throw new ArgumentNullException(nameof(interceptorType));
             }
 
             if (interceptorType.IsNotType<IInterceptor>())
             {
-                throw new InvalidOperationException($"Type:{InterceptorType.FullName} must be an IInterceptor");
+                throw new ArgumentException($"Type:{InterceptorType.FullName} must be an IInterceptor");
             }
 
             Order = order;
-            Target = target ?? throw new NullReferenceException(nameof(target));
+            Target = target ?? throw new ArgumentNullException(nameof(target));
             InterceptorType = interceptorType;
         }
 
         private void Initialize(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> handler, MemberInfo target, long? order = null)
         {
             Order = order;
-            Handler = handler ?? throw new NullReferenceException(nameof(handler));
-            Target = target ?? throw new NullReferenceException(nameof(target));
+            Handler = handler ?? throw new ArgumentNullException(nameof(handler));
+            Target = target ?? throw new ArgumentNullException(nameof(target));
         }
     }
 }

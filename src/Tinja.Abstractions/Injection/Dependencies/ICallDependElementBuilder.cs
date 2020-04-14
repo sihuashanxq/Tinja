@@ -9,5 +9,7 @@ namespace Tinja.Abstractions.Injection.Dependencies
     public interface ICallDependElementBuilder
     {
         CallDependElement Build(Type serviceType);
+
+        CallDependElement Build(Type serviceType, string tag);
     }
 }

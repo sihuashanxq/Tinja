@@ -24,7 +24,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
         {
             if (typeInfo == null)
             {
-                throw new NullReferenceException(nameof(typeInfo));
+                throw new ArgumentNullException(nameof(typeInfo));
             }
 
             return _members.GetOrAdd(typeInfo, type => type.IsClass ? ClassTypeMemberCollector.Collect(type) : InterfaceTypeMemberCollector.Collect(type));

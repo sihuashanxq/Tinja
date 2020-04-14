@@ -2,7 +2,7 @@
 using System;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
-using Tinja.Core.Extensions;
+using Tinja.Core;
 
 namespace Tinja.Extensions.DependencyInjection
 {

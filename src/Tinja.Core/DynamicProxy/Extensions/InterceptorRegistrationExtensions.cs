@@ -8,7 +8,7 @@ namespace Tinja.Core.DynamicProxy.Extensions
     {
         public static IInterceptorRegistration Order(this IInterceptorRegistration registration, long order)
         {
-            registration.SetOrder(order);
+            registration.SetPriority(order);
             return registration;
         }
 

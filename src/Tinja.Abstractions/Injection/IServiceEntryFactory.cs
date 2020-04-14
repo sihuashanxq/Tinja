@@ -4,6 +4,6 @@ namespace Tinja.Abstractions.Injection
 {
     public interface IServiceEntryFactory
     {
-        ServiceEntry CreateEntry(Type serviceType);
+        ServiceEntry CreateEntry(Type serviceType, string tag);
     }
 }

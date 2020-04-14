@@ -10,7 +10,7 @@ namespace Tinja.Core.DynamicProxy.Registrations
 
         internal InterceptorDelegateRegistration(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> handler)
         {
-            Handler = handler ?? throw new NullReferenceException(nameof(handler));
+            Handler = handler ?? throw new ArgumentNullException(nameof(handler));
         }
     }
 }

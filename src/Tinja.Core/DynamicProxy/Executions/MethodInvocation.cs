@@ -18,10 +18,10 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public MethodInvocation(object proxyInstance, MethodInfo methodInfo, Type[] genericArguments, object[] arguments, MemberInfo target)
         {
-            Method = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
-            Target = target ?? throw new NullReferenceException(nameof(target));
-            Arguments = arguments ?? throw new NullReferenceException(nameof(arguments));
-            ProxyInstance = proxyInstance ?? throw new NullReferenceException(nameof(proxyInstance));
+            Method = methodInfo ?? throw new ArgumentNullException(nameof(methodInfo));
+            Target = target ?? throw new ArgumentNullException(nameof(target));
+            Arguments = arguments ?? throw new ArgumentNullException(nameof(arguments));
+            ProxyInstance = proxyInstance ?? throw new ArgumentNullException(nameof(proxyInstance));
 
             if (Method.IsGenericMethodDefinition)
             {

@@ -7,7 +7,6 @@ using Tinja.Abstractions.Extensions;
 using Tinja.Core;
 using Tinja.Core.DynamicProxy;
 using Tinja.Core.DynamicProxy.Extensions;
-using Tinja.Core.Extensions;
 
 namespace ConsoleApp
 {

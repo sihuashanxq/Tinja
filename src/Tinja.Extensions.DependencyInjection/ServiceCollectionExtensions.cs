@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Tinja.Abstractions;
-using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Core;
-using Tinja.Core.Extensions;
 
 namespace Tinja.Extensions.DependencyInjection
 {
@@ -14,7 +12,7 @@ namespace Tinja.Extensions.DependencyInjection
         {
             if (serviceCollection == null)
             {
-                throw new NullReferenceException(nameof(serviceCollection));
+                throw new ArgumentNullException(nameof(serviceCollection));
             }
 
             var container = new Container();

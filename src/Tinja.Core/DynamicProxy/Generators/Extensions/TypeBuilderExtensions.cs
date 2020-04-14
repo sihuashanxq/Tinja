@@ -14,12 +14,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (typeInfo == null)
             {
-                throw new NullReferenceException(nameof(typeInfo));
+                throw new ArgumentNullException(nameof(typeInfo));
             }
 
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (!typeInfo.IsGenericType)
@@ -51,12 +51,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (typeInfo == null)
             {
-                throw new NullReferenceException(nameof(typeInfo));
+                throw new ArgumentNullException(nameof(typeInfo));
             }
 
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             foreach (var customAttriute in typeInfo
@@ -77,7 +77,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             return builder
@@ -98,7 +98,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (methodInfo.IsPublic)

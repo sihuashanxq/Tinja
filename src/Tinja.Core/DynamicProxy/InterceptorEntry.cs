@@ -12,8 +12,8 @@ namespace Tinja.Core.DynamicProxy
 
         public InterceptorEntry(IInterceptor interceptor, InterceptorMetadata metadata)
         {
-            Metadata = metadata ?? throw new NullReferenceException(nameof(metadata));
-            Interceptor = interceptor ?? throw new NullReferenceException(nameof(interceptor));
+            Metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
+            Interceptor = interceptor ?? throw new ArgumentNullException(nameof(interceptor));
         }
     }
 }

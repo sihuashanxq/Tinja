@@ -14,12 +14,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (!methodInfo.IsGenericMethod)
@@ -51,12 +51,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             var parameterInfos = methodInfo.GetParameters();
@@ -83,12 +83,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             builder
@@ -102,12 +102,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             foreach (var customAttriute in methodInfo
@@ -128,12 +128,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             var ilGen = builder.GetILGenerator();

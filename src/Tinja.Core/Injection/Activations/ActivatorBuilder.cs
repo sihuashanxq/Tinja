@@ -17,14 +17,14 @@ namespace Tinja.Core.Injection.Activations
 
         internal ActivatorBuilder(ServiceLifeScope serviceScope)
         {
-            ServiceRootScope = serviceScope ?? throw new NullReferenceException(nameof(serviceScope));
+            ServiceRootScope = serviceScope ?? throw new ArgumentNullException(nameof(serviceScope));
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> Build(CallDependElement element)
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             if (element is DelegateCallDependElement delegateElement)
@@ -44,7 +44,7 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             var parameterInfos = element.ConstructorInfo.GetParameters();
@@ -53,13 +53,13 @@ namespace Tinja.Core.Injection.Activations
             for (var i = 0; i < parameterInfos.Length; i++)
             {
                 var parameterType = parameterInfos[i].ParameterType;
-                var parameterElement = element.Parameters[parameterInfos[i]];
-                if (parameterElement == null)
+                var parameterBinding = element.ParameterBindings[parameterInfos[i]];
+                if (parameterBinding == null)
                 {
-                    throw new NullReferenceException(nameof(parameterElement));
+                    throw new NullReferenceException(nameof(parameterBinding));
                 }
 
-                var parameterValue = parameterElement.Accept(this);
+                var parameterValue = parameterBinding.Accept(this);
                 if (parameterValue == null)
                 {
                     throw new NullReferenceException(nameof(parameterValue));
@@ -93,7 +93,7 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             return CaptureServiceLife(Expression.Constant(element.Instance), element);
@@ -103,12 +103,12 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             if (element.Delegate == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             return CaptureServiceLife((r, s) => element.Delegate(r), element);
@@ -118,7 +118,7 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             var items = new Expression[element.Items.Length];
@@ -139,29 +139,29 @@ namespace Tinja.Core.Injection.Activations
 
         protected override Expression VisitValueProvider(ValueProviderCallDependElement element)
         {
-            return Expression.Invoke(Expression.Constant(element.GetValue), ParameterResolver);
+            return Expression.Invoke(Expression.Constant(element.Provider), ParameterResolver);
         }
 
         protected Expression SetProperties(NewExpression newExpression, TypeCallDependElement element)
         {
             if (newExpression == null)
             {
-                throw new NullReferenceException(nameof(newExpression));
+                throw new ArgumentNullException(nameof(newExpression));
             }
 
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
-            if (element.Properties == null || element.Properties.Count == 0)
+            if (element.PropertyBindings == null || element.PropertyBindings.Count == 0)
             {
                 return newExpression;
             }
 
             var properties = new List<MemberBinding>();
 
-            foreach (var item in element.Properties)
+            foreach (var item in element.PropertyBindings)
             {
                 var propertyValue = item.Value.Accept(this);
                 if (propertyValue.Type.IsNotType(item.Key.PropertyType))
@@ -179,12 +179,12 @@ namespace Tinja.Core.Injection.Activations
         {
             if (serviceExpression == null)
             {
-                throw new NullReferenceException(nameof(serviceExpression));
+                throw new ArgumentNullException(nameof(serviceExpression));
             }
 
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             if (element.ServiceType.IsType<IServiceResolver>())
@@ -208,12 +208,12 @@ namespace Tinja.Core.Injection.Activations
         {
             if (factory == null)
             {
-                throw new NullReferenceException(nameof(factory));
+                throw new ArgumentNullException(nameof(factory));
             }
 
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             if (element.ServiceType.IsType<IServiceLifeScope>())
@@ -228,7 +228,7 @@ namespace Tinja.Core.Injection.Activations
 
             if (element.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                return Expression.Constant(ServiceRootScope.CreateCapturedService(element.ServiceCacheId, factory));
+                return Expression.Constant(ServiceRootScope.CreateCapturedService(element.ServiceId, factory));
             }
 
             if (element.LifeStyle == ServiceLifeStyle.Transient)
@@ -236,14 +236,14 @@ namespace Tinja.Core.Injection.Activations
                 return Expression.Invoke(ActivatorUtil.CreateCapturedTransientServie, ParameterScope, Expression.Constant(factory));
             }
 
-            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceCacheId), ParameterScope, Expression.Constant(factory));
+            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(element.ServiceId), ParameterScope, Expression.Constant(factory));
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> BuildExpressionFactory(CallDependElement element)
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             var lambdaBody = Visit(element);
@@ -260,7 +260,7 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
             if (element.ServiceType.IsType<IServiceLifeScope>())
@@ -281,10 +281,10 @@ namespace Tinja.Core.Injection.Activations
             if (element.LifeStyle == ServiceLifeStyle.Scoped)
             {
 
-                return (r, s) => s.CreateCapturedService(element.ServiceCacheId, (r1, s1) => element.Delegate(r1));
+                return (r, s) => s.CreateCapturedService(element.ServiceId, (r1, s1) => element.Delegate(r1));
             }
 
-            var instance = ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Delegate(r));
+            var instance = ServiceRootScope.CreateCapturedService(element.ServiceId, (r, s) => element.Delegate(r));
 
             return (r, s) => instance;
         }
@@ -293,10 +293,10 @@ namespace Tinja.Core.Injection.Activations
         {
             if (element == null)
             {
-                throw new NullReferenceException(nameof(element));
+                throw new ArgumentNullException(nameof(element));
             }
 
-            ServiceRootScope.CreateCapturedService(element.ServiceCacheId, (r, s) => element.Instance);
+            ServiceRootScope.CreateCapturedService(element.ServiceId, (r, s) => element.Instance);
 
             return (r, s) => element.Instance;
         }

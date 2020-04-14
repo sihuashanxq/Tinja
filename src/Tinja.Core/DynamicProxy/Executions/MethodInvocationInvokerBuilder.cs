@@ -33,7 +33,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public MethodInvocationInvokerBuilder(IServiceResolver serviceResolver)
         {
-            _servieResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            _servieResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         }
 
         private void Prepare()
@@ -217,7 +217,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         private Stack<Func<IMethodInvocation, Task>> CreateMethodCallStack<TResult>(MethodInfo methodInfo)
         {
-            if (methodInfo.IsAbstract || methodInfo.DeclaringType.IsInterface)
+            if (methodInfo.IsAbstract)
             {
                 return new Stack<Func<IMethodInvocation, Task>>().PushContine(_ => Task.CompletedTask);
             }
@@ -225,7 +225,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
-                throw new NullReferenceException(nameof(executor));
+                throw new ArgumentNullException(nameof(executor));
             }
 
             if (methodInfo.IsVoidMethod())
@@ -256,7 +256,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
-                throw new NullReferenceException(nameof(executor));
+                throw new ArgumentNullException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
@@ -273,7 +273,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
-                throw new NullReferenceException(nameof(executor));
+                throw new ArgumentNullException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
@@ -291,7 +291,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
-                throw new NullReferenceException(nameof(executor));
+                throw new ArgumentNullException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
@@ -308,7 +308,7 @@ namespace Tinja.Core.DynamicProxy.Executions
             var executor = _methodExecutorProvider.GetExecutor(methodInfo);
             if (executor == null)
             {
-                throw new NullReferenceException(nameof(executor));
+                throw new ArgumentNullException(nameof(executor));
             }
 
             return new Stack<Func<IMethodInvocation, Task>>()
@@ -341,7 +341,7 @@ namespace Tinja.Core.DynamicProxy.Executions
                 var interceptor = _interceptorFactory.Create(metadata.InterceptorType);
                 if (interceptor == null)
                 {
-                    throw new NullReferenceException($"Create interceptor:{metadata.InterceptorType.FullName}");
+                    throw new ArgumentNullException($"Create interceptor:{metadata.InterceptorType.FullName}");
                 }
 
                 entry = new InterceptorEntry(interceptor, metadata);
@@ -357,12 +357,12 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             if (memberInfo == null)
             {
-                throw new NullReferenceException(nameof(memberInfo));
+                throw new ArgumentNullException(nameof(memberInfo));
             }
 
             if (entries == null)
             {
-                throw new NullReferenceException(nameof(entries));
+                throw new ArgumentNullException(nameof(entries));
             }
 
             //sort

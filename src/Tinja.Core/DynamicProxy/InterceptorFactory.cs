@@ -12,14 +12,14 @@ namespace Tinja.Core.DynamicProxy
 
         public InterceptorFactory(IServiceResolver serviceResolver)
         {
-            _serviceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            _serviceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         }
 
         public IInterceptor Create(Type interceptorType)
         {
             if (interceptorType == null)
             {
-                throw new NullReferenceException(nameof(interceptorType));
+                throw new ArgumentNullException(nameof(interceptorType));
             }
 
             return _serviceResolver.ResolveServiceRequired<IInterceptor>(interceptorType);

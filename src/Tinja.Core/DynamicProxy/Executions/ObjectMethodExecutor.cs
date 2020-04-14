@@ -25,7 +25,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         internal ObjectMethodExecutor(MethodInfo methodInfo)
         {
-            MethodInfo = methodInfo ?? throw new NullReferenceException(nameof(methodInfo));
+            MethodInfo = methodInfo ?? throw new ArgumentNullException(nameof(methodInfo));
             MethodExecutor = CreateMethodExecutor(MethodInfo);
         }
 
@@ -45,7 +45,7 @@ namespace Tinja.Core.DynamicProxy.Executions
         {
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             var valueType = methodInfo.IsVoidMethod() ? typeof(object) : methodInfo.ReturnType;

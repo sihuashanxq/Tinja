@@ -52,7 +52,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
         {
             if (memberInfo == null)
             {
-                throw new NullReferenceException(nameof(memberInfo));
+                throw new ArgumentNullException(nameof(memberInfo));
             }
 
             return new MemberMetadata(memberInfo)

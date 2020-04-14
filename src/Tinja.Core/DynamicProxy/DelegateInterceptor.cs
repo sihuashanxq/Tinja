@@ -10,7 +10,7 @@ namespace Tinja.Core.DynamicProxy
 
         public DelegateInterceptor(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> handler)
         {
-            _handler = handler ?? throw new NullReferenceException(nameof(handler));
+            _handler = handler ?? throw new ArgumentNullException(nameof(handler));
         }
 
         public Task InvokeAsync(IMethodInvocation invocation, Func<IMethodInvocation, Task> next)

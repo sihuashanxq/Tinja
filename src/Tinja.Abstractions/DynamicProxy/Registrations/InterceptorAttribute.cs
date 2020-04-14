@@ -6,7 +6,7 @@ namespace Tinja.Abstractions.DynamicProxy.Registrations
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Method, AllowMultiple = true)]
     public class InterceptorAttribute : Attribute
     {
-        public long? Order { get; set; }
+        public long? Priority { get; set; }
 
         public bool Inherited { get; set; }
 

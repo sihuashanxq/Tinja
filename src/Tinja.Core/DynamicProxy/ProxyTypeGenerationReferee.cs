@@ -13,7 +13,7 @@ namespace Tinja.Core.DynamicProxy
 
         public ProxyTypeGenerationReferee(IInterceptorMetadataProvider provider)
         {
-            _provider = provider ?? throw new NullReferenceException(nameof(provider));
+            _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         }
 
         public bool ShouldProxy(MemberInfo memberInfo)

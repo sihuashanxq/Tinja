@@ -12,14 +12,9 @@ namespace Tinja.Abstractions.Injection.Dependencies.Elements
 
         public ConstructorInfo ConstructorInfo { get; set; }
 
-        public Dictionary<PropertyInfo, CallDependElement> Properties { get; set; }
+        public Dictionary<PropertyInfo, CallDependElement> PropertyBindings { get; set; }
 
-        public Dictionary<ParameterInfo, CallDependElement> Parameters { get; set; }
-
-        public TypeCallDependElement()
-        {
-            Properties = new Dictionary<PropertyInfo, CallDependElement>();
-        }
+        public Dictionary<ParameterInfo, CallDependElement> ParameterBindings { get; set; }
 
         public override TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
         {

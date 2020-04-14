@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core;
-using Tinja.Core.Extensions;
 using Tinja.Core.Injection.Dependencies;
 using Tinja.Test.Fakes.Consturctor;
 using Tinja.Test.Fakes.Generic;

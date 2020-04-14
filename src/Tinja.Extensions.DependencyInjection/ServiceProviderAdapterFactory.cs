@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Tinja.Abstractions;
-using Tinja.Abstractions.Extensions;
-using Tinja.Core.Extensions;
+using Tinja.Core;
 
 namespace Tinja.Extensions.DependencyInjection
 {

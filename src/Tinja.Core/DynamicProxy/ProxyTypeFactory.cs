@@ -28,9 +28,9 @@ namespace Tinja.Core.DynamicProxy
             IEnumerable<IProxyTypeGenerationReferee> referees
         )
         {
-            _memberMetadataProvider = provider ?? throw new NullReferenceException(nameof(provider));
-            _dynamicProxyConfiguration = configuration ?? throw new NullReferenceException(nameof(configuration));
-            _proxyTypeGenerationReferees = referees ?? throw new NullReferenceException(nameof(referees));
+            _memberMetadataProvider = provider ?? throw new ArgumentNullException(nameof(provider));
+            _dynamicProxyConfiguration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _proxyTypeGenerationReferees = referees ?? throw new ArgumentNullException(nameof(referees));
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Tinja.Core.DynamicProxy
         {
             if (typeInfo == null)
             {
-                throw new NullReferenceException(nameof(typeInfo));
+                throw new ArgumentNullException(nameof(typeInfo));
             }
 
             //type of IInterceptor can't be intercepted

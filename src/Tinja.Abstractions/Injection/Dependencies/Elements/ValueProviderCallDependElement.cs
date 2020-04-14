@@ -11,7 +11,7 @@ namespace Tinja.Abstractions.Injection.Dependencies.Elements
     /// </summary>
     public class ValueProviderCallDependElement : CallDependElement
     {
-        public Func<IServiceResolver, object> GetValue { get; set; }
+        public Func<IServiceResolver, object> Provider { get; set; }
 
         public override TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
         {

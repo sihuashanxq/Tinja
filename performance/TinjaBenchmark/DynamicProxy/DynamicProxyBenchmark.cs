@@ -5,7 +5,6 @@ using Tinja.Abstractions.DynamicProxy;
 using Tinja.Abstractions.DynamicProxy.Registrations;
 using Tinja.Abstractions.Injection;
 using Tinja.Core;
-using Tinja.Core.Extensions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Core.DynamicProxy;
 

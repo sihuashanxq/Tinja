@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Tinja.Abstractions.Configurations;
 using Tinja.Abstractions.Injection;
 
 namespace Tinja.Abstractions
 {
-    public interface IContainer
+    public interface IContainer : IEnumerable<ServiceDescriptor>
     {
-        ConcurrentDictionary<Type, List<Component>> Components { get; }
+        ConcurrentDictionary<Type, List<ServiceDescriptor>> ServiceDescriptors { get; }
     }
 }

@@ -12,7 +12,7 @@ namespace Tinja.Core.DynamicProxy.Executions
 
         public MethodInvocationInvoker(Func<IMethodInvocation, Task> invoker)
         {
-            _invoker = invoker ?? throw new NullReferenceException(nameof(invoker));
+            _invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
         }
 
         public Task InvokeAsync(IMethodInvocation invocation)

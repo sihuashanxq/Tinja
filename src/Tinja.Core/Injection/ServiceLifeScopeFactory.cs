@@ -18,7 +18,7 @@ namespace Tinja.Core.Injection
         /// <param name="serviceResolver">must be <see cref="ServiceResolver"/></param>
         public ServiceLifeScopeFactory(ServiceResolver serviceResolver)
         {
-            RootServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            RootServiceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         }
 
         /// <summary>

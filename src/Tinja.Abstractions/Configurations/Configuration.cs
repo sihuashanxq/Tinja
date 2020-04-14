@@ -25,7 +25,7 @@
         {
             if (key == null)
             {
-                throw new NullReferenceException(nameof(key));
+                throw new ArgumentNullException(nameof(key));
             }
 
             return Values.TryRemove(key, out _);
@@ -40,7 +40,7 @@
         {
             if (key == null)
             {
-                throw new NullReferenceException(nameof(key));
+                throw new ArgumentNullException(nameof(key));
             }
 
             if (Values.TryGetValue(key, out var value))
@@ -65,7 +65,7 @@
         {
             if (key == null)
             {
-                throw new NullReferenceException(nameof(key));
+                throw new ArgumentNullException(nameof(key));
             }
 
             return Values.TryAdd(key, value);

@@ -5,6 +5,6 @@
     /// </summary>
     public interface ICallDependElementBuilderFactory
     {
-        ICallDependElementBuilder CreateBuilder();
+        ICallDependElementBuilder Create();
     }
 }

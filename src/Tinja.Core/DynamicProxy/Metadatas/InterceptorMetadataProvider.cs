@@ -16,8 +16,8 @@ namespace Tinja.Core.DynamicProxy.Metadatas
 
         internal InterceptorMetadataProvider(IMemberMetadataProvider provider, IEnumerable<IInterceptorMetadataCollector> collectors)
         {
-            _provider = provider ?? throw new NullReferenceException(nameof(provider));
-            _collectors = collectors ?? throw new NullReferenceException(nameof(collectors));
+            _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+            _collectors = collectors ?? throw new ArgumentNullException(nameof(collectors));
         }
 
         public IEnumerable<InterceptorMetadata> GetInterceptors(MemberInfo memberInfo)
@@ -25,7 +25,7 @@ namespace Tinja.Core.DynamicProxy.Metadatas
             var members = _provider.GetMembers(memberInfo.DeclaringType);
             if (members == null)
             {
-                throw new NullReferenceException(nameof(members));
+                throw new ArgumentNullException(nameof(members));
             }
             
             var metadata = members.FirstOrDefault(item => item.Member == memberInfo);

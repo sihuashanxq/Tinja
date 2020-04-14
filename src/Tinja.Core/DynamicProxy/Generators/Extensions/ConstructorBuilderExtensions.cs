@@ -14,12 +14,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (parameterInfos == null)
             {
-                throw new NullReferenceException(nameof(parameterInfos));
+                throw new ArgumentNullException(nameof(parameterInfos));
             }
 
             if (parameterInfos.Length == 0)
@@ -50,12 +50,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (constructorInfo == null)
             {
-                throw new NullReferenceException(nameof(constructorInfo));
+                throw new ArgumentNullException(nameof(constructorInfo));
             }
 
             foreach (var customAttriute in constructorInfo

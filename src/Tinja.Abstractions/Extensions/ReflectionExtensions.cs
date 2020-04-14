@@ -16,12 +16,12 @@ namespace Tinja.Abstractions.Extensions
         {
             if (type == null)
             {
-                throw new NullReferenceException(nameof(type));
+                throw new ArgumentNullException(nameof(type));
             }
 
             if (target == null)
             {
-                throw new NullReferenceException(nameof(target));
+                throw new ArgumentNullException(nameof(target));
             }
 
             return target.IsAssignableFrom(type);
@@ -66,7 +66,7 @@ namespace Tinja.Abstractions.Extensions
         {
             if (method == null)
             {
-                throw new NullReferenceException(nameof(method));
+                throw new ArgumentNullException(nameof(method));
             }
 
             return method.ReturnType.IsVoidType();
@@ -103,7 +103,7 @@ namespace Tinja.Abstractions.Extensions
         {
             if (memberInfo == null)
             {
-                throw new NullReferenceException(nameof(memberInfo));
+                throw new ArgumentNullException(nameof(memberInfo));
             }
 
             var attributes = memberInfo.GetCustomAttributes<InterceptorAttribute>(false).ToArray();
@@ -134,12 +134,12 @@ namespace Tinja.Abstractions.Extensions
         {
             if (methodInfo == null)
             {
-                throw new NullReferenceException(nameof(methodInfo));
+                throw new ArgumentNullException(nameof(methodInfo));
             }
 
             if (interfaces == null)
             {
-                throw new NullReferenceException(nameof(interfaces));
+                throw new ArgumentNullException(nameof(interfaces));
             }
 
             foreach (var @interface in interfaces)
@@ -170,12 +170,12 @@ namespace Tinja.Abstractions.Extensions
         {
             if (property == null)
             {
-                throw new NullReferenceException(nameof(property));
+                throw new ArgumentNullException(nameof(property));
             }
 
             if (interfaces == null)
             {
-                throw new NullReferenceException(nameof(interfaces));
+                throw new ArgumentNullException(nameof(interfaces));
             }
 
             return interfaces
@@ -187,12 +187,12 @@ namespace Tinja.Abstractions.Extensions
         {
             if (eventInfo == null)
             {
-                throw new NullReferenceException(nameof(eventInfo));
+                throw new ArgumentNullException(nameof(eventInfo));
             }
 
             if (interfaces == null)
             {
-                throw new NullReferenceException(nameof(interfaces));
+                throw new ArgumentNullException(nameof(interfaces));
             }
 
             return interfaces
@@ -204,12 +204,12 @@ namespace Tinja.Abstractions.Extensions
         {
             if (memberInfo == null)
             {
-                throw new NullReferenceException(nameof(memberInfo));
+                throw new ArgumentNullException(nameof(memberInfo));
             }
 
             if (interfaces == null)
             {
-                throw new NullReferenceException(nameof(interfaces));
+                throw new ArgumentNullException(nameof(interfaces));
             }
 
             switch (memberInfo)

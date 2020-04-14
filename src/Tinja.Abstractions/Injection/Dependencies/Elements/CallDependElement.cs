@@ -8,11 +8,13 @@ namespace Tinja.Abstractions.Injection.Dependencies.Elements
     public abstract class CallDependElement
     {
         /// <summary>
+        /// </summary>
+        public int ServiceId { get; set; }
+
+        /// <summary>
         /// the service definition type
         /// </summary>
         public Type ServiceType { get; set; }
-
-        public int ServiceCacheId { get; set; }
 
         /// <summary>
         /// the service life style

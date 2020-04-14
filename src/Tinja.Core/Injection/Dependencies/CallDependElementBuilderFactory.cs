@@ -16,11 +16,11 @@ namespace Tinja.Core.Injection.Dependencies
 
         public CallDependElementBuilderFactory(IServiceEntryFactory serviceEntryFactory, IInjectionConfiguration injectionConfiguration)
         {
-            _serviceEntryFactory = serviceEntryFactory ?? throw new NullReferenceException(nameof(serviceEntryFactory));
-            _injectionConfiguration = injectionConfiguration ?? throw new NullReferenceException(nameof(injectionConfiguration));
+            _serviceEntryFactory = serviceEntryFactory ?? throw new ArgumentNullException(nameof(serviceEntryFactory));
+            _injectionConfiguration = injectionConfiguration ?? throw new ArgumentNullException(nameof(injectionConfiguration));
         }
 
-        public ICallDependElementBuilder CreateBuilder()
+        public ICallDependElementBuilder Create()
         {
             return new CallDependElementBuilder(_serviceEntryFactory, _injectionConfiguration);
         }

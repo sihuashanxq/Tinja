@@ -2,27 +2,27 @@
 
 namespace Tinja.Core.Injection
 {
-    internal class ServiceCacheIdProvider
+    internal class ServiceIdProvider
     {
         private int _seed = 1;
 
         private readonly Dictionary<object, int> _ids;
 
-        internal ServiceCacheIdProvider()
+        internal ServiceIdProvider()
         {
             _ids = new Dictionary<object, int>();
         }
 
-        internal int GetCacheId(object serviceKey)
+        internal int GetServiceId(object key)
         {
             lock (_ids)
             {
-                if (_ids.TryGetValue(serviceKey, out var id))
+                if (_ids.TryGetValue(key, out var id))
                 {
                     return id;
                 }
 
-                return _ids[serviceKey] = _seed++;
+                return _ids[key] = _seed++;
             }
         }
     }

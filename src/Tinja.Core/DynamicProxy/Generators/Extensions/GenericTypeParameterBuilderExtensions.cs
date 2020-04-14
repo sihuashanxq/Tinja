@@ -9,12 +9,12 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
         {
             if (builder == null)
             {
-                throw new NullReferenceException(nameof(builder));
+                throw new ArgumentNullException(nameof(builder));
             }
 
             if (genericArgument == null)
             {
-                throw new NullReferenceException(nameof(genericArgument));
+                throw new ArgumentNullException(nameof(genericArgument));
             }
 
             foreach (var constraint in genericArgument.GetGenericParameterConstraints())

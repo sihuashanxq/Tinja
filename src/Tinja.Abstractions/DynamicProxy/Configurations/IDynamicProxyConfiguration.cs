@@ -18,6 +18,6 @@ namespace Tinja.Abstractions.DynamicProxy.Configurations
 
         IInterceptorRegistration Configure(Type interceptorType, ServiceLifeStyle lifeStyle);
 
-        IInterceptorRegistration Configure(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> hander);
+        IInterceptorRegistration Configure(Func<IMethodInvocation, Func<IMethodInvocation, Task>, Task> handler);
     }
 }

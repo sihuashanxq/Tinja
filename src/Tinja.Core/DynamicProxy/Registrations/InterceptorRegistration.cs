@@ -10,14 +10,14 @@ namespace Tinja.Core.DynamicProxy.Registrations
 
         internal Func<MemberInfo, bool> TargetFilter { get; set; }
 
-        public void SetOrder(long rankOrder)
+        public void SetPriority(long rankOrder)
         {
             Order = rankOrder;
         }
 
         public void SetFilter(Func<MemberInfo, bool> targetFilter)
         {
-            TargetFilter = targetFilter ?? throw new NullReferenceException(nameof(targetFilter));
+            TargetFilter = targetFilter ?? throw new ArgumentNullException(nameof(targetFilter));
         }
     }
 }

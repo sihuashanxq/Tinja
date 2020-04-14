@@ -20,7 +20,7 @@ namespace Tinja.Core.Injection
         {
             if (root == null)
             {
-                throw new NullReferenceException(nameof(root));
+                throw new ArgumentNullException(nameof(root));
             }
 
             Root = root.Root ?? root;
@@ -28,7 +28,7 @@ namespace Tinja.Core.Injection
 
             ResolvedServices = new Dictionary<int, object>();
             DisposableServices = new List<IDisposable>() { serviceResolver };
-            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            ServiceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         }
 
         internal ServiceLifeScope(ServiceResolver serviceResolver)
@@ -37,7 +37,7 @@ namespace Tinja.Core.Injection
 
             ResolvedServices = new Dictionary<int, object>();
             DisposableServices = new List<IDisposable>() { serviceResolver };
-            ServiceResolver = serviceResolver ?? throw new NullReferenceException(nameof(serviceResolver));
+            ServiceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         }
 
         internal void CaputreDisposable(IDisposable disposable)
