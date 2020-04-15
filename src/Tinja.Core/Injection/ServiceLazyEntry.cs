@@ -4,7 +4,7 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Core.Injection
 {
-    public class ServiceTypeEntry : ServiceEntry
+    public class ServiceLazyEntry : ServiceEntry
     {
         public Type ImplementationType { get; set; }
 

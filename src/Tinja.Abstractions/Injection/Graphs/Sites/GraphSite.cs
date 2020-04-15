@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace Tinja.Abstractions.Injection.Dependencies.Elements
+namespace Tinja.Abstractions.Injection.Graphs.Sites
 {
     /// <summary>
-    /// an element that representing an dependency point
+    /// an element that representing an dependency site
     /// </summary>
-    public abstract class CallDependElement
+    public abstract class GraphSite
     {
         /// <summary>
         /// </summary>
@@ -21,7 +21,7 @@ namespace Tinja.Abstractions.Injection.Dependencies.Elements
         /// </summary>
         public ServiceLifeStyle LifeStyle { get; set; }
 
-        public virtual TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
+        public virtual TVisitResult Accept<TVisitResult>(GraphSiteVisitor<TVisitResult> visitor)
         {
             throw new NotImplementedException();
         }

@@ -4,7 +4,7 @@ using Tinja.Abstractions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Configurations;
-using Tinja.Abstractions.Injection.Dependencies;
+using Tinja.Abstractions.Injection.Graphs;
 using Tinja.Core.Injection;
 using Tinja.Core.Injection.Configurations;
 using Tinja.Core.Injection.Dependencies;
@@ -31,7 +31,7 @@ namespace Tinja.Core
 
             var serviceEntryFactory = new ServiceEntryFactory();
             var configuration = container.BuildConfiguration(configurator);
-            var serviceResolver = container.BuildServiceResolver(new CallDependElementBuilderFactory(serviceEntryFactory, configuration));
+            var serviceResolver = container.BuildServiceResolver(new GraphSiteBuilderFactory(serviceEntryFactory, configuration));
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));
@@ -42,7 +42,7 @@ namespace Tinja.Core
             return serviceResolver;
         }
 
-        internal static ServiceResolver BuildServiceResolver(this IContainer container, ICallDependElementBuilderFactory factory)
+        internal static ServiceResolver BuildServiceResolver(this IContainer container, IGraphSiteBuilderFactory factory)
         {
             if (container == null)
             {

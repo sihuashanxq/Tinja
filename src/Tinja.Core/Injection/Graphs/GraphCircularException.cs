@@ -3,13 +3,13 @@
 namespace Tinja.Core.Injection.Dependencies
 {
     /// <inheritdoc />
-    public class CallCircularException : Exception
+    public class GraphCircularException : Exception
     {
         public Type ServiceType { get; }
 
-        public CallDependElementScope CallScope { get; }
+        public GraphSiteScope CallScope { get; }
 
-        public CallCircularException(Type serviceType, CallDependElementScope callScope, string message) : base(message)
+        public GraphCircularException(Type serviceType, GraphSiteScope callScope, string message) : base(message)
         {
             CallScope = callScope;
             ServiceType = serviceType;

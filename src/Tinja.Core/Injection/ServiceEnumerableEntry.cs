@@ -6,8 +6,8 @@ namespace Tinja.Core.Injection
 {
     public class ServiceEnumerableEntry : ServiceEntry
     {
-        public Type ItemType { get; set; }
+        public Type ElementType { get; set; }
 
-        public List<ServiceEntry> Items { get; set; }
+        public List<ServiceEntry> Elements { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace Tinja.Abstractions.Injection.DataAnnotations
+namespace Tinja.Abstractions.Injection
 {
     [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
     public abstract class ValueProviderAttribute : Attribute

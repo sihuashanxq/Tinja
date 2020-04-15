@@ -1,6 +1,6 @@
 ﻿using System;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Dependencies;
+using Tinja.Abstractions.Injection.Graphs;
 using Tinja.Core.Injection.Activations;
 
 namespace Tinja.Core.Injection
@@ -21,7 +21,7 @@ namespace Tinja.Core.Injection
         /// create root service resolver
         /// </summary>
         /// <param name="factory"></param>
-        internal ServiceResolver(ICallDependElementBuilderFactory factory)
+        internal ServiceResolver(IGraphSiteBuilderFactory factory)
         {
             if (factory == null)
             {

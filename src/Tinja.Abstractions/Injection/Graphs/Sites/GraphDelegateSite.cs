@@ -1,16 +1,16 @@
 ﻿using System;
 
-namespace Tinja.Abstractions.Injection.Dependencies.Elements
+namespace Tinja.Abstractions.Injection.Graphs.Sites
 {
     /// <inheritdoc />
     /// <summary>
     /// AddScoped(typeof(Service),resolver=&gt;new Service());
     /// </summary>
-    public class DelegateCallDependElement : CallDependElement
+    public class GraphDelegateSite : GraphSite
     {
         public Func<IServiceResolver, object> Delegate { get; set; }
 
-        public override TVisitResult Accept<TVisitResult>(CallDependElementVisitor<TVisitResult> visitor)
+        public override TVisitResult Accept<TVisitResult>(GraphSiteVisitor<TVisitResult> visitor)
         {
             return visitor.VisitDelegate(this);
         }

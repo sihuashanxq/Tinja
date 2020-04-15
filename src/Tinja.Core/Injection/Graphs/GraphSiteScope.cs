@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace Tinja.Core.Injection.Dependencies
 {
-    public class CallDependElementScope
+    public class GraphSiteScope
     {
-        public Stack<Type> Stack { get; }
+        public Stack<Type> Stack { get; set; }
 
-        internal CallDependElementScope()
+        internal GraphSiteScope()
         {
             Stack = new Stack<Type>();
         }
@@ -17,7 +17,7 @@ namespace Tinja.Core.Injection.Dependencies
             return Stack.Contains(typeInfo);
         }
 
-        internal IDisposable Begin(Type typeInfo)
+        internal IDisposable CreateScope(Type typeInfo)
         {
             if (typeInfo == null)
             {
@@ -29,9 +29,23 @@ namespace Tinja.Core.Injection.Dependencies
             return new Disposable(() => Stack.Pop());
         }
 
-        internal CallDependElementScope Clone()
+        internal IDisposable CreateTempScope(Type typeInfo)
         {
-            var scope = new CallDependElementScope();
+            var stack = Stack;
+
+            Stack = new Stack<Type>();
+
+            if (typeInfo != null)
+            {
+                Stack.Push(typeInfo);
+            }
+
+            return new Disposable(() => Stack = stack);
+        }
+
+        internal GraphSiteScope Clone()
+        {
+            var scope = new GraphSiteScope();
 
             foreach (var item in Stack.ToArray())
             {

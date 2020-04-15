@@ -24,7 +24,6 @@ namespace Tinja.Core.Injection
             }
 
             Root = root.Root ?? root;
-            Root.CaputreDisposable(this);
 
             ResolvedServices = new Dictionary<int, object>();
             DisposableServices = new List<IDisposable>() { serviceResolver };

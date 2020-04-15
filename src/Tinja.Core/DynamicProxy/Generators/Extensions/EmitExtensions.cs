@@ -216,10 +216,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             return ilGen;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <returns></returns>
-        internal static ILGenerator CastAsObjectValue(this ILGenerator ilGen, Type valueType)
+        internal static ILGenerator BoxAny(this ILGenerator ilGen, Type valueType)
         {
             if (ilGen == null)
             {
@@ -283,6 +280,23 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             }
 
             return ilGen.Box(elementType);
+        }
+
+        internal static ILGenerator Cast(this ILGenerator ilGen, Type targetType)
+        {
+            if (ilGen == null)
+            {
+                throw new ArgumentNullException(nameof(ilGen));
+            }
+
+            if (targetType == null)
+            {
+                throw new ArgumentNullException(nameof(targetType));
+            }
+
+            ilGen.Emit(OpCodes.Castclass, targetType);
+
+            return ilGen;
         }
 
         internal static ILGenerator NewArray(this ILGenerator ilGen, Type arrayElementType, int length)
@@ -415,7 +429,7 @@ namespace Tinja.Core.DynamicProxy.Generators.Extensions
             loadArrayInstance(ilGen);
             ilGen.Emit(OpCodes.Ldc_I4, arrayIndex);
             loadElementValue(ilGen);
-            ilGen.CastAsObjectValue(elementType);
+            ilGen.BoxAny(elementType);
             ilGen.Emit(OpCodes.Stelem_Ref);
 
             return ilGen;

@@ -4,9 +4,11 @@ namespace Tinja.Abstractions.Injection
 {
     public abstract class ServiceEntry
     {
-        public Type ServiceType { get; set; }
+        public string Tag { get; set; }
 
-        public int ServiceCacheId { get; set; }
+        public int ServiceId { get; set; }
+
+        public Type ServiceType { get; set; }
 
         public ServiceLifeStyle LifeStyle { get; set; }
 

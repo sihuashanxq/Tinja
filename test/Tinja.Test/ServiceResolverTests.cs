@@ -313,8 +313,8 @@ namespace Tinja.Test
                 .AddTransient<IConstructorCircularDepenencyService, ConstructorCircularDepenencyService>()
                 .BuildServiceResolver();
 
-            Assert.Throws<CallCircularException>(() => resolver.ResolveService<IConstructorCircularDepenencyService>());
-            Assert.Throws<CallCircularException>(() => resolver.ResolveService<IParamterService>());
+            Assert.Throws<GraphCircularException>(() => resolver.ResolveService<IConstructorCircularDepenencyService>());
+            Assert.Throws<GraphCircularException>(() => resolver.ResolveService<IParamterService>());
         }
 
         [Fact]
@@ -326,7 +326,7 @@ namespace Tinja.Test
                 .AddTransient<IPropertyCircularInjectionService, PropertyCircularInjectionService>()
                 .BuildServiceResolver();
 
-            Assert.Throws<CallCircularException>(() => resolver.ResolveService<IPropertyServiceA>());
+            Assert.Throws<GraphCircularException>(() => resolver.ResolveService<IPropertyServiceA>());
         }
     }
 }

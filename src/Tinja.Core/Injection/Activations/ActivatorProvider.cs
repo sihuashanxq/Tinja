@@ -1,40 +1,40 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Threading;
 using Tinja.Abstractions.Injection;
-using Tinja.Abstractions.Injection.Dependencies;
-using Tinja.Abstractions.Injection.Dependencies.Elements;
+using Tinja.Abstractions.Injection.Graphs;
 
 namespace Tinja.Core.Injection.Activations
 {
     internal class ActivatorProvider
     {
-        private readonly ActivatorBuilder _builder;
+        protected ActivatorBuilder ActivatorBuilder { get; }
 
-        private readonly ICallDependElementBuilderFactory _factory;
+        protected IGraphSiteBuilderFactory SiteBuilderFactory { get; }
 
-        private readonly ConcurrentDictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>> _defaultActivators;
+        protected ConcurrentDictionary<Type, ActivatorCacheEntry> ActivatorCaches { get; }
 
-        private readonly ConcurrentDictionary<ServiceTypeTag, Func<IServiceResolver, ServiceLifeScope, object>> _tagsActivators;
+        static readonly Func<IServiceResolver, IServiceLifeScope, object> DefaultActivator = (r, s) => null;
 
-        private static readonly Func<IServiceResolver, IServiceLifeScope, object> DefaultProvider = (resolver, scope) => null;
-
-        internal ActivatorProvider(ServiceLifeScope scope, ICallDependElementBuilderFactory factory)
+        internal ActivatorProvider(ServiceLifeScope scope, IGraphSiteBuilderFactory factory)
         {
-            _factory = factory;
-            _builder = new ActivatorBuilder(scope.Root);
-            _tagsActivators = new ConcurrentDictionary<ServiceTypeTag, Func<IServiceResolver, ServiceLifeScope, object>>();
-            _defaultActivators = new ConcurrentDictionary<Type, Func<IServiceResolver, ServiceLifeScope, object>>();
+            ActivatorCaches = new ConcurrentDictionary<Type, ActivatorCacheEntry>();
+            ActivatorBuilder = new ActivatorBuilder(scope.Root);
+            SiteBuilderFactory = factory;
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> Get(Type serviceType)
         {
-            if (_defaultActivators.TryGetValue(serviceType, out var item))
+            if (ActivatorCaches.TryGetValue(serviceType, out var cacheEntry))
             {
-                return item;
+                if (cacheEntry.Activator != null)
+                {
+                    return cacheEntry.Activator;
+                }
+
+                return Create(serviceType, null, cacheEntry);
             }
 
-            return _defaultActivators[serviceType] = Get(_factory.Create()?.Build(serviceType));
+            return Create(serviceType, null, null);
         }
 
         internal Func<IServiceResolver, ServiceLifeScope, object> Get(Type serviceType, string tag)
@@ -44,55 +44,84 @@ namespace Tinja.Core.Injection.Activations
                 return Get(serviceType);
             }
 
-            var typeTag = new ServiceTypeTag(serviceType, tag);
-            if (_tagsActivators.TryGetValue(typeTag, out var item))
+            if (ActivatorCaches.TryGetValue(serviceType, out var cacheEntry))
             {
-                return item;
-            }
-
-            return _tagsActivators[typeTag] = Get(_factory.Create()?.Build(serviceType, tag));
-        }
-
-        internal Func<IServiceResolver, ServiceLifeScope, object> Get(CallDependElement element)
-        {
-            if (element == null)
-            {
-                return DefaultProvider;
-            }
-
-            return _builder.Build(element) ?? DefaultProvider;
-        }
-
-        private class ServiceTypeTag
-        {
-            public Type Type;
-
-            public string Tag;
-
-            public ServiceTypeTag(Type type, string tag)
-            {
-                Tag = tag;
-                Type = type;
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(obj, this))
+                if (cacheEntry.Tags != null &&
+                    cacheEntry.Tags.TryGetValue(tag, out var activator))
                 {
-                    return true;
+                    return activator;
                 }
 
-                if (obj is ServiceTypeTag tt)
-                {
-                    return tt.Tag == Tag && tt.Type == Type;
-                }
-
-                return false;
+                return Create(serviceType, tag, cacheEntry);
             }
 
-            public override int GetHashCode()
+            return Create(serviceType, tag, null);
+        }
+
+        private Func<IServiceResolver, ServiceLifeScope, object> Create(Type serviceType, string tag, ActivatorCacheEntry cacheEntry)
+        {
+            if (tag == null)
             {
-                return (Type.GetHashCode() * 31) ^ (Tag?.GetHashCode() ?? 0);
+                if (cacheEntry == null)
+                {
+                    cacheEntry = new ActivatorCacheEntry(Create(serviceType, tag));
+                    ActivatorCaches[serviceType] = cacheEntry;
+                }
+                else
+                {
+                    cacheEntry.Activator = Create(serviceType, tag);
+                }
+
+                return cacheEntry.Activator;
+            }
+
+            var activator = Create(serviceType, tag);
+            if (cacheEntry == null)
+            {
+                cacheEntry = new ActivatorCacheEntry(null)
+                {
+                    Tags = new ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>>()
+                };
+
+                ActivatorCaches[serviceType] = cacheEntry;
+            }
+
+            if (cacheEntry.Tags == null)
+            {
+                cacheEntry.Tags = new ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>>();
+            }
+
+            cacheEntry.Tags[tag] = activator;
+
+            return activator;
+        }
+
+        private Func<IServiceResolver, ServiceLifeScope, object> Create(Type serviceType, string tag)
+        {
+            var siteBuilder = SiteBuilderFactory.Create();
+            if (siteBuilder == null)
+            {
+                return DefaultActivator;
+            }
+
+            var site = siteBuilder.Build(serviceType, tag);
+            if (site == null)
+            {
+                return DefaultActivator;
+            }
+
+            return ActivatorBuilder.Build(site) ?? DefaultActivator;
+        }
+
+        protected class ActivatorCacheEntry
+        {
+            public Func<IServiceResolver, ServiceLifeScope, object> Activator;
+
+            public ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>> Tags;
+
+            public ActivatorCacheEntry(Func<IServiceResolver, ServiceLifeScope, object> activator)
+            {
+                Activator = activator;
             }
         }
     }

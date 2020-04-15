@@ -80,7 +80,7 @@ namespace Tinja.Core.Injection
                 CreateEnumerableEntry(serviceType, tag);
         }
 
-        private ServiceEntry CreateEntry(Type serviceType, ServiceDescriptor descriptor)
+        private ServiceEntry CreateEntry(Type serviceType, ServiceDescriptor descriptor, string tag)
         {
             if (serviceType == null)
             {
@@ -96,10 +96,11 @@ namespace Tinja.Core.Injection
             {
                 return new ServiceDelegateEntry()
                 {
+                    Tag = tag,
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
                     Delegate = descriptor.ImplementationFactory,
-                    ServiceCacheId = GetServiceId(descriptor.ImplementationFactory, descriptor.LifeStyle)
+                    ServiceId = GetServiceId(descriptor.ImplementationFactory, descriptor.LifeStyle)
                 };
             }
 
@@ -107,10 +108,11 @@ namespace Tinja.Core.Injection
             {
                 return new ServiceInstanceEntry()
                 {
+                    Tag = tag,
                     ServiceType = serviceType,
                     LifeStyle = descriptor.LifeStyle,
                     Instance = descriptor.ImplementationInstance,
-                    ServiceCacheId = GetServiceId(descriptor.ImplementationInstance, descriptor.LifeStyle)
+                    ServiceId = GetServiceId(descriptor.ImplementationInstance, descriptor.LifeStyle)
                 };
             }
 
@@ -120,26 +122,39 @@ namespace Tinja.Core.Injection
                 throw new NullReferenceException(nameof(implementationType));
             }
 
+            if (implementationType.IsLazy())
+            {
+                return new ServiceLazyEntry()
+                {
+                    Tag = tag,
+                    LifeStyle = descriptor.LifeStyle,
+                    ServiceType = serviceType,
+                    ImplementationType = implementationType,
+                    ServiceId = GetServiceId(implementationType, descriptor.LifeStyle)
+                };
+            }
+
             return new ServiceTypeEntry()
             {
-                ServiceType = serviceType,
+                Tag = tag,
                 LifeStyle = descriptor.LifeStyle,
+                ServiceType = serviceType,
                 ImplementationType = implementationType,
-                ServiceCacheId = GetServiceId(implementationType, descriptor.LifeStyle)
+                ServiceId = GetServiceId(implementationType, descriptor.LifeStyle)
             };
         }
 
         private ServiceEntry CreateEntryDirectly(Type serviceType, string tag)
         {
-            if (_descriptors.TryGetValue(serviceType, out var services))
+            if (_descriptors.TryGetValue(serviceType, out var descriptors))
             {
-                var entry = services?.LastOrDefault(item => tag == null || item.Tags.Contains(tag));
-                if (entry == null)
+                var descriptor = descriptors?.LastOrDefault(item => tag == null || item.Tags.Contains(tag));
+                if (descriptor == null)
                 {
                     return null;
                 }
 
-                return CreateEntry(serviceType, entry);
+                return CreateEntry(serviceType, descriptor, tag);
             }
 
             return null;
@@ -154,19 +169,20 @@ namespace Tinja.Core.Injection
 
             if (_descriptors.TryGetValue(serviceType.GetGenericTypeDefinition(), out var descriptors))
             {
-                var descriptor = descriptors?.LastOrDefault(item => tag == null || item.Tags.Contains(tag));
+                var isLazy = serviceType.IsLazy();
+                var descriptor = descriptors?.LastOrDefault(item => tag == null || isLazy || item.Tags.Contains(tag));
                 if (descriptor == null)
                 {
                     return null;
                 }
 
-                return CreateEntry(serviceType, descriptor);
+                return CreateEntry(serviceType, descriptor, tag);
             }
 
             return null;
         }
 
-        private ServiceEntry CreateEnumerableEntry(Type serviceType, string serviceKey)
+        private ServiceEntry CreateEnumerableEntry(Type serviceType, string tag)
         {
             if (!serviceType.IsConstructedGenericType || serviceType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
             {
@@ -174,28 +190,28 @@ namespace Tinja.Core.Injection
             }
 
             var elementType = serviceType.GenericTypeArguments.FirstOrDefault();
-            var elements = CreateEnumerableElementEntry(elementType, serviceKey).Reverse().ToList();
+            var elements = CreateEnumerableElementEntry(elementType, tag).Reverse().ToList();
 
             return new ServiceEnumerableEntry()
             {
-                Items = elements,
+                Elements = elements,
                 ServiceType = serviceType,
-                ItemType = elementType,
+                ElementType = elementType,
                 LifeStyle = ServiceLifeStyle.Transient
             };
         }
 
-        private IEnumerable<ServiceEntry> CreateEnumerableElementEntry(Type serviceType, string serviceKey)
+        private IEnumerable<ServiceEntry> CreateEnumerableElementEntry(Type serviceType, string tag)
         {
             var enumerableItems = new List<ServiceEntry>();
-            var enumerableEntry = CreateEnumerableEntry(serviceType, serviceKey);
+            var enumerableEntry = CreateEnumerableEntry(serviceType, tag);
             if (enumerableEntry != null)
             {
                 enumerableItems.Add(enumerableEntry);
             }
 
-            enumerableItems.AddRange(CreateEnumerableItemsEntryDirectly(serviceType, serviceKey));
-            enumerableItems.AddRange(CreateEnumerableItemsEntryGenerically(serviceType, serviceKey));
+            enumerableItems.AddRange(CreateEnumerableItemsEntryDirectly(serviceType, tag));
+            enumerableItems.AddRange(CreateEnumerableItemsEntryGenerically(serviceType, tag));
 
             return enumerableItems;
         }
@@ -206,7 +222,7 @@ namespace Tinja.Core.Injection
             {
                 return descriptors
                     .Where(item => tag == null || item.Tags.Contains(tag))
-                    .Select(i => CreateEntry(serviceType, i));
+                    .Select(i => CreateEntry(serviceType, i, tag));
             }
 
             return ServiceEntry.EmptyEntries;
@@ -221,9 +237,11 @@ namespace Tinja.Core.Injection
 
             if (_descriptors.TryGetValue(serviceType.GetGenericTypeDefinition(), out var descriptors))
             {
+                var isLazy = serviceType.IsLazy();
+
                 return descriptors
-                    .Where(item => tag == null || item.Tags.Contains(tag))
-                    .Select(i => CreateEntry(serviceType, i));
+                    .Where(item => tag == null || isLazy || item.Tags.Contains(tag))
+                    .Select(i => CreateEntry(serviceType, i, tag));
             }
 
             return ServiceEntry.EmptyEntries;

@@ -12,34 +12,44 @@ namespace Tinja.Abstractions.Extensions
     /// </summary>
     public static class ReflectionExtensions
     {
-        public static bool IsType(this Type type, Type target)
+        public static bool IsType(this Type impl, Type super)
         {
-            if (type == null)
+            if (impl == null)
             {
-                throw new ArgumentNullException(nameof(type));
+                throw new ArgumentNullException(nameof(impl));
             }
 
-            if (target == null)
+            if (super == null)
             {
-                throw new ArgumentNullException(nameof(target));
+                throw new ArgumentNullException(nameof(super));
             }
 
-            return target.IsAssignableFrom(type);
+            if (impl.IsGenericType && super.IsGenericTypeDefinition)
+            {
+                impl = impl.GetGenericTypeDefinition();
+            }
+
+            return super.IsAssignableFrom(impl);
         }
 
-        public static bool IsType<TType>(this Type type)
+        public static bool IsType<TType>(this Type impl)
         {
-            return type.IsType(typeof(TType));
+            return impl.IsType(typeof(TType));
         }
 
-        public static bool IsNotType<TType>(this Type type)
+        public static bool IsNotType<TType>(this Type impl)
         {
-            return !type.IsType<TType>();
+            return !impl.IsType<TType>();
         }
 
-        public static bool IsNotType(this Type type, Type target)
+        public static bool IsNotType(this Type impl, Type super)
         {
-            return !type.IsType(target);
+            return !impl.IsType(super);
+        }
+
+        public static bool IsLazy(this Type impl)
+        {
+            return impl.IsType(typeof(Lazy<>));
         }
 
         public static EventInfo AsEvent(this MemberInfo member)
