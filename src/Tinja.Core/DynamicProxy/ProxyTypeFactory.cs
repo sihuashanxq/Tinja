@@ -20,17 +20,17 @@ namespace Tinja.Core.DynamicProxy
 
         private readonly IDynamicProxyConfiguration _dynamicProxyConfiguration;
 
-        private readonly IEnumerable<IProxyTypeGenerationReferee> _proxyTypeGenerationReferees;
+        private readonly IEnumerable<IMemberProxyableDetector> _proxyableDetectors;
 
         public ProxyTypeFactory(
             IMemberMetadataProvider provider,
             IDynamicProxyConfiguration configuration,
-            IEnumerable<IProxyTypeGenerationReferee> referees
+            IEnumerable<IMemberProxyableDetector> proxyableDetectors
         )
         {
             _memberMetadataProvider = provider ?? throw new ArgumentNullException(nameof(provider));
             _dynamicProxyConfiguration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _proxyTypeGenerationReferees = referees ?? throw new ArgumentNullException(nameof(referees));
+            _proxyableDetectors = proxyableDetectors ?? throw new ArgumentNullException(nameof(proxyableDetectors));
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace Tinja.Core.DynamicProxy
         /// <returns></returns>
         protected virtual bool ShouldProxy(MemberInfo memberInfo)
         {
-            return _proxyTypeGenerationReferees.Any(referee => referee.ShouldProxy(memberInfo));
+            return _proxyableDetectors.Any(detector => detector.IsProxyable(memberInfo));
         }
     }
 }

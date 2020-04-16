@@ -7,31 +7,31 @@ using Tinja.Abstractions.DynamicProxy.Metadatas;
 namespace Tinja.Core.DynamicProxy
 {
     [DisableProxy]
-    public class ProxyTypeGenerationReferee : IProxyTypeGenerationReferee
+    public class MemberProxyableDetector : IMemberProxyableDetector
     {
         private readonly IInterceptorMetadataProvider _provider;
 
-        public ProxyTypeGenerationReferee(IInterceptorMetadataProvider provider)
+        public MemberProxyableDetector(IInterceptorMetadataProvider provider)
         {
             _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         }
 
-        public bool ShouldProxy(MemberInfo memberInfo)
+        public bool IsProxyable(MemberInfo memberInfo)
         {
             switch (memberInfo)
             {
                 case EventInfo eventInfo:
-                    return ShowEventProxy(eventInfo);
+                    return IsEventProxyable(eventInfo);
                 case MethodInfo methodInfo:
-                    return ShoudMethodProxy(methodInfo);
+                    return IsMethodProxyable(methodInfo);
                 case PropertyInfo propertyInfo:
-                    return ShouldPropertyProxy(propertyInfo);
+                    return IsPropertyProxyable(propertyInfo);
             }
 
             return false;
         }
 
-        protected virtual bool ShowEventProxy(EventInfo eventInfo)
+        protected virtual bool IsEventProxyable(EventInfo eventInfo)
         {
             if (eventInfo == null)
             {
@@ -55,7 +55,7 @@ namespace Tinja.Core.DynamicProxy
             return false;
         }
 
-        protected virtual bool ShoudMethodProxy(MethodInfo methodInfo)
+        protected virtual bool IsMethodProxyable(MethodInfo methodInfo)
         {
             if (methodInfo == null)
             {
@@ -70,7 +70,7 @@ namespace Tinja.Core.DynamicProxy
             return MethodOverridable(methodInfo) && _provider.GetInterceptors(methodInfo).Any();
         }
 
-        protected virtual bool ShouldPropertyProxy(PropertyInfo propertyInfo)
+        protected virtual bool IsPropertyProxyable(PropertyInfo propertyInfo)
         {
             if (propertyInfo == null)
             {

@@ -27,7 +27,7 @@ namespace Tinja.Core.DynamicProxy
             container.AddTransient<MethodInvocationInvokerBuilder>();
             container.AddScoped<IInterceptorFactory, InterceptorFactory>();
             container.AddSingleton<IProxyTypeFactory, ProxyTypeFactory>();
-            container.AddSingleton<IProxyTypeGenerationReferee, ProxyTypeGenerationReferee>();
+            container.AddSingleton<IMemberProxyableDetector, MemberProxyableDetector>();
             container.AddSingleton<IInterceptorSelectorProvider, InterceptorSelectorProvider>();
             container.AddSingleton<IInterceptorMetadataProvider, InterceptorMetadataProvider>();
             container.AddSingleton<IDynamicProxyConfiguration>(configuration);

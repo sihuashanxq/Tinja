@@ -451,12 +451,6 @@ namespace Tinja.Core
                 throw new ArgumentNullException(nameof(descriptor.ServiceType));
             }
 
-            if (descriptor.LifeStyle != ServiceLifeStyle.Singleton &&
-                descriptor.ImplementationInstance != null)
-            {
-                throw new ArgumentException($"ServiceType:{descriptor.ServiceType.FullName} ServiceLifeStyle must be Singleton when registered with and Implementation instance");
-            }
-
             if (descriptor.ImplementationFactory == null &&
                 descriptor.ImplementationType == null &&
                 descriptor.ImplementationInstance == null)
