@@ -7,7 +7,8 @@ using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.Graphs;
 using Tinja.Core.Injection;
 using Tinja.Core.Injection.Configurations;
-using Tinja.Core.Injection.Dependencies;
+using Tinja.Core.Injection.Descriptors;
+using Tinja.Core.Injection.Graphs;
 
 namespace Tinja.Core
 {
@@ -29,15 +30,15 @@ namespace Tinja.Core
                 throw new ArgumentNullException(nameof(container));
             }
 
-            var serviceEntryFactory = new ServiceEntryFactory();
+            var descriptorFactory = new ServiceDescriptorFactory();
             var configuration = container.BuildConfiguration(configurator);
-            var serviceResolver = container.BuildServiceResolver(new GraphSiteBuilderFactory(serviceEntryFactory, configuration));
+            var serviceResolver = container.BuildServiceResolver(new GraphSiteBuilderFactory(descriptorFactory, configuration));
             if (serviceResolver == null)
             {
                 throw new NullReferenceException(nameof(serviceResolver));
             }
 
-            serviceEntryFactory.Initialize(container.ServiceDescriptors, serviceResolver);
+            descriptorFactory.Initialize(container.ServiceEntries, serviceResolver);
 
             return serviceResolver;
         }
@@ -87,7 +88,7 @@ namespace Tinja.Core
                 throw new ArgumentException($"type:{implementationType.FullName} can not cast to {serviceType.FullName}");
             }
 
-            container.AddService(new ServiceDescriptor()
+            container.AddService(new ServiceEntry()
             {
                 Tags = tags,
                 LifeStyle = lifeStyle,
@@ -106,7 +107,7 @@ namespace Tinja.Core
 
         public static IContainer AddService(this IContainer container, Type serviceType, Func<IServiceResolver, object> factory, ServiceLifeStyle lifeStyle, params string[] tags)
         {
-            return container.AddService(new ServiceDescriptor()
+            return container.AddService(new ServiceEntry()
             {
                 Tags = tags,
                 LifeStyle = lifeStyle,
@@ -139,7 +140,7 @@ namespace Tinja.Core
                 throw new InvalidCastException($"type:{implementationType.FullName} can not cast to {serviceType.FullName}");
             }
 
-            return container.AddService(new ServiceDescriptor()
+            return container.AddService(new ServiceEntry()
             {
                 Tags = tags,
                 LifeStyle = lifeStyle,
@@ -439,35 +440,35 @@ namespace Tinja.Core
             return container.AddScoped(typeof(TType), factory, tags);
         }
 
-        private static IContainer AddService(this IContainer container, ServiceDescriptor descriptor)
+        private static IContainer AddService(this IContainer container, ServiceEntry serviceEntry)
         {
-            if (descriptor == null)
+            if (serviceEntry == null)
             {
-                throw new ArgumentNullException(nameof(descriptor));
+                throw new ArgumentNullException(nameof(serviceEntry));
             }
 
-            if (descriptor.ServiceType == null)
+            if (serviceEntry.ServiceType == null)
             {
-                throw new ArgumentNullException(nameof(descriptor.ServiceType));
+                throw new ArgumentNullException(nameof(serviceEntry.ServiceType));
             }
 
-            if (descriptor.ImplementationFactory == null &&
-                descriptor.ImplementationType == null &&
-                descriptor.ImplementationInstance == null)
+            if (serviceEntry.ImplementationFactory == null &&
+                serviceEntry.ImplementationType == null &&
+                serviceEntry.ImplementationInstance == null)
             {
-                throw new ArgumentException($"ServiceType:{descriptor.ServiceType.FullName} have not an Implementation!");
+                throw new ArgumentException($"ServiceType:{serviceEntry.ServiceType.FullName} have not an Implementation!");
             }
 
-            container.ServiceDescriptors.AddOrUpdate(descriptor.ServiceType, new List<ServiceDescriptor>() { descriptor }, (key, descriptors) =>
+            container.ServiceEntries.AddOrUpdate(serviceEntry.ServiceType, new List<ServiceEntry>() { serviceEntry }, (key, descriptors) =>
             {
-                if (descriptors.Contains(descriptor))
+                if (descriptors.Contains(serviceEntry))
                 {
                     return descriptors;
                 }
 
-                lock (container.ServiceDescriptors)
+                lock (container.ServiceEntries)
                 {
-                    if (descriptors.Contains(descriptor))
+                    if (descriptors.Contains(serviceEntry))
                     {
                         return descriptors;
                     }
@@ -476,31 +477,31 @@ namespace Tinja.Core
 
                     foreach (var item in descriptors)
                     {
-                        if (item.ServiceType == descriptor.ServiceType)
+                        if (item.ServiceType == serviceEntry.ServiceType)
                         {
-                            if (item.ImplementationType == descriptor.ImplementationType &&
+                            if (item.ImplementationType == serviceEntry.ImplementationType &&
                                 item.ImplementationType != null)
                             {
                                 item.Tags = item.Tags;
-                                item.LifeStyle = descriptor.LifeStyle;
+                                item.LifeStyle = serviceEntry.LifeStyle;
                                 found = true;
                                 continue;
                             }
 
-                            if (item.ImplementationFactory == descriptor.ImplementationFactory &&
+                            if (item.ImplementationFactory == serviceEntry.ImplementationFactory &&
                                 item.ImplementationFactory != null)
                             {
                                 item.Tags = item.Tags;
-                                item.LifeStyle = descriptor.LifeStyle;
+                                item.LifeStyle = serviceEntry.LifeStyle;
                                 found = true;
                                 continue;
                             }
 
-                            if (item.ImplementationInstance == descriptor.ImplementationInstance &&
+                            if (item.ImplementationInstance == serviceEntry.ImplementationInstance &&
                                 item.ImplementationInstance != null)
                             {
                                 item.Tags = item.Tags;
-                                item.LifeStyle = descriptor.LifeStyle;
+                                item.LifeStyle = serviceEntry.LifeStyle;
                                 found = true;
                                 continue;
                             }
@@ -509,7 +510,7 @@ namespace Tinja.Core
 
                     if (!found)
                     {
-                        descriptors.Add(descriptor);
+                        descriptors.Add(serviceEntry);
                     }
 
                     return descriptors;

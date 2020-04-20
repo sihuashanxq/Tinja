@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Tinja.Core.Injection.Dependencies
+namespace Tinja.Core.Injection.Graphs
 {
     public class GraphSiteScope
     {
@@ -29,16 +29,12 @@ namespace Tinja.Core.Injection.Dependencies
             return new Disposable(() => Stack.Pop());
         }
 
-        internal IDisposable CreateTempScope(Type typeInfo)
+        internal IDisposable CreateNewScope(Type typeInfo)
         {
             var stack = Stack;
 
             Stack = new Stack<Type>();
-
-            if (typeInfo != null)
-            {
-                Stack.Push(typeInfo);
-            }
+            Stack.Push(typeInfo);
 
             return new Disposable(() => Stack = stack);
         }

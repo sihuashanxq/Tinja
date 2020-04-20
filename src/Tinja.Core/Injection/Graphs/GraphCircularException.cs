@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Tinja.Core.Injection.Dependencies
+namespace Tinja.Core.Injection.Graphs
 {
     /// <inheritdoc />
     public class GraphCircularException : Exception

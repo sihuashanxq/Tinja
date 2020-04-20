@@ -5,8 +5,8 @@ using Tinja.Abstractions.Injection;
 
 namespace Tinja.Abstractions
 {
-    public interface IContainer : IEnumerable<ServiceDescriptor>
+    public interface IContainer : IEnumerable<ServiceEntry>
     {
-        ConcurrentDictionary<Type, List<ServiceDescriptor>> ServiceDescriptors { get; }
+        ConcurrentDictionary<Type, List<ServiceEntry>> ServiceEntries { get; }
     }
 }

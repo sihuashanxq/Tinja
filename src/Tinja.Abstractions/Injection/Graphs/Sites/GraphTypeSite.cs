@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Tinja.Abstractions.Extensions;
 
 namespace Tinja.Abstractions.Injection.Graphs.Sites
 {
@@ -19,6 +20,11 @@ namespace Tinja.Abstractions.Injection.Graphs.Sites
         public override TVisitResult Accept<TVisitResult>(GraphSiteVisitor<TVisitResult> visitor)
         {
             return visitor.VisitType(this);
+        }
+
+        public bool ShouldCaputureServiceLife()
+        {
+            return LifeStyle != ServiceLifeStyle.Transient || ImplementationType.IsType(typeof(IDisposable));
         }
     }
 }

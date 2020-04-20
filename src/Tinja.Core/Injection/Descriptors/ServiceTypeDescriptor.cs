@@ -2,9 +2,9 @@
 using System.Reflection;
 using Tinja.Abstractions.Injection;
 
-namespace Tinja.Core.Injection
+namespace Tinja.Core.Injection.Descriptors
 {
-    public class ServiceLazyEntry : ServiceEntry
+    public class ServiceTypeDescriptor : ServiceDescriptor
     {
         public Type ImplementationType { get; set; }
 

@@ -9,6 +9,8 @@ namespace Tinja.Abstractions.Injection.Graphs.Sites
 
         public Type ValueType { get; set; }
 
+        public bool TagOptional { get; set; }
+
         public Type ImplementationType { get; set; }
 
         public ConstructorInfo ConstructorInfo { get; set; }

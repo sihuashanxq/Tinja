@@ -62,10 +62,33 @@ namespace Tinja.Core.Injection
         /// <returns></returns>
         public object ResolveService(Type serviceType, string tag)
         {
-            return Provider.Get(serviceType, tag)?.Invoke(this, Scope);
+            return Provider.Get(serviceType, tag, false)?.Invoke(this, Scope);
+        }
+
+        /// <summary>
+        /// call this method to resolve lazy's value 
+        /// </summary>
+        /// <param name="serviceType"></param>
+        /// <param name="tag"></param>
+        /// <param name="optional"></param>
+        /// <returns></returns>
+        internal object ResolveService(Type serviceType, string tag, bool optional)
+        {
+            return Provider.Get(serviceType, tag, optional)?.Invoke(this, Scope);
+        }
+
+        ~ServiceResolver()
+        {
+            Dispose(true);
         }
 
         public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool disposing)
         {
             Scope.Dispose();
         }

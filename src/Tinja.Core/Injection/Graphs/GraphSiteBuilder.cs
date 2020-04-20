@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Tinja.Abstractions;
 using Tinja.Abstractions.Extensions;
 using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Configurations;
 using Tinja.Abstractions.Injection.Graphs;
 using Tinja.Abstractions.Injection.Graphs.Sites;
+using Tinja.Core.Injection.Descriptors;
 
-namespace Tinja.Core.Injection.Dependencies
+namespace Tinja.Core.Injection.Graphs
 {
     /// <inheritdoc />
     internal class GraphSiteBuilder : IGraphSiteBuilder
@@ -18,81 +18,82 @@ namespace Tinja.Core.Injection.Dependencies
 
         protected IInjectionConfiguration Configuration { get; }
 
-        protected IServiceEntryFactory ServiceEntryFactory { get; set; }
+        protected IServiceDescriptorFactory DescriptorFactory { get; set; }
 
-        public GraphSiteBuilder(IServiceEntryFactory serviceEntryFactory, IInjectionConfiguration configuration)
+        public GraphSiteBuilder(IServiceDescriptorFactory descriptorFactory, IInjectionConfiguration configuration)
         {
             CallScope = new GraphSiteScope();
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            ServiceEntryFactory = serviceEntryFactory ?? throw new ArgumentNullException(nameof(serviceEntryFactory));
+            DescriptorFactory = descriptorFactory ?? throw new ArgumentNullException(nameof(descriptorFactory));
         }
 
-        public virtual GraphSite Build(Type serviceType, string tag)
+        public virtual GraphSite Build(Type serviceType, string tag, bool tagOptional)
         {
-            var entry = ServiceEntryFactory.CreateEntry(serviceType, tag);
-            if (entry == null)
+            var descriptor = DescriptorFactory.Create(serviceType, tag, tagOptional);
+            if (descriptor != null)
             {
-                return null;
+                return Build(descriptor);
             }
 
-            if (entry is ServiceTypeEntry typeEntry)
-            {
-                CheckCircularDependency(typeEntry);
-            }
-
-            return Build(entry);
+            return null;
         }
 
-        protected virtual GraphSite Build(ServiceEntry entry)
+        public virtual GraphSite Build(Type serviceType, TagAttribute tagAttribute)
         {
-            switch (entry)
-            {
-                case ServiceInstanceEntry instanceEntry:
-                    return BuildInstance(instanceEntry);
-
-                case ServiceDelegateEntry delegateEntry:
-                    return BuildDelegate(delegateEntry);
-
-                case ServiceEnumerableEntry enumerableEntry:
-                    return BuildEnumerable(enumerableEntry);
-
-                case ServiceLazyEntry lazyEntry:
-                    return BuildLazy(lazyEntry);
-
-                case ServiceTypeEntry typeEntry:
-                    return BuildType(typeEntry);
-            }
-
-            throw new InvalidOperationException();
+            return Build(serviceType, tagAttribute?.Value, tagAttribute?.Optional ?? false);
         }
 
-        protected virtual GraphSite BuildDelegate(ServiceDelegateEntry entry)
+        protected virtual GraphSite Build(ServiceDescriptor descriptor)
+        {
+            switch (descriptor)
+            {
+                case ServiceLazyDescriptor lazyDescriptor:
+                    return BuildLazy(lazyDescriptor);
+
+                case ServiceTypeDescriptor typeDescriptor:
+                    return BuildType(typeDescriptor);
+
+                case ServiceInstanceDescriptor instanceDescriptor:
+                    return BuildInstance(instanceDescriptor);
+
+                case ServiceDelegateDescriptor delegateDescriptor:
+                    return BuildDelegate(delegateDescriptor);
+
+                case ServiceEnumerableDescriptor enumerableDescriptor:
+                    return BuildEnumerable(enumerableDescriptor);
+
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        protected virtual GraphSite BuildDelegate(ServiceDelegateDescriptor descriptor)
         {
             return new GraphDelegateSite()
             {
-                Delegate = entry.Delegate,
-                LifeStyle = entry.LifeStyle,
-                ServiceId = entry.ServiceId,
-                ServiceType = entry.ServiceType
+                Delegate = descriptor.Delegate,
+                LifeStyle = descriptor.LifeStyle,
+                ServiceId = descriptor.ServiceId,
+                ServiceType = descriptor.ServiceType
             };
         }
 
-        protected virtual GraphSite BuildInstance(ServiceInstanceEntry entry)
+        protected virtual GraphSite BuildInstance(ServiceInstanceDescriptor descriptor)
         {
             return new GraphInstanceSite()
             {
-                Instance = entry.Instance,
-                LifeStyle = entry.LifeStyle,
-                ServiceType = entry.ServiceType,
-                ServiceId = entry.ServiceId
+                Instance = descriptor.Instance,
+                LifeStyle = descriptor.LifeStyle,
+                ServiceId = descriptor.ServiceId,
+                ServiceType = descriptor.ServiceType
             };
         }
 
-        protected virtual GraphSite BuildEnumerable(ServiceEnumerableEntry entry)
+        protected virtual GraphSite BuildEnumerable(ServiceEnumerableDescriptor descriptor)
         {
             var elements = new List<GraphSite>();
 
-            foreach (var item in entry.Elements)
+            foreach (var item in descriptor.Elements)
             {
                 var element = Build(item);
                 if (element != null)
@@ -104,31 +105,36 @@ namespace Tinja.Core.Injection.Dependencies
             return new GraphEnumerableSite()
             {
                 Elements = elements.ToArray(),
-                ElementType = entry.ElementType,
-                LifeStyle = entry.LifeStyle,
-                ServiceType = entry.ServiceType,
-                ServiceId = entry.ServiceId
+                ElementType = descriptor.ElementType,
+                LifeStyle = descriptor.LifeStyle,
+                ServiceType = descriptor.ServiceType,
+                ServiceId = descriptor.ServiceId
             };
         }
 
-        protected virtual GraphSite BuildType(ServiceTypeEntry entry)
+        protected virtual GraphSite BuildType(ServiceTypeDescriptor descriptor)
         {
-            var site = BuildType(entry, false) ?? BuildType(entry, true);
+            var site = BuildType(descriptor, false) ?? BuildType(descriptor, true);
             if (site == null)
             {
-                throw new InvalidOperationException($"Cannot match a constructor for type:{entry.ImplementationType.FullName}!");
+                throw new InvalidOperationException($"cannot match a constructor for type:{descriptor.ImplementationType.FullName}!");
             }
 
             return site;
         }
 
-        protected virtual GraphSite BuildType(ServiceTypeEntry entry, bool useDefauftParameterValue)
+        protected virtual GraphSite BuildType(ServiceTypeDescriptor descriptor, bool useDefauftParameterValue)
         {
             var site = default(GraphTypeSite);
 
-            using (CallScope.CreateScope(entry.ImplementationType))
+            if (CallScope.Contains(descriptor.ImplementationType))
             {
-                foreach (var constructorInfo in entry.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
+                throw new GraphCircularException(descriptor.ImplementationType, CallScope.Clone(), $"type:{descriptor.ImplementationType.FullName} exists circular dependencies!");
+            }
+
+            using (CallScope.CreateScope(descriptor.ImplementationType))
+            {
+                foreach (var constructorInfo in descriptor.Constrcutors.OrderByDescending(i => i.GetParameters().Length))
                 {
                     var parameterSites = BindConstructorParameters(constructorInfo, useDefauftParameterValue);
                     if (parameterSites == null)
@@ -140,10 +146,10 @@ namespace Tinja.Core.Injection.Dependencies
                     {
                         ParameterSites = parameterSites,
                         ConstructorInfo = constructorInfo,
-                        LifeStyle = entry.LifeStyle,
-                        ServiceType = entry.ServiceType,
-                        ServiceId = entry.ServiceId,
-                        ImplementationType = entry.ImplementationType
+                        LifeStyle = descriptor.LifeStyle,
+                        ServiceType = descriptor.ServiceType,
+                        ServiceId = descriptor.ServiceId,
+                        ImplementationType = descriptor.ImplementationType
                     };
 
                     break;
@@ -152,7 +158,7 @@ namespace Tinja.Core.Injection.Dependencies
 
             if (site != null)
             {
-                using (CallScope.CreateScope(entry.ImplementationType))
+                using (CallScope.CreateScope(descriptor.ImplementationType))
                 {
                     site.PropertySites = BindProperties(site);
                 }
@@ -161,9 +167,9 @@ namespace Tinja.Core.Injection.Dependencies
             return site;
         }
 
-        protected virtual GraphLazySite BuildLazy(ServiceLazyEntry entry)
+        protected virtual GraphSite BuildLazy(ServiceLazyDescriptor descriptor)
         {
-            foreach (var constructorInfo in entry.Constrcutors)
+            foreach (var constructorInfo in descriptor.Constrcutors)
             {
                 //new Lazy(()=>r=>r.ResolveService(T),true);
                 var parameterInfos = constructorInfo.GetParameters();
@@ -173,19 +179,17 @@ namespace Tinja.Core.Injection.Dependencies
                     continue;
                 }
 
-                using (CallScope.CreateTempScope(entry.ImplementationType))
+                return new GraphLazySite()
                 {
-                    return new GraphLazySite()
-                    {
-                        Tag = entry.Tag,
-                        LifeStyle = entry.LifeStyle,
-                        ServiceId = entry.ServiceId,
-                        ServiceType = entry.ServiceType,
-                        ValueType = entry.ImplementationType.GenericTypeArguments[0],
-                        ConstructorInfo = constructorInfo,
-                        ImplementationType = entry.ImplementationType
-                    };
-                }
+                    Tag = descriptor.Tag,
+                    TagOptional = descriptor.TagOptional,
+                    LifeStyle = descriptor.LifeStyle,
+                    ServiceId = descriptor.ServiceId,
+                    ValueType = descriptor.ImplementationType.GenericTypeArguments[0],
+                    ServiceType = descriptor.ServiceType,
+                    ConstructorInfo = constructorInfo,
+                    ImplementationType = descriptor.ImplementationType
+                };
             }
 
             return null;
@@ -218,8 +222,7 @@ namespace Tinja.Core.Injection.Dependencies
                 throw new ArgumentException(nameof(parameterInfo));
             }
 
-            var tag = parameterInfo.GetCustomAttribute<TagAttribute>();
-            var site = Build(parameterInfo.ParameterType, tag?.Value);
+            var site = Build(parameterInfo.ParameterType, parameterInfo.GetCustomAttribute<TagAttribute>());
             if (site != null)
             {
                 return site;
@@ -287,8 +290,7 @@ namespace Tinja.Core.Injection.Dependencies
 
         private GraphSite BindProperty(PropertyInfo propertyInfo)
         {
-            var tag = propertyInfo.GetCustomAttribute<TagAttribute>();
-            var site = Build(propertyInfo.PropertyType, tag?.Value);
+            var site = Build(propertyInfo.PropertyType, propertyInfo.GetCustomAttribute<TagAttribute>());
             if (site != null)
             {
                 return site;
@@ -306,14 +308,6 @@ namespace Tinja.Core.Injection.Dependencies
             }
 
             return null;
-        }
-
-        private void CheckCircularDependency(ServiceTypeEntry typeEntry)
-        {
-            if (CallScope.Contains(typeEntry.ImplementationType))
-            {
-                throw new GraphCircularException(typeEntry.ImplementationType, CallScope.Clone(), $"type:{typeEntry.ImplementationType.FullName} exists circular dependencies!");
-            }
         }
     }
 }

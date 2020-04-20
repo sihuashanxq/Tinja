@@ -2,16 +2,36 @@
 
 namespace Tinja.Abstractions.Injection
 {
-    public abstract class ServiceEntry
+    public class ServiceEntry
     {
-        public string Tag { get; set; }
-
-        public int ServiceId { get; set; }
+        public string[] Tags { get; set; }
 
         public Type ServiceType { get; set; }
 
+        public Type ImplementationType { get; set; }
+
         public ServiceLifeStyle LifeStyle { get; set; }
 
-        public static readonly ServiceEntry[] EmptyEntries = new ServiceEntry[0];
+        public object ImplementationInstance { get; set; }
+
+        public Func<IServiceResolver, object> ImplementationFactory { get; set; }
+
+        public ServiceEntry()
+        {
+
+        }
+
+        public ServiceEntry Clone()
+        {
+            return new ServiceEntry()
+            {
+                Tags = Tags ?? new string[0],
+                LifeStyle = LifeStyle,
+                ServiceType = ServiceType,
+                ImplementationType = ImplementationType,
+                ImplementationInstance = ImplementationInstance,
+                ImplementationFactory = ImplementationFactory
+            };
+        }
     }
 }

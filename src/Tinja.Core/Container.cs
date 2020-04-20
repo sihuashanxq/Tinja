@@ -10,16 +10,16 @@ namespace Tinja.Core
 {
     public sealed class Container : IContainer
     {
-        public ConcurrentDictionary<Type, List<ServiceDescriptor>> ServiceDescriptors { get; }
+        public ConcurrentDictionary<Type, List<ServiceEntry>> ServiceEntries { get; }
 
         public Container()
         {
-            ServiceDescriptors = new ConcurrentDictionary<Type, List<ServiceDescriptor>>();
+            ServiceEntries = new ConcurrentDictionary<Type, List<ServiceEntry>>();
         }
 
-        public IEnumerator<ServiceDescriptor> GetEnumerator()
+        public IEnumerator<ServiceEntry> GetEnumerator()
         {
-            return ServiceDescriptors.Values.SelectMany(item => item).GetEnumerator();
+            return ServiceEntries.Values.SelectMany(item => item).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using Xunit;
 using System.Linq;
 using System.Threading.Tasks;
-using Tinja.Abstractions.Extensions;
 using Tinja.Core;
-using Tinja.Core.Injection.Dependencies;
 using Tinja.Test.Fakes.Consturctor;
 using Tinja.Test.Fakes.Generic;
 using Tinja.Test.Fakes.Property;
+using Tinja.Core.Injection.Graphs;
 
 namespace Tinja.Test
 {

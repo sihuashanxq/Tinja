@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using Tinja.Abstractions.Injection;
 using Tinja.Abstractions.Injection.Graphs;
 
 namespace Tinja.Core.Injection.Activations
@@ -13,8 +12,6 @@ namespace Tinja.Core.Injection.Activations
 
         protected ConcurrentDictionary<Type, ActivatorCacheEntry> ActivatorCaches { get; }
 
-        static readonly Func<IServiceResolver, IServiceLifeScope, object> DefaultActivator = (r, s) => null;
-
         internal ActivatorProvider(ServiceLifeScope scope, IGraphSiteBuilderFactory factory)
         {
             ActivatorCaches = new ConcurrentDictionary<Type, ActivatorCacheEntry>();
@@ -22,106 +19,95 @@ namespace Tinja.Core.Injection.Activations
             SiteBuilderFactory = factory;
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> Get(Type serviceType)
+        internal ActivatorDelegate Get(Type serviceType)
         {
             if (ActivatorCaches.TryGetValue(serviceType, out var cacheEntry))
             {
-                if (cacheEntry.Activator != null)
+                if (cacheEntry.ActivatorDelegate != null)
                 {
-                    return cacheEntry.Activator;
+                    return cacheEntry.ActivatorDelegate;
                 }
 
-                return Create(serviceType, null, cacheEntry);
+                return CreateDelegate(serviceType, null, false, cacheEntry);
             }
 
-            return Create(serviceType, null, null);
+            return CreateDelegate(serviceType, null, false, null);
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> Get(Type serviceType, string tag)
+        internal ActivatorDelegate Get(Type serviceType, string tag, bool tagOptional)
         {
             if (tag == null)
             {
                 return Get(serviceType);
             }
 
+            if (tagOptional)
+            {
+                //this situation only for lazy,no cache
+                return CreateDelegate(serviceType, tag, tagOptional);
+            }
+
             if (ActivatorCaches.TryGetValue(serviceType, out var cacheEntry))
             {
-                if (cacheEntry.Tags != null &&
-                    cacheEntry.Tags.TryGetValue(tag, out var activator))
+                if (cacheEntry.TaggedActivatorDelegates != null &&
+                    cacheEntry.TaggedActivatorDelegates.TryGetValue(tag, out var activator))
                 {
                     return activator;
                 }
 
-                return Create(serviceType, tag, cacheEntry);
+                return CreateDelegate(serviceType, tag, tagOptional, cacheEntry);
             }
 
-            return Create(serviceType, tag, null);
+            return CreateDelegate(serviceType, tag, tagOptional, null);
         }
 
-        private Func<IServiceResolver, ServiceLifeScope, object> Create(Type serviceType, string tag, ActivatorCacheEntry cacheEntry)
+        private ActivatorDelegate CreateDelegate(Type serviceType, string tag, bool tagOptional, ActivatorCacheEntry cacheEntry)
         {
-            if (tag == null)
-            {
-                if (cacheEntry == null)
-                {
-                    cacheEntry = new ActivatorCacheEntry(Create(serviceType, tag));
-                    ActivatorCaches[serviceType] = cacheEntry;
-                }
-                else
-                {
-                    cacheEntry.Activator = Create(serviceType, tag);
-                }
-
-                return cacheEntry.Activator;
-            }
-
-            var activator = Create(serviceType, tag);
             if (cacheEntry == null)
             {
-                cacheEntry = new ActivatorCacheEntry(null)
-                {
-                    Tags = new ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>>()
-                };
-
+                cacheEntry = new ActivatorCacheEntry(null);
                 ActivatorCaches[serviceType] = cacheEntry;
             }
 
-            if (cacheEntry.Tags == null)
+            if (tag == null)
             {
-                cacheEntry.Tags = new ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>>();
+                return cacheEntry.ActivatorDelegate = CreateDelegate(serviceType, tag, tagOptional);
             }
 
-            cacheEntry.Tags[tag] = activator;
+            if (cacheEntry.TaggedActivatorDelegates == null)
+            {
+                cacheEntry.TaggedActivatorDelegates = new ConcurrentDictionary<string, ActivatorDelegate>();
+            }
 
-            return activator;
+            return cacheEntry.TaggedActivatorDelegates[tag] = CreateDelegate(serviceType, tag, tagOptional);
         }
 
-        private Func<IServiceResolver, ServiceLifeScope, object> Create(Type serviceType, string tag)
+        private ActivatorDelegate CreateDelegate(Type serviceType, string tag, bool tagOptional)
         {
             var siteBuilder = SiteBuilderFactory.Create();
             if (siteBuilder == null)
             {
-                return DefaultActivator;
+                return ActivatorUtil.DefaultActivator;
             }
 
-            var site = siteBuilder.Build(serviceType, tag);
+            var site = siteBuilder.Build(serviceType, tag, tagOptional);
             if (site == null)
             {
-                return DefaultActivator;
+                return ActivatorUtil.DefaultActivator;
             }
 
-            return ActivatorBuilder.Build(site) ?? DefaultActivator;
+            return ActivatorBuilder.Build(site) ?? ActivatorUtil.DefaultActivator;
         }
 
         protected class ActivatorCacheEntry
         {
-            public Func<IServiceResolver, ServiceLifeScope, object> Activator;
+            public ActivatorDelegate ActivatorDelegate;
 
-            public ConcurrentDictionary<string, Func<IServiceResolver, ServiceLifeScope, object>> Tags;
+            public ConcurrentDictionary<string, ActivatorDelegate> TaggedActivatorDelegates;
 
-            public ActivatorCacheEntry(Func<IServiceResolver, ServiceLifeScope, object> activator)
+            public ActivatorCacheEntry(ActivatorDelegate activator)
             {
-                Activator = activator;
+                ActivatorDelegate = activator;
             }
         }
     }

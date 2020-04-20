@@ -7,7 +7,7 @@ using Tinja.Abstractions.Injection.Graphs.Sites;
 
 namespace Tinja.Core.Injection.Activations
 {
-    public class ActivatorBuilder : GraphSiteVisitor<Expression>
+    internal class ActivatorBuilder : GraphSiteVisitor<Expression>
     {
         internal ServiceLifeScope ServiceRootScope { get; }
 
@@ -20,7 +20,7 @@ namespace Tinja.Core.Injection.Activations
             ServiceRootScope = serviceScope ?? throw new ArgumentNullException(nameof(serviceScope));
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> Build(GraphSite site)
+        internal ActivatorDelegate Build(GraphSite site)
         {
             if (site == null)
             {
@@ -29,15 +29,25 @@ namespace Tinja.Core.Injection.Activations
 
             if (site is GraphDelegateSite delegateSite)
             {
-                return BuildDelegateFactory(delegateSite);
+                return BuildStaticDelegate(delegateSite);
             }
 
             if (site is GraphInstanceSite instanceSite)
             {
-                return BuildInstanceFactory(instanceSite);
+                return BuildStaticInstance(instanceSite);
             }
 
-            return BuildExpressionFactory(site);
+            if (site is GraphConstantSite constantSite)
+            {
+                return BuildStaticConstant(constantSite);
+            }
+
+            if (site is GraphValueProviderSite valueProviderSite)
+            {
+                return BuildStaticValueProvider(valueProviderSite);
+            }
+
+            return BuildDynamicExpression(site);
         }
 
         protected override Expression VisitType(GraphTypeSite site)
@@ -74,14 +84,15 @@ namespace Tinja.Core.Injection.Activations
             }
 
             var newExpression = Expression.New(site.ConstructorInfo, parameterValues);
-            var memberInit = BindInitProperties(newExpression, site);
+            var memberInitExpression = BindInitProperties(newExpression, site);
 
-            if (site.LifeStyle == ServiceLifeStyle.Transient && site.ImplementationType.IsNotType<IDisposable>())
+            if (site.LifeStyle != ServiceLifeStyle.Transient ||
+                site.ImplementationType.IsType<IDisposable>())
             {
-                return memberInit;
+                memberInitExpression = CaptureServiceLifeExpression(memberInitExpression, site);
             }
 
-            return CaptureServiceLife(memberInit, site);
+            return memberInitExpression;
         }
 
         protected override Expression VisitLazy(GraphLazySite site)
@@ -91,29 +102,22 @@ namespace Tinja.Core.Injection.Activations
                 throw new ArgumentNullException(nameof(site));
             }
 
-            var newExpression = site.Tag != null ?
-                Expression.New(
-                    site.ConstructorInfo,
-                    Expression.Call(
-                        ActivatorUtil.MakeTagLazyValueFactoryMethod(site.ValueType),
-                        ParameterResolver,
-                        Expression.Constant(site.Tag)
-                    )
-                ) :
-                Expression.New(
-                    site.ConstructorInfo,
-                    Expression.Call(
-                        ActivatorUtil.MakeLazyValueFactoryMethod(site.ValueType),
-                        ParameterResolver
-                    )
-                );
+            var newExpression = (Expression)Expression.New(
+                site.ConstructorInfo,
+                Expression.Call(
+                    ActivatorUtil.GetLazyValueFactoryMethod.MakeGenericMethod(site.ValueType),
+                    ParameterScope,
+                    Expression.Constant(site.Tag, typeof(string)),
+                    Expression.Constant(site.TagOptional)
+                )
+            );
 
-            if (site.LifeStyle == ServiceLifeStyle.Transient)
+            if (site.LifeStyle != ServiceLifeStyle.Transient)
             {
-                return newExpression;
+                newExpression = CaptureServiceLifeExpression(newExpression, site);
             }
 
-            return CaptureServiceLife(newExpression, site);
+            return newExpression;
         }
 
         protected override Expression VisitConstant(GraphConstantSite site)
@@ -128,7 +132,7 @@ namespace Tinja.Core.Injection.Activations
                 throw new ArgumentNullException(nameof(site));
             }
 
-            return CaptureServiceLife(Expression.Constant(site.Instance), site);
+            return CaptureServiceLifeExpression(Expression.Constant(site.Instance), site);
         }
 
         protected override Expression VisitDelegate(GraphDelegateSite site)
@@ -143,7 +147,8 @@ namespace Tinja.Core.Injection.Activations
                 throw new ArgumentNullException(nameof(site));
             }
 
-            return CaptureServiceLife((r, s) => site.Delegate(r), site);
+            var facotry = site.Delegate;
+            return CaptureServiceLifeExpression((r, s) => facotry(r), site);
         }
 
         protected override Expression VisitEnumerable(GraphEnumerableSite site)
@@ -207,7 +212,107 @@ namespace Tinja.Core.Injection.Activations
             return Expression.MemberInit(newExpression, properties);
         }
 
-        protected Expression CaptureServiceLife(Expression serviceExpression, GraphSite site)
+        internal ActivatorDelegate BuildDynamicExpression(GraphSite site)
+        {
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            var lambdaBody = Visit(site);
+            if (lambdaBody == null)
+            {
+                throw new NullReferenceException(nameof(lambdaBody));
+            }
+
+            return Expression
+                .Lambda<ActivatorDelegate>(lambdaBody, ParameterResolver, ParameterScope)
+                .Compile();
+        }
+
+        internal ActivatorDelegate BuildStaticDelegate(GraphDelegateSite site)
+        {
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            var factory = site.Delegate;
+            return CaptureServiceLife((r, s) => factory(r), site);
+        }
+
+        internal ActivatorDelegate BuildStaticInstance(GraphInstanceSite site)
+        {
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            var instance = site.Instance;
+            var serviceId = site.ServiceId;
+
+            ServiceRootScope.CreateCapturedScopedService(serviceId, (r, s) => instance);
+          
+            return (r, s) => instance;
+        }
+
+        internal ActivatorDelegate BuildStaticConstant(GraphConstantSite site)
+        {
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            //primitive
+            var instance = site.Constant;
+            return (r, s) => instance;
+        }
+
+        internal ActivatorDelegate BuildStaticValueProvider(GraphValueProviderSite site)
+        {
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            var factory = site.Provider;
+            return CaptureServiceLife((r, s) => factory(r), site);
+        }
+
+        internal virtual ActivatorDelegate CaptureServiceLife(ActivatorDelegate activatorDelegate, GraphSite site)
+        {
+            if (activatorDelegate == null)
+            {
+                throw new ArgumentNullException(nameof(activatorDelegate));
+            }
+
+            if (site == null)
+            {
+                throw new ArgumentNullException(nameof(site));
+            }
+
+            if (site.ServiceType.IsType<IServiceResolver>())
+            {
+                return (r, s) => r;
+            }
+
+            if (site.ServiceType.IsType<IServiceLifeScope>())
+            {
+                return (r, s) => s;
+            }
+
+            switch (site.LifeStyle)
+            {
+                case ServiceLifeStyle.Scoped:
+                    return CaptureScopedServiceFactory(activatorDelegate, site);
+                case ServiceLifeStyle.Singleton:
+                    return CaptureSingletonServiceFactory(activatorDelegate, site);
+                default:
+                    return CaptureTransientServiceFactory(activatorDelegate, site);
+            }
+        }
+
+        internal virtual Expression CaptureServiceLifeExpression(Expression serviceExpression, GraphSite site)
         {
             if (serviceExpression == null)
             {
@@ -229,18 +334,18 @@ namespace Tinja.Core.Injection.Activations
                 return ParameterScope;
             }
 
-            //optimization
-            var lambda = Expression.Lambda(serviceExpression, ParameterResolver, ParameterScope);
-            var compiledFunc = (Func<IServiceResolver, ServiceLifeScope, object>)lambda.Compile();
+            var activatorDelegate = Expression
+                .Lambda<ActivatorDelegate>(serviceExpression, ParameterResolver, ParameterScope)
+                .Compile();
 
-            return CaptureServiceLife(compiledFunc, site);
+            return CaptureServiceLifeExpression(activatorDelegate, site);
         }
 
-        internal Expression CaptureServiceLife(Func<IServiceResolver, ServiceLifeScope, object> factory, GraphSite site)
+        internal virtual Expression CaptureServiceLifeExpression(ActivatorDelegate activatorDelegate, GraphSite site)
         {
-            if (factory == null)
+            if (activatorDelegate == null)
             {
-                throw new ArgumentNullException(nameof(factory));
+                throw new ArgumentNullException(nameof(activatorDelegate));
             }
 
             if (site == null)
@@ -260,77 +365,34 @@ namespace Tinja.Core.Injection.Activations
 
             if (site.LifeStyle == ServiceLifeStyle.Singleton)
             {
-                return Expression.Constant(ServiceRootScope.CreateCapturedService(site.ServiceId, factory));
+                var serviveId = site.ServiceId;
+                var instance = ServiceRootScope.CreateCapturedScopedService(serviveId, activatorDelegate);
+                return Expression.Constant(instance);
             }
 
-            if (site.LifeStyle == ServiceLifeStyle.Transient)
-            {
-                return Expression.Invoke(ActivatorUtil.CreateCapturedTransientServie, ParameterScope, Expression.Constant(factory));
-            }
-
-            return Expression.Invoke(ActivatorUtil.CreateCapturedScopedService, Expression.Constant(site.ServiceId), ParameterScope, Expression.Constant(factory));
+            return Expression.Invoke(
+                Expression.Constant(CaptureServiceLife(activatorDelegate, site)),
+                ParameterResolver,
+                ParameterScope
+            );
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> BuildExpressionFactory(GraphSite site)
+        internal virtual ActivatorDelegate CaptureScopedServiceFactory(ActivatorDelegate activatorDelegate, GraphSite site)
         {
-            if (site == null)
-            {
-                throw new ArgumentNullException(nameof(site));
-            }
-
-            var lambdaBody = Visit(site);
-            if (lambdaBody == null)
-            {
-                throw new NullReferenceException(nameof(lambdaBody));
-            }
-
-            return (Func<IServiceResolver, ServiceLifeScope, object>)
-                Expression.Lambda(lambdaBody, ParameterResolver, ParameterScope).Compile();
+            var serviecId = site.ServiceId;
+            return (r, s) => s.CreateCapturedScopedService(serviecId, activatorDelegate);
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> BuildDelegateFactory(GraphDelegateSite site)
+        internal virtual ActivatorDelegate CaptureSingletonServiceFactory(ActivatorDelegate activatorDelegate, GraphSite site)
         {
-            if (site == null)
-            {
-                throw new ArgumentNullException(nameof(site));
-            }
-
-            if (site.ServiceType.IsType<IServiceLifeScope>())
-            {
-                return (r, s) => s;
-            }
-
-            if (site.ServiceType.IsType<IServiceResolver>())
-            {
-                return (r, s) => r;
-            }
-
-            if (site.LifeStyle == ServiceLifeStyle.Transient)
-            {
-                return (r, s) => s.CreateCapturedService((r1, s1) => site.Delegate(r1));
-            }
-
-            if (site.LifeStyle == ServiceLifeStyle.Scoped)
-            {
-
-                return (r, s) => s.CreateCapturedService(site.ServiceId, (r1, s1) => site.Delegate(r1));
-            }
-
-            var instance = ServiceRootScope.CreateCapturedService(site.ServiceId, (r, s) => site.Delegate(r));
-
+            var serviceId = site.ServiceId;
+            var instance = ServiceRootScope.CreateCapturedScopedService(serviceId, activatorDelegate);
             return (r, s) => instance;
         }
 
-        internal Func<IServiceResolver, ServiceLifeScope, object> BuildInstanceFactory(GraphInstanceSite site)
+        internal virtual ActivatorDelegate CaptureTransientServiceFactory(ActivatorDelegate activatorDelegate, GraphSite site)
         {
-            if (site == null)
-            {
-                throw new ArgumentNullException(nameof(site));
-            }
-
-            ServiceRootScope.CreateCapturedService(site.ServiceId, (r, s) => site.Instance);
-
-            return (r, s) => site.Instance;
+            return (r, s) => s.CreateCapturedService(activatorDelegate);
         }
     }
 }
